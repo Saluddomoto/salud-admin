@@ -1,0 +1,6 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "cd ../.. && pnpm build --filter=@salud/admin",
+  "installCommand": "cd ../.. && pnpm install",
+  "outputDirectory": ".next"
+}

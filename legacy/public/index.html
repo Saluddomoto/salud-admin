@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Salud — 案件・スケジュール管理ボード</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Fonts: Outfit, Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="h-full flex text-slate-700 font-sans">
+
+  <!-- 左側サイドバー（domoto風） -->
+  <aside class="w-64 border-r border-slate-200 bg-white flex flex-col h-full flex-shrink-0">
+    <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-semibold shadow-md shadow-indigo-100">S</div>
+      <span class="font-outfit text-xl font-bold tracking-tight text-slate-800">Salud board</span>
+    </div>
+    
+    <nav class="flex-1 p-4 space-y-1">
+      <button onclick="switchTab('dashboard')" id="btn-dashboard" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium transition-all text-slate-500 hover:bg-slate-50 hover:text-slate-900">
+        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+        <span>ダッシュボード</span>
+      </button>
+      <button onclick="switchTab('projects')" id="btn-projects" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium transition-all text-slate-500 hover:bg-slate-50 hover:text-slate-900">
+        <i data-lucide="folder" class="w-5 h-5"></i>
+        <span>プロジェクト</span>
+      </button>
+      <button onclick="switchTab('board')" id="btn-board" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium transition-all text-slate-500 hover:bg-slate-50 hover:text-slate-900">
+        <i data-lucide="kanban-square" class="w-5 h-5"></i>
+        <span>ボード</span>
+      </button>
+      <button onclick="switchTab('calendar')" id="btn-calendar" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium transition-all text-slate-500 hover:bg-slate-50 hover:text-slate-900">
+        <i data-lucide="calendar" class="w-5 h-5"></i>
+        <span>カレンダー</span>
+      </button>
+      <button onclick="switchTab('members')" id="btn-members" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium transition-all text-slate-500 hover:bg-slate-50 hover:text-slate-900">
+        <i data-lucide="users" class="w-5 h-5"></i>
+        <span>メンバー</span>
+      </button>
+    </nav>
+
+    <div class="p-4 border-t border-slate-100">
+      <div class="flex items-center gap-3 p-2">
+        <div class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600 text-sm">S</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-slate-800 truncate">Salud管理者</p>
+          <p class="text-xs text-slate-500 truncate">info@salud.co.jp</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 右側メインコンテンツエリア -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50/50">
+    <header class="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-8 flex-shrink-0">
+      <h1 id="page-title" class="text-xl font-bold text-slate-800">ダッシュボード</h1>
+      <div class="flex items-center gap-4">
+        <!-- 同期ボタン -->
+        <button onclick="fetchData()" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm font-medium transition-all">
+          <i data-lucide="rotate-cw" class="w-4 h-4" id="sync-icon"></i>
+          <span>同期する</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="flex-1 p-8">
+      <!-- 1. ダッシュボード画面 -->
+      <section id="tab-dashboard" class="space-y-8 tab-content">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-slate-400">プロジェクト数</p>
+              <h3 id="stat-projects" class="text-3xl font-bold text-slate-800 mt-2">0</h3>
+            </div>
+            <div class="p-3 bg-indigo-50 rounded-xl text-indigo-600"><i data-lucide="folder"></i></div>
+          </div>
+          <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-slate-400">タスク総数</p>
+              <h3 id="stat-tasks" class="text-3xl font-bold text-slate-800 mt-2">0</h3>
+            </div>
+            <div class="p-3 bg-blue-50 rounded-xl text-blue-600"><i data-lucide="list-todo"></i></div>
+          </div>
+          <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-slate-400">進行中</p>
+              <h3 id="stat-ongoing" class="text-3xl font-bold text-slate-800 mt-2">0</h3>
+            </div>
+            <div class="p-3 bg-amber-50 rounded-xl text-amber-600"><i data-lucide="play"></i></div>
+          </div>
+          <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-slate-400">受注見込総額</p>
+              <h3 id="stat-sales" class="text-3xl font-bold text-slate-800 mt-2">¥0</h3>
+            </div>
+            <div class="p-3 bg-emerald-50 rounded-xl text-emerald-600"><i data-lucide="coins"></i></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <h3 class="text-lg font-bold text-slate-800 mb-6">プロジェクト進捗</h3>
+            <div id="dashboard-progress-list" class="space-y-6">
+              <!-- JSで動的生成 -->
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <h3 class="text-lg font-bold text-slate-800 mb-6">直近のアクション</h3>
+            <div id="dashboard-action-list" class="space-y-4">
+              <!-- JSで動的生成 -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. プロジェクト一覧画面 -->
+      <section id="tab-projects" class="space-y-6 tab-content hidden">
+        <div class="flex justify-between items-center">
+          <p id="project-count" class="text-sm text-slate-500">0 件のプロジェクト</p>
+        </div>
+        <div id="project-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- JSで動的生成 -->
+        </div>
+      </section>
+
+      <!-- 3. ボード画面 -->
+      <section id="tab-board" class="space-y-6 tab-content hidden">
+        <div class="flex justify-between items-center">
+          <p class="text-sm text-slate-500">ドラッグ＆ドロップでステータスを変更できます</p>
+          <select id="board-project-select" onchange="renderBoard()" class="px-4 py-2 rounded-xl border border-slate-200 bg-white font-medium shadow-sm outline-none">
+            <option value="all">すべてのプロジェクト</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 h-[calc(100vh-280px)] min-h-[400px]">
+          <!-- 未着手 -->
+          <div class="flex flex-col bg-slate-50 rounded-2xl p-4 border border-slate-200/50">
+            <div class="flex items-center justify-between mb-4 px-2">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                <span class="font-bold text-slate-700">未着手</span>
+              </div>
+              <span id="count-todo" class="px-2 py-0.5 rounded-md bg-slate-200/50 text-xs font-semibold text-slate-500">0</span>
+            </div>
+            <div id="col-todo" class="flex-1 space-y-4 overflow-y-auto" ondragover="allowDrop(event)" ondrop="handleDrop(event, '商談設定')">
+              <!-- JSで動的生成 -->
+            </div>
+          </div>
+          <!-- 進行中 -->
+          <div class="flex flex-col bg-slate-50 rounded-2xl p-4 border border-slate-200/50">
+            <div class="flex items-center justify-between mb-4 px-2">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                <span class="font-bold text-slate-700">進行中</span>
+              </div>
+              <span id="count-ongoing" class="px-2 py-0.5 rounded-md bg-indigo-50 text-xs font-semibold text-indigo-500">0</span>
+            </div>
+            <div id="col-ongoing" class="flex-1 space-y-4 overflow-y-auto" ondragover="allowDrop(event)" ondrop="handleDrop(event, '進行中')">
+              <!-- JSで動的生成 -->
+            </div>
+          </div>
+          <!-- レビュー -->
+          <div class="flex flex-col bg-slate-50 rounded-2xl p-4 border border-slate-200/50">
+            <div class="flex items-center justify-between mb-4 px-2">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-fuchsia-500"></span>
+                <span class="font-bold text-slate-700">レビュー</span>
+              </div>
+              <span id="count-review" class="px-2 py-0.5 rounded-md bg-fuchsia-50 text-xs font-semibold text-fuchsia-500">0</span>
+            </div>
+            <div id="col-review" class="flex-1 space-y-4 overflow-y-auto" ondragover="allowDrop(event)" ondrop="handleDrop(event, 'レビュー')">
+              <!-- JSで動的生成 -->
+            </div>
+          </div>
+          <!-- 完了 -->
+          <div class="flex flex-col bg-slate-50 rounded-2xl p-4 border border-slate-200/50">
+            <div class="flex items-center justify-between mb-4 px-2">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <span class="font-bold text-slate-700">完了</span>
+              </div>
+              <span id="count-done" class="px-2 py-0.5 rounded-md bg-emerald-50 text-xs font-semibold text-emerald-500">0</span>
+            </div>
+            <div id="col-done" class="flex-1 space-y-4 overflow-y-auto" ondragover="allowDrop(event)" ondrop="handleDrop(event, '成約')">
+              <!-- JSで動的生成 -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. カレンダー画面 -->
+      <section id="tab-calendar" class="space-y-6 tab-content hidden">
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <div class="flex items-center justify-between mb-6">
+            <h3 id="calendar-month-label" class="text-lg font-bold text-slate-800">2026年 6月</h3>
+            <div class="flex gap-2">
+              <button onclick="prevMonth()" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+              <button onclick="setToday()" class="px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm font-medium transition-all">今日</button>
+              <button onclick="nextMonth()" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+            </div>
+          </div>
+          <!-- 曜日ヘッダー -->
+          <div class="grid grid-cols-7 gap-px bg-slate-200 rounded-t-xl overflow-hidden text-center text-xs font-bold text-slate-500 py-3">
+            <div class="text-rose-500">日</div>
+            <div>月</div>
+            <div>火</div>
+            <div>水</div>
+            <div>木</div>
+            <div>金</div>
+            <div class="text-indigo-500">土</div>
+          </div>
+          <!-- 日付グリッド -->
+          <div id="calendar-grid" class="grid grid-cols-7 gap-px bg-slate-200 border-l border-r border-b border-slate-200 rounded-b-xl overflow-hidden h-[500px]">
+            <!-- JSで動的生成 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. メンバー管理画面 -->
+      <section id="tab-members" class="space-y-6 tab-content hidden">
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-100 text-slate-400 font-semibold text-sm">
+                <th class="py-4 px-6">名前</th>
+                <th class="py-4 px-6">担当案件数</th>
+                <th class="py-4 px-6">担当ステータス</th>
+              </tr>
+            </thead>
+            <tbody id="member-table-body" class="divide-y divide-slate-100 text-slate-700">
+              <!-- JSで動的生成 -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

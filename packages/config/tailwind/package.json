@@ -1,0 +1,10 @@
+{
+  "name": "@salud/tailwind-config",
+  "version": "0.0.1",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "index.ts",
+  "dependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

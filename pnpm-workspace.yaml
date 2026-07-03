@@ -1,0 +1,9 @@
+# pnpm ワークスペース設定
+# apps/* と packages/* 配下のすべてのパッケージをワークスペースとして認識する
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'packages/config/*'
+allowBuilds:
+  protobufjs: true
+  unrs-resolver: true

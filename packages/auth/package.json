@@ -1,0 +1,23 @@
+{
+  "name": "@salud/auth",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "@salud/database": "workspace:*"
+  },
+  "devDependencies": {
+    "@salud/typescript-config": "workspace:*",
+    "@types/react": "^18.0.0",
+    "react": "^18.0.0",
+    "typescript": "^5.6.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
+  }
+}

@@ -1,0 +1,125 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ================================================================
+    // ヘルパー関数
+    // ================================================================
+
+    // 認証済みユーザーかどうか
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // ユーザー自身のドキュメントか
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // ロール取得（Firestoreのusersドキュメントから）
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && getRole() == 'admin';
+    }
+
+    function isManager() {
+      return isAuthenticated() && (getRole() == 'manager' || getRole() == 'admin');
+    }
+
+    function isStaff() {
+      return isAuthenticated() && (
+        getRole() == 'staff' || getRole() == 'manager' || getRole() == 'admin'
+      );
+    }
+
+    // ================================================================
+    // ユーザー
+    // ================================================================
+    match /users/{userId} {
+      allow read: if isStaff();
+      allow create: if isAdmin();
+      allow update: if isAdmin() || isOwner(userId);
+      allow delete: if isAdmin();
+    }
+
+    // ================================================================
+    // 顧客
+    // ================================================================
+    match /customers/{customerId} {
+      allow read: if isStaff();
+      allow create, update: if isStaff();
+      allow delete: if isManager();
+
+      // 顧客担当者（サブコレクション）
+      match /contacts/{contactId} {
+        allow read: if isStaff();
+        allow create, update: if isStaff();
+        allow delete: if isManager();
+      }
+    }
+
+    // ================================================================
+    // 案件
+    // ================================================================
+    match /projects/{projectId} {
+      allow read: if isStaff();
+      allow create, update: if isStaff();
+      allow delete: if isManager();
+    }
+
+    // ================================================================
+    // タスク
+    // ================================================================
+    match /tasks/{taskId} {
+      allow read: if isStaff();
+      allow create, update: if isStaff();
+      allow delete: if isManager();
+    }
+
+    // ================================================================
+    // 面談
+    // ================================================================
+    match /meetings/{meetingId} {
+      allow read: if isStaff();
+      allow create, update: if isStaff();
+      allow delete: if isManager();
+    }
+
+    // ================================================================
+    // 書類
+    // ================================================================
+    match /documents/{documentId} {
+      allow read: if isStaff();
+      allow create, update: if isStaff();
+      allow delete: if isManager();
+    }
+
+    // ================================================================
+    // 監査ログ（書き込みのみ・読み取りはadminのみ）
+    // ================================================================
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isStaff();
+      allow update, delete: if false; // 監査ログは変更・削除不可
+    }
+
+    // ================================================================
+    // 将来: 通知・電子契約・請求書など
+    // ================================================================
+    match /notifications/{notificationId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow update: if isOwner(resource.data.userId);
+      allow delete: if false;
+    }
+
+    // デフォルト: すべて拒否
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

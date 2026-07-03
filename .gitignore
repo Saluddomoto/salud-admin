@@ -1,0 +1,38 @@
+# 依存パッケージ
+node_modules/
+.pnpm-store/
+
+# ビルド成果物
+.next/
+dist/
+out/
+build/
+
+# 環境変数（機密情報を含むため絶対にコミットしない）
+.env
+.env.local
+.env.*.local
+
+# Supabase
+.supabase/
+
+# エディタ
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Turborepo キャッシュ
+.turbo/
+
+# テストカバレッジ
+coverage/
+
+# ログ
+*.log
+npm-debug.log*
+pnpm-debug.log*
