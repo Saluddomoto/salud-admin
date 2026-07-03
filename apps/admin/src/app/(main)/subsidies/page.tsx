@@ -1,44 +1,51 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { mockProjects, type ProjectColumn } from '@/lib/mock-data'
+import { fetchProjects, formatAmount, type DbProject } from '@/lib/db'
 
-const STATUS_META: Record<ProjectColumn, { label: string; cls: string }> = {
+const STATUS_META: Record<DbProject['status'], { label: string; cls: string }> = {
   planning:    { label: '準備中',     cls: 'bg-slate-100 text-slate-600' },
   in_progress: { label: '申請準備中', cls: 'bg-amber-100 text-amber-700' },
   submitted:   { label: '申請済み',   cls: 'bg-indigo-100 text-indigo-700' },
   accepted:    { label: '採択',       cls: 'bg-emerald-100 text-emerald-700' },
+  rejected:    { label: '不採択',     cls: 'bg-rose-100 text-rose-700' },
+  completed:   { label: '完了',       cls: 'bg-slate-100 text-slate-500' },
 }
 
-const FILTERS: { key: '' | ProjectColumn; label: string }[] = [
+const FILTERS = [
   { key: '',            label: 'すべて' },
   { key: 'planning',    label: '準備中' },
   { key: 'in_progress', label: '申請準備中' },
   { key: 'submitted',   label: '申請済み' },
   { key: 'accepted',    label: '採択' },
-]
+] as const
 
 export default function SubsidiesPage() {
-  const [filter, setFilter] = useState<'' | ProjectColumn>('')
+  const [projects, setProjects] = useState<DbProject[]>([])
+  const [loading,  setLoading]  = useState(true)
+  const [filter,   setFilter]   = useState('')
 
-  const filtered = filter ? mockProjects.filter(p => p.status === filter) : mockProjects
-  const accepted = mockProjects.filter(p => p.status === 'accepted').length
-  const inFlight = mockProjects.filter(p => p.status === 'submitted').length
+  useEffect(() => {
+    fetchProjects().then(setProjects).finally(() => setLoading(false))
+  }, [])
+
+  const filtered = filter ? projects.filter(p => p.status === filter) : projects
+  const accepted = projects.filter(p => p.status === 'accepted')
+  const inFlight = projects.filter(p => p.status === 'submitted')
+  const active   = projects.filter(p => !['accepted', 'rejected', 'completed'].includes(p.status))
+  const total    = projects.reduce((sum, p) => sum + (p.applied_amount ?? 0), 0)
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <PageHeader title="補助金管理" description="申請状況の一覧・進捗管理">
-        <button className="btn-primary text-sm">+ 申請を登録</button>
-      </PageHeader>
+      <PageHeader title="補助金管理" description="申請状況の一覧・進捗管理" />
 
-      {/* サマリー */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: '進行中の申請', value: `${mockProjects.length - accepted}件`, color: 'text-slate-900' },
-          { label: '審査待ち',     value: `${inFlight}件`,  color: 'text-indigo-600' },
-          { label: '採択済み',     value: `${accepted}件`,  color: 'text-emerald-600' },
-          { label: '申請総額',     value: '¥6,200万',       color: 'text-slate-900' },
+          { label: '進行中の申請', value: `${active.length}件`,   color: 'text-slate-900' },
+          { label: '審査待ち',     value: `${inFlight.length}件`, color: 'text-indigo-600' },
+          { label: '採択済み',     value: `${accepted.length}件`, color: 'text-emerald-600' },
+          { label: '申請総額',     value: formatAmount(total),    color: 'text-slate-900' },
         ].map(s => (
           <div key={s.label} className="card p-4">
             <p className="text-xs text-slate-500">{s.label}</p>
@@ -47,7 +54,6 @@ export default function SubsidiesPage() {
         ))}
       </div>
 
-      {/* フィルター */}
       <div className="flex gap-2">
         {FILTERS.map(f => (
           <button
@@ -64,7 +70,6 @@ export default function SubsidiesPage() {
         ))}
       </div>
 
-      {/* テーブル */}
       <div className="card overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -78,19 +83,27 @@ export default function SubsidiesPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(p => {
+            {loading && (
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">読み込み中...</td></tr>
+            )}
+            {!loading && filtered.map(p => {
               const st = STATUS_META[p.status]
               return (
-                <tr key={p.id} className="cursor-pointer border-b border-slate-50 transition-colors hover:bg-slate-50/60">
+                <tr key={p.id} className="border-b border-slate-50 transition-colors hover:bg-slate-50/60">
                   <td className="px-4 py-3 font-medium text-slate-900">{p.title}</td>
-                  <td className="px-4 py-3 text-slate-700">{p.customer}</td>
-                  <td className="px-4 py-3 font-semibold text-slate-800">{p.amount}</td>
-                  <td className="px-4 py-3 text-slate-500">{p.deadline}</td>
+                  <td className="px-4 py-3 text-slate-700">{p.customers?.company_name ?? '—'}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-800">{formatAmount(p.applied_amount)}</td>
+                  <td className="px-4 py-3 text-slate-500">{p.deadline ?? '—'}</td>
                   <td className="px-4 py-3"><span className={`badge ${st.cls}`}>{st.label}</span></td>
-                  <td className="px-4 py-3 text-slate-700">{p.assignee}</td>
+                  <td className="px-4 py-3 text-slate-700">{p.profiles?.full_name ?? '—'}</td>
                 </tr>
               )
             })}
+            {!loading && filtered.length === 0 && (
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">
+                案件がありません。「案件管理」から登録してください。
+              </td></tr>
+            )}
           </tbody>
         </table>
       </div>
