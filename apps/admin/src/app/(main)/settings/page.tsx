@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { mockMembers } from '@/lib/mock-data'
+import { useAuth } from '@/hooks/useAuth'
+import { fetchMyProfile, fetchProfiles, updateMyProfile, type DbProfile } from '@/lib/db'
 
 const TABS = [
   { key: 'profile',       label: 'プロフィール' },
@@ -22,6 +23,37 @@ const ROLE_META = {
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<TabKey>('profile')
+  const { user } = useAuth()
+  const [me,         setMe]         = useState<DbProfile | null>(null)
+  const [members,    setMembers]    = useState<DbProfile[]>([])
+  const [fullName,   setFullName]   = useState('')
+  const [department, setDepartment] = useState('')
+  const [saving,     setSaving]     = useState(false)
+  const [saved,      setSaved]      = useState(false)
+
+  useEffect(() => {
+    fetchMyProfile().then(p => {
+      setMe(p)
+      setFullName(p?.full_name ?? '')
+      setDepartment(p?.department ?? '')
+    })
+    fetchProfiles().then(setMembers).catch(() => setMembers([]))
+  }, [])
+
+  const handleSaveProfile = async () => {
+    setSaving(true)
+    setSaved(false)
+    try {
+      await updateMyProfile({ full_name: fullName, department: department || null })
+      setSaved(true)
+    } catch (e) {
+      alert(`保存に失敗しました: ${e instanceof Error ? e.message : e}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const myRole = ROLE_META[(me?.role ?? 'staff') as keyof typeof ROLE_META]
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -53,23 +85,26 @@ export default function SettingsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">氏名</label>
-                  <input className="input" defaultValue="管理者" />
+                  <input className="input" value={fullName} onChange={e => setFullName(e.target.value)} />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">メールアドレス</label>
-                  <input className="input" defaultValue="admin@salud.co.jp" disabled />
+                  <input className="input" value={user?.email ?? ''} disabled />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">部署</label>
-                  <input className="input" placeholder="コンサルティング部" />
+                  <input className="input" placeholder="コンサルティング部" value={department} onChange={e => setDepartment(e.target.value)} />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">権限</label>
-                  <input className="input" defaultValue="管理者" disabled />
+                  <input className="input" value={myRole.label} disabled />
                 </div>
               </div>
-              <div className="flex justify-end border-t border-slate-100 pt-4">
-                <button className="btn-primary text-sm">保存</button>
+              <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+                {saved && <span className="text-sm text-emerald-600">保存しました</span>}
+                <button className="btn-primary text-sm" onClick={handleSaveProfile} disabled={saving || !me}>
+                  {saving ? '保存中...' : '保存'}
+                </button>
               </div>
             </div>
           )}
@@ -81,21 +116,27 @@ export default function SettingsPage() {
                 <button className="btn-primary text-sm">+ メンバーを招待</button>
               </div>
               <div className="divide-y divide-slate-50">
-                {mockMembers.map(m => {
-                  const role = ROLE_META[m.role as keyof typeof ROLE_META]
+                {members.map(m => {
+                  const role = ROLE_META[m.role as keyof typeof ROLE_META] ?? ROLE_META.staff
                   return (
-                    <div key={m.email} className="flex items-center gap-3 py-3">
+                    <div key={m.id} className="flex items-center gap-3 py-3">
                       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
-                        {m.name[0]}
+                        {m.full_name[0] ?? '?'}
                       </span>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-800">{m.name}</p>
-                        <p className="text-xs text-slate-400">{m.email} · {m.department}</p>
+                        <p className="text-sm font-medium text-slate-800">{m.full_name || '（未設定）'}</p>
+                        <p className="text-xs text-slate-400">{m.department ?? '部署未設定'}</p>
                       </div>
+                      {!m.is_active && <span className="badge bg-slate-100 text-xs text-slate-400">停止中</span>}
                       <span className={`badge text-xs ${role.cls}`}>{role.label}</span>
                     </div>
                   )
                 })}
+                {members.length === 0 && (
+                  <p className="py-8 text-center text-sm text-slate-400">
+                    メンバー一覧を表示する権限がありません
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -133,8 +174,10 @@ export default function SettingsPage() {
                 <button className="btn-primary text-sm">パスワードを変更</button>
               </div>
               <div className="card p-6">
-                <h3 className="mb-2 font-semibold text-slate-900">ログイン履歴</h3>
-                <p className="text-sm text-slate-500">最終ログイン: 2026-07-03 09:12（Tokyo, Japan）</p>
+                <h3 className="mb-2 font-semibold text-slate-900">ログイン情報</h3>
+                <p className="text-sm text-slate-500">
+                  最終ログイン: {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString('ja-JP') : '—'}
+                </p>
               </div>
             </div>
           )}
