@@ -23,9 +23,10 @@ export async function GET(req: Request) {
   const admin = createAdminClient()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
 
-  const [{ data: members }, { data: events }, { data: tasks }, { count: needsReply }] = await Promise.all([
+  const [{ data: members }, { data: allProfiles }, { data: events }, { data: tasks }, { count: needsReply }] = await Promise.all([
     admin.from('profiles').select('id, full_name, line_user_id')
       .not('line_user_id', 'is', null).eq('is_active', true),
+    admin.from('profiles').select('id, full_name'),
     admin.from('events').select('title, start_time, end_time, assigned_user_id')
       .eq('event_date', today).order('start_time'),
     admin.from('tasks').select('title, due_date, assigned_user_id')
@@ -33,6 +34,8 @@ export async function GET(req: Request) {
     admin.from('messages').select('id', { count: 'exact', head: true })
       .eq('needs_reply', true),
   ])
+
+  const nameOf = new Map((allProfiles ?? []).map(p => [p.id, p.full_name]))
 
   const dateLabel = `${Number(today.slice(5, 7))}/${Number(today.slice(8, 10))}`
   let sent = 0
@@ -52,6 +55,15 @@ export async function GET(req: Request) {
     lines.push(myTasks.length
       ? myTasks.map(t => `・${t.title}（期限 ${t.due_date}）`).join('\n')
       : '・期限のタスクはありません')
+
+    // チーム全体の予定（自分以外の分も共有）
+    const teamEvents = (events ?? []).filter(e => e.assigned_user_id !== m.id)
+    if (teamEvents.length) {
+      lines.push('', '👥 チームの予定')
+      lines.push(teamEvents
+        .map(e => `・${e.start_time.slice(0, 5)} ${e.title}（${nameOf.get(e.assigned_user_id) ?? '—'}）`)
+        .join('\n'))
+    }
 
     if ((needsReply ?? 0) > 0) {
       lines.push('', `💬 要返信メッセージが ${needsReply} 件あります`)
