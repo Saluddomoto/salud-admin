@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { linePush } from '@salud/line'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { syncGoogleCalendars } from '@/lib/google'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -16,6 +17,11 @@ export async function GET(req: Request) {
   }
   if (!accessToken) {
     return NextResponse.json({ error: 'LINE_CHANNEL_ACCESS_TOKEN が未設定です' }, { status: 503 })
+  }
+
+  // 配信前に Google カレンダーを最新化（失敗しても配信は続行）
+  if (process.env.GOOGLE_CLIENT_ID) {
+    await syncGoogleCalendars({ force: true }).catch(e => console.error('digest: google sync failed', e))
   }
 
   // サーバーは UTC で動くため JST の「今日」を明示的に計算する

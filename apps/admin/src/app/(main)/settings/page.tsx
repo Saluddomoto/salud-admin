@@ -21,6 +21,14 @@ const ROLE_META = {
   staff:   { label: '一般',         cls: 'bg-slate-100 text-slate-600' },
 } as const
 
+type GoogleState = {
+  connected: boolean
+  calendar_id?: string | null
+  calendar_name?: string | null
+  last_synced_at?: string | null
+  calendars?: { id: string; summary: string }[]
+}
+
 export default function SettingsPage() {
   const [tab, setTab] = useState<TabKey>('profile')
   const { user } = useAuth()
@@ -31,6 +39,13 @@ export default function SettingsPage() {
   const [saving,     setSaving]     = useState(false)
   const [saved,      setSaved]      = useState(false)
 
+  const [google,        setGoogle]        = useState<GoogleState | null>(null)
+  const [googleBusy,    setGoogleBusy]    = useState(false)
+
+  const loadGoogle = () => {
+    fetch('/api/google/state').then(r => r.json()).then(setGoogle).catch(() => setGoogle({ connected: false }))
+  }
+
   useEffect(() => {
     fetchMyProfile().then(p => {
       setMe(p)
@@ -38,7 +53,40 @@ export default function SettingsPage() {
       setDepartment(p?.department ?? '')
     })
     fetchProfiles().then(setMembers).catch(() => setMembers([]))
+    loadGoogle()
+    // Google 認証から戻ってきた場合は連携サービスタブを開く
+    if (new URLSearchParams(window.location.search).get('google')) setTab('integrations')
   }, [])
+
+  const selectCalendar = async (calendar_id: string, calendar_name: string) => {
+    setGoogleBusy(true)
+    try {
+      await fetch('/api/google/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'select', calendar_id, calendar_name }),
+      })
+      await fetch('/api/google/sync?force=1')
+      loadGoogle()
+    } finally {
+      setGoogleBusy(false)
+    }
+  }
+
+  const disconnectGoogle = async () => {
+    if (!confirm('Google カレンダー連携を解除しますか？\n同期された予定はスケジュールから削除されます。')) return
+    setGoogleBusy(true)
+    try {
+      await fetch('/api/google/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'disconnect' }),
+      })
+      loadGoogle()
+    } finally {
+      setGoogleBusy(false)
+    }
+  }
 
   const handleSaveProfile = async () => {
     setSaving(true)
@@ -185,20 +233,75 @@ export default function SettingsPage() {
           {tab === 'integrations' && (
             <div className="card divide-y divide-slate-50 p-6">
               <h3 className="pb-4 font-semibold text-slate-900">連携サービス</h3>
-              {[
-                { name: 'LINE 公式アカウント', desc: '顧客とのメッセージを受信トレイに集約', status: '未接続' },
-                { name: 'Google カレンダー',   desc: 'スケジュールの双方向同期',             status: '未接続' },
-                { name: 'Google ドライブ',     desc: '書類の自動フォルダ管理',               status: '未接続' },
-              ].map(s => (
-                <div key={s.name} className="flex items-center gap-4 py-4">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-800">{s.name}</p>
-                    <p className="text-xs text-slate-400">{s.desc}</p>
-                  </div>
-                  <span className="badge bg-slate-100 text-xs text-slate-500">{s.status}</span>
-                  <button className="btn-secondary text-xs">接続する</button>
+
+              {/* LINE */}
+              <div className="flex items-center gap-4 py-4">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-800">LINE 公式アカウント「補助金の窓口」</p>
+                  <p className="text-xs text-slate-400">顧客メッセージの受信・予定登録・毎朝のダイジェスト配信</p>
                 </div>
-              ))}
+                <span className="badge bg-emerald-100 text-xs text-emerald-700">接続済み</span>
+              </div>
+
+              {/* Google カレンダー */}
+              <div className="py-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-800">Google カレンダー</p>
+                    <p className="text-xs text-slate-400">
+                      選択した仕事用カレンダーの予定をスケジュールに自動反映（他のカレンダーは読みません）
+                    </p>
+                  </div>
+                  {google?.connected ? (
+                    <>
+                      <span className="badge bg-emerald-100 text-xs text-emerald-700">接続済み</span>
+                      <button className="btn-secondary text-xs" disabled={googleBusy} onClick={disconnectGoogle}>解除</button>
+                    </>
+                  ) : (
+                    <a href="/api/google/auth" className="btn-secondary text-xs">接続する</a>
+                  )}
+                </div>
+                {google?.connected && (
+                  <div className="mt-3 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+                    <label className="text-xs font-medium text-slate-600">同期するカレンダー:</label>
+                    <select
+                      className="input w-64 text-sm"
+                      disabled={googleBusy}
+                      value={google.calendar_id ?? ''}
+                      onChange={e => {
+                        const cal = google.calendars?.find(c => c.id === e.target.value)
+                        if (cal) selectCalendar(cal.id, cal.summary)
+                      }}
+                    >
+                      <option value="">選択してください</option>
+                      {(google.calendars ?? []).map(c => (
+                        <option key={c.id} value={c.id}>{c.summary}</option>
+                      ))}
+                    </select>
+                    {googleBusy && <span className="text-xs text-slate-400">同期中...</span>}
+                    {!googleBusy && google.calendar_id && (
+                      <span className="text-xs text-emerald-600">
+                        「{google.calendar_name}」を同期中 ✓
+                      </span>
+                    )}
+                  </div>
+                )}
+                {google?.connected && !google.calendar_id && (
+                  <p className="mt-2 text-xs text-amber-600">
+                    ⚠ 仕事用カレンダーを選択すると同期が始まります。プライベート用と分けたい場合は、
+                    Google カレンダー側で仕事専用のカレンダーを作成してから選んでください。
+                  </p>
+                )}
+              </div>
+
+              {/* Google ドライブ */}
+              <div className="flex items-center gap-4 py-4">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-800">Google ドライブ</p>
+                  <p className="text-xs text-slate-400">書類の自動フォルダ管理（将来）</p>
+                </div>
+                <span className="badge bg-slate-100 text-xs text-slate-500">未対応</span>
+              </div>
             </div>
           )}
         </div>

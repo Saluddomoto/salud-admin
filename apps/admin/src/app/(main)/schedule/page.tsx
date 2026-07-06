@@ -61,6 +61,15 @@ export default function SchedulePage() {
 
   useEffect(load, [load])
 
+  // Google カレンダー同期（10分以内の再同期はサーバー側でスキップされる）
+  useEffect(() => {
+    fetch('/api/google/sync')
+      .then(r => r.json())
+      .then(r => { if (r.synced > 0) load() })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const moveWeek = (weeks: number) => {
     const d = new Date(weekStart)
     d.setDate(d.getDate() + weeks * 7)

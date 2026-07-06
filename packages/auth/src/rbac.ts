@@ -40,9 +40,10 @@ export function hasPermission(
 
 /** ロールの優先順位（数値が大きいほど上位） */
 export const ROLE_PRIORITY: Record<UserRole, number> = {
-  staff:   1,
-  manager: 2,
-  admin:   3,
+  customer: 0, // 顧客ポータル用（社内データへの権限なし）
+  staff:    1,
+  manager:  2,
+  admin:    3,
 }
 
 /** roleA が roleB 以上の権限を持つか */
