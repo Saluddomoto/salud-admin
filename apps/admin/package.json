@@ -13,6 +13,7 @@
   "dependencies": {
     "@salud/auth":             "workspace:*",
     "@salud/database":         "workspace:*",
+    "@salud/line":             "workspace:*",
     "@salud/ui":               "workspace:*",
     "@supabase/supabase-js":   "^2.45.0",
     "@supabase/ssr":           "^0.5.0",

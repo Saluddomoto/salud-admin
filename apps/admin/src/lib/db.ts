@@ -81,6 +81,7 @@ export type DbMessage = {
   body: string
   received_at: string
   is_read: boolean
+  needs_reply: boolean
   converted_to: 'project' | 'task' | 'event' | null
 }
 
@@ -329,6 +330,22 @@ export async function fetchMessages(): Promise<DbMessage[]> {
 export async function markMessageRead(id: string) {
   const { error } = await db().from('messages').update({ is_read: true }).eq('id', id)
   if (error) throw error
+}
+
+export async function markMessageReplied(id: string) {
+  const { error } = await db().from('messages')
+    .update({ needs_reply: false, is_read: true })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function fetchNeedsReplyCount(): Promise<number> {
+  const { count, error } = await db()
+    .from('messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('needs_reply', true)
+  if (error) throw error
+  return count ?? 0
 }
 
 // ── メンバー ─────────────────────────────────────────

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { fetchMessages, markMessageRead, type DbMessage } from '@/lib/db'
+import { fetchMessages, markMessageRead, markMessageReplied, type DbMessage } from '@/lib/db'
 
 const CHANNEL_META: Record<DbMessage['channel'], { label: string; cls: string }> = {
   line:  { label: 'LINE',   cls: 'bg-emerald-100 text-emerald-700' },
@@ -47,19 +47,30 @@ export default function InboxPage() {
     }
   }
 
+  const handleReplied = async (m: DbMessage) => {
+    setMessages(prev => prev.map(x => x.id === m.id ? { ...x, needs_reply: false, is_read: true } : x))
+    try {
+      await markMessageReplied(m.id)
+    } catch {
+      setMessages(prev => prev.map(x => x.id === m.id ? { ...x, needs_reply: m.needs_reply, is_read: m.is_read } : x))
+    }
+  }
+
   const filtered = messages.filter(m => {
     if (channel && m.channel !== channel) return false
+    if (status === 'needs_reply' && !m.needs_reply) return false
     if (status === 'unread'    && (m.is_read || m.converted_to)) return false
     if (status === 'converted' && !m.converted_to) return false
     if (status === 'read'      && (!m.is_read || m.converted_to)) return false
     return true
   })
 
-  const unread = messages.filter(m => !m.is_read && !m.converted_to).length
+  const unread     = messages.filter(m => !m.is_read && !m.converted_to).length
+  const needsReply = messages.filter(m => m.needs_reply).length
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <PageHeader title="受信トレイ" description={`未対応 ${unread} 件`}>
+      <PageHeader title="受信トレイ" description={`未対応 ${unread} 件 · 要返信 ${needsReply} 件`}>
         <select className="input w-36 text-sm" value={channel} onChange={e => setChannel(e.target.value)}>
           <option value="">全チャネル</option>
           <option value="line">LINE</option>
@@ -68,6 +79,7 @@ export default function InboxPage() {
         </select>
         <select className="input w-36 text-sm" value={status} onChange={e => setStatus(e.target.value)}>
           <option value="">全ステータス</option>
+          <option value="needs_reply">要返信</option>
           <option value="unread">未対応</option>
           <option value="converted">変換済み</option>
           <option value="read">既読</option>
@@ -95,6 +107,9 @@ export default function InboxPage() {
                   {m.sender_name}
                 </p>
                 <p className="text-xs text-slate-400">{m.company_name ?? '—'}</p>
+                {m.needs_reply && (
+                  <span className="badge bg-rose-100 text-xs text-rose-700">要返信</span>
+                )}
                 {m.converted_to && (
                   <span className={`badge text-xs ${CONVERTED_META[m.converted_to].cls}`}>
                     {CONVERTED_META[m.converted_to].label}
@@ -105,7 +120,16 @@ export default function InboxPage() {
             </div>
             <div className="flex flex-shrink-0 flex-col items-end gap-2">
               <span className="text-xs text-slate-400">{formatReceivedAt(m.received_at)}</span>
-              {!m.is_read && !m.converted_to && <span className="h-2 w-2 rounded-full bg-brand-500" />}
+              {m.needs_reply ? (
+                <button
+                  onClick={e => { e.stopPropagation(); handleReplied(m) }}
+                  className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-500 transition-colors hover:border-emerald-300 hover:text-emerald-600"
+                >
+                  返信済みにする
+                </button>
+              ) : (
+                !m.is_read && !m.converted_to && <span className="h-2 w-2 rounded-full bg-brand-500" />
+              )}
             </div>
           </div>
         ))}
