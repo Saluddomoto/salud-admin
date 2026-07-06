@@ -161,7 +161,7 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-3 text-sm">
             {active.slice(0, 4).map(p => (
-              <div key={p.id} className="flex gap-3">
+              <Link key={p.id} href={`/projects/${p.id}`} className="flex gap-3 rounded-lg p-1 -m-1 transition-colors hover:bg-slate-50">
                 <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-600">
                   <div className="h-4 w-4 rounded bg-current opacity-40" />
                 </div>
@@ -171,7 +171,7 @@ export default function DashboardPage() {
                     {p.customers?.company_name ?? '—'} · 期限 {p.deadline ?? '—'}
                   </p>
                 </div>
-              </div>
+              </Link>
             ))}
             {!loading && active.length === 0 && (
               <p className="py-6 text-center text-xs text-slate-400">進行中の案件はありません</p>

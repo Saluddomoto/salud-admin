@@ -2,6 +2,15 @@
 // RLS がロールに応じてアクセス制御するため、ここでは権限チェック不要
 import { createClient } from '@/lib/supabase'
 
+export type DbContact = {
+  id: string
+  name: string
+  title: string | null
+  email: string | null
+  phone: string | null
+  is_primary: boolean
+}
+
 export type DbCustomer = {
   id: string
   company_name: string
@@ -11,10 +20,12 @@ export type DbCustomer = {
   status: 'active' | 'prospect' | 'inactive'
   assigned_user_id: string | null
   phone: string | null
+  address: string | null
+  website: string | null
   notes: string | null
   created_at: string
   profiles: { full_name: string } | null
-  customer_contacts: { name: string; is_primary: boolean }[]
+  customer_contacts: DbContact[]
 }
 
 export type DbProject = {
@@ -24,6 +35,7 @@ export type DbProject = {
   status: 'planning' | 'in_progress' | 'submitted' | 'accepted' | 'rejected' | 'completed'
   applied_amount: number | null
   deadline: string | null
+  notes: string | null
   customer_id: string
   customers: { company_name: string } | null
   profiles: { full_name: string } | null
@@ -78,10 +90,55 @@ const db = () => createClient()
 export async function fetchCustomers(): Promise<DbCustomer[]> {
   const { data, error } = await db()
     .from('customers')
-    .select('*, profiles(full_name), customer_contacts(name, is_primary)')
+    .select('*, profiles(full_name), customer_contacts(id, name, title, email, phone, is_primary)')
     .order('created_at', { ascending: false })
   if (error) throw error
   return data as DbCustomer[]
+}
+
+export async function fetchCustomer(id: string): Promise<DbCustomer | null> {
+  const { data, error } = await db()
+    .from('customers')
+    .select('*, profiles(full_name), customer_contacts(id, name, title, email, phone, is_primary)')
+    .eq('id', id)
+    .maybeSingle()
+  if (error) throw error
+  return data as DbCustomer | null
+}
+
+export async function updateCustomer(id: string, input: {
+  company_name: string
+  industry: string | null
+  employee_count: number | null
+  status: string
+  phone: string | null
+  address: string | null
+  website: string | null
+  notes: string | null
+}) {
+  const { error } = await db().from('customers').update(input).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteCustomer(id: string) {
+  const { error } = await db().from('customers').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function insertContact(customerId: string, input: {
+  name: string
+  title: string | null
+  email: string | null
+  phone: string | null
+  is_primary: boolean
+}) {
+  const { error } = await db().from('customer_contacts').insert({ customer_id: customerId, ...input })
+  if (error) throw error
+}
+
+export async function deleteContact(id: string) {
+  const { error } = await db().from('customer_contacts').delete().eq('id', id)
+  if (error) throw error
 }
 
 export async function insertCustomer(input: {
@@ -150,6 +207,42 @@ export async function updateProjectStatus(id: string, status: string) {
   if (error) throw error
 }
 
+export async function fetchProject(id: string): Promise<DbProject | null> {
+  const { data, error } = await db()
+    .from('projects')
+    .select('*, customers(company_name), profiles(full_name)')
+    .eq('id', id)
+    .maybeSingle()
+  if (error) throw error
+  return data as DbProject | null
+}
+
+export async function fetchProjectsByCustomer(customerId: string): Promise<DbProject[]> {
+  const { data, error } = await db()
+    .from('projects')
+    .select('*, customers(company_name), profiles(full_name)')
+    .eq('customer_id', customerId)
+    .order('deadline', { ascending: true, nullsFirst: false })
+  if (error) throw error
+  return data as DbProject[]
+}
+
+export async function updateProject(id: string, input: {
+  title: string
+  subsidy_name: string
+  applied_amount: number | null
+  deadline: string | null
+  notes: string | null
+}) {
+  const { error } = await db().from('projects').update(input).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteProject(id: string) {
+  const { error } = await db().from('projects').delete().eq('id', id)
+  if (error) throw error
+}
+
 // ── タスク ───────────────────────────────────────────
 export async function fetchTasks(): Promise<DbTask[]> {
   const { data, error } = await db()
@@ -180,6 +273,16 @@ export async function insertTask(input: {
 export async function updateTaskStatus(id: string, status: string) {
   const { error } = await db().from('tasks').update({ status }).eq('id', id)
   if (error) throw error
+}
+
+export async function fetchTasksByProject(projectId: string): Promise<DbTask[]> {
+  const { data, error } = await db()
+    .from('tasks')
+    .select('*, projects(title), profiles!tasks_assigned_user_id_fkey(full_name)')
+    .eq('project_id', projectId)
+    .order('due_date', { ascending: true, nullsFirst: false })
+  if (error) throw error
+  return data as DbTask[]
 }
 
 // ── 予定 ─────────────────────────────────────────────

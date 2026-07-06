@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { fetchProjects, formatAmount, type DbProject } from '@/lib/db'
 
@@ -22,6 +23,7 @@ const FILTERS = [
 ] as const
 
 export default function SubsidiesPage() {
+  const router = useRouter()
   const [projects, setProjects] = useState<DbProject[]>([])
   const [loading,  setLoading]  = useState(true)
   const [filter,   setFilter]   = useState('')
@@ -89,7 +91,11 @@ export default function SubsidiesPage() {
             {!loading && filtered.map(p => {
               const st = STATUS_META[p.status]
               return (
-                <tr key={p.id} className="border-b border-slate-50 transition-colors hover:bg-slate-50/60">
+                <tr
+                  key={p.id}
+                  onClick={() => router.push(`/projects/${p.id}`)}
+                  className="cursor-pointer border-b border-slate-50 transition-colors hover:bg-slate-50/60"
+                >
                   <td className="px-4 py-3 font-medium text-slate-900">{p.title}</td>
                   <td className="px-4 py-3 text-slate-700">{p.customers?.company_name ?? '—'}</td>
                   <td className="px-4 py-3 font-semibold text-slate-800">{formatAmount(p.applied_amount)}</td>

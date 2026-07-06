@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type FormEvent } from 'react'
+import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import {
@@ -87,7 +88,9 @@ export default function ProjectsPage() {
               <div className="flex flex-col gap-2.5">
                 {items.map(p => (
                   <div key={p.id} className="card p-3.5 transition-shadow hover:shadow-md">
-                    <p className="text-sm font-semibold leading-snug text-slate-900">{p.title}</p>
+                    <Link href={`/projects/${p.id}`} className="text-sm font-semibold leading-snug text-slate-900 hover:text-brand-600 hover:underline">
+                      {p.title}
+                    </Link>
                     <p className="mt-1 text-xs text-slate-500">{p.customers?.company_name ?? '—'}</p>
                     <div className="mt-3 flex items-center justify-between text-xs">
                       <span className="font-semibold text-slate-700">{formatAmount(p.applied_amount)}</span>

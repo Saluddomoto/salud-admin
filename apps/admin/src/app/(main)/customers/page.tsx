@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { fetchCustomers, insertCustomer, type DbCustomer } from '@/lib/db'
@@ -12,6 +13,7 @@ const STATUS_LABELS = {
 } as const
 
 export default function CustomersPage() {
+  const router = useRouter()
   const [customers, setCustomers] = useState<DbCustomer[]>([])
   const [loading,   setLoading]   = useState(true)
   const [search,    setSearch]    = useState('')
@@ -108,7 +110,11 @@ export default function CustomersPage() {
               const st = STATUS_LABELS[c.status]
               const contact = c.customer_contacts.find(x => x.is_primary)?.name ?? '—'
               return (
-                <tr key={c.id} className="cursor-pointer border-b border-slate-50 transition-colors hover:bg-slate-50/60">
+                <tr
+                  key={c.id}
+                  onClick={() => router.push(`/customers/${c.id}`)}
+                  className="cursor-pointer border-b border-slate-50 transition-colors hover:bg-slate-50/60"
+                >
                   <td className="px-4 py-3">
                     <p className="font-medium text-slate-900">{c.company_name}</p>
                     <p className="text-xs text-slate-400">{c.phone ?? ''}</p>
