@@ -1,0 +1,1483 @@
+<title>Salud｜TOPデザイン案 v3（LP型・インパクト強化）</title>
+<style>
+  :root {
+    --ink: #353333;
+    --ink-2: #5e6b70;
+    --ink-3: #8a979c;
+    --ground: #ffffff;
+    --cream: #fbfdfe;
+    --tint: #f0f8fd; --green: #56b53a; --green-deep: #3f9427;
+    --tint-2: #dceefb;
+    --line: #e2e9ee;
+    --teal: #1e9de3;
+    --teal-deep: #1479b3;
+    --teal-dark: #0d4d75;
+    --teal-soft: #8fd0f0;
+    --yellow: #ffd93b;
+    --yellow-deep: #e0b414;
+    --orange: #f0a03c;
+    --red: #e05252;
+    --line-green: #06c755;
+    --radius: 20px;
+    --shadow-sm: 0 2px 10px rgba(13, 107, 125, .07);
+    --shadow-md: 0 6px 24px rgba(13, 107, 125, .13);
+    --font-jp: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", YuGothic, "Noto Sans JP", Meiryo, sans-serif;
+    --font-serif: "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif JP", serif;
+    --font-en: "Avenir Next", "Segoe UI", Verdana, sans-serif;
+    --font-script: "Segoe Script", "Bradley Hand", "Comic Sans MS", cursive;
+  }
+  * { box-sizing: border-box; }
+  body { background-image: linear-gradient(rgba(20,60,90,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(20,60,90,.045) 1px, transparent 1px); background-size: 56px 56px; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--font-jp); font-feature-settings: "palt";
+    font-size: 17px; line-height: 2; letter-spacing: .03em;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .rv, .hero-copy, .hero-visual { transition: none !important; animation: none !important; opacity: 1 !important; transform: none !important; }
+    .wiggle, .pulse { animation: none !important; }
+  }
+  a { color: inherit; text-decoration: none; }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 6px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 52px 0; }
+  .trio { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 900px) { .trio { grid-template-columns: 1fr; } }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .sec-en { font-family: var(--font-en); font-size: clamp(32px, 4.8vw, 60px); font-weight: 800; letter-spacing: -.015em; line-height: .95; margin: 0 0 14px; }
+  .sec-en b { background: linear-gradient(92deg, var(--teal-deep), var(--teal) 55%, #4db8f0); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 800; }
+
+  /* ---------- marquee ---------- */
+  .marq { overflow: hidden; padding: 16px 0; background: #fff; border-bottom: 1px solid var(--line); }
+  .marq-track { display: flex; gap: 56px; white-space: nowrap; width: max-content; animation: marq 30s linear infinite; }
+  .marq-track span {
+    font-weight: 800; font-size: clamp(22px, 3.2vw, 34px); letter-spacing: .02em;
+    color: transparent; -webkit-text-stroke: 1.5px var(--teal-soft); flex: none;
+  }
+  .marq-track span.fill { color: var(--teal); -webkit-text-stroke: 0; }
+  @keyframes marq { to { transform: translateX(-50%); } }
+  @media (prefers-reduced-motion: reduce) { .marq-track { animation: none; } }
+
+  /* ---------- statement ---------- */
+  .statement { text-align: center; padding: 56px 0; background: #fff; position: relative; overflow: hidden; }
+  .statement .bg-en {
+    position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+    font-family: var(--font-en); font-weight: 800; font-size: clamp(90px, 17vw, 230px); line-height: 1;
+    color: transparent; -webkit-text-stroke: 1px var(--tint-2); letter-spacing: -.02em; user-select: none;
+  }
+  .statement p { position: relative; font-family: var(--font-serif); font-weight: 700; font-size: clamp(28px, 4.6vw, 52px); line-height: 1.8; letter-spacing: .06em; margin: 0; text-wrap: balance; }
+  .statement .sub { font-family: var(--font-jp); font-size: clamp(15px, 1.8vw, 17.5px); color: var(--ink-2); font-weight: 600; margin-top: 26px; line-height: 2.2; letter-spacing: .04em; }
+
+  /* ---------- scroll indicator ---------- */
+  .sem-notice {
+    display: inline-flex; align-items: center; gap: 12px; margin-top: 16px;
+    background: #fff; border: 1px solid var(--line); border-radius: 99px;
+    padding: 10px 22px; font-size: 14px; font-weight: 700; box-shadow: var(--shadow-sm);
+    transition: transform .18s ease, border-color .18s ease; position: relative;
+  }
+  .sem-notice:hover { transform: translateY(-2px); border-color: var(--teal-soft); }
+  .sem-notice .lbl { font-size: 11px; font-weight: 800; color: #fff; background: var(--red); border-radius: 99px; padding: 3px 12px; letter-spacing: .08em; }
+  .sem-notice .d { color: var(--red); font-family: var(--font-en); font-weight: 800; }
+  .sem-notice .go2 { color: var(--teal); font-weight: 800; }
+  .scroll-ind { position: absolute; left: 24px; bottom: 20px; display: flex; align-items: center; gap: 10px; font-family: var(--font-en); font-size: 11.5px; font-weight: 700; letter-spacing: .3em; color: var(--ink-3); text-transform: uppercase; }
+  .scroll-ind::after { content: ""; width: 56px; height: 1.5px; background: var(--teal); animation: scrl 2s ease-in-out infinite; transform-origin: left; }
+  @keyframes scrl { 0% { transform: scaleX(0); } 55% { transform: scaleX(1); } 100% { transform: scaleX(1); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .scroll-ind::after { animation: none; } }
+  .sec-ja { font-size: 15px; font-weight: 700; color: var(--ink-2); display: flex; align-items: center; gap: 10px; }
+  .sec-ja::before { content: ""; width: 26px; height: 2px; border-radius: 2px; background: var(--teal); }
+  .sec-head { margin-bottom: 32px; }
+  .sec-head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  .lede { font-size: 17px; color: var(--ink-2); max-width: 42em; margin: 14px 0 0; }
+  .marker { background: linear-gradient(transparent 62%, var(--yellow) 62%, var(--yellow) 94%, transparent 94%); }
+  .more-link { font-size: 15px; font-weight: 700; color: var(--teal); white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; }
+  .more-link::after { content: "→"; transition: transform .2s ease; }
+  .more-link:hover::after { transform: translateX(4px); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 16px 32px; border-radius: 999px;
+    font-size: 16px; font-weight: 800; letter-spacing: .05em;
+    border: 0; cursor: pointer; font-family: inherit;
+    transition: transform .18s ease, box-shadow .18s ease; position: relative;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-primary { background: linear-gradient(135deg, var(--green), #6cc94b); color: #fff; box-shadow: 0 5px 0 var(--green-deep); }
+  .btn-yellow { background: linear-gradient(135deg, var(--teal), #4db8f0); color: #fff; box-shadow: 0 5px 0 var(--teal-deep); }
+  .diag-card .btn-yellow { background: #fff; color: var(--teal-deep); box-shadow: 0 5px 0 rgba(0,0,0,.18); }
+  .btn-ghost-w { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.65); }
+  .btn-ghost { background: #fff; color: var(--teal-deep); border: 2px solid var(--tint-2); box-shadow: 0 4px 0 var(--tint-2); }
+  .btn-line { background: var(--line-green); color: #fff; box-shadow: 0 5px 0 #05a648; }
+  .btn-xl { padding: 22px 46px; font-size: 19px; }
+  @keyframes wiggle { 0%,100% { transform: rotate(0); } 20% { transform: rotate(-2.5deg); } 40% { transform: rotate(2.5deg); } 60% { transform: rotate(-1.5deg); } 80% { transform: rotate(1.5deg); } }
+  .wiggle { animation: wiggle 2.6s ease-in-out infinite; animation-delay: 1.2s; }
+
+  /* ---------- header ---------- */
+  header {
+    position: fixed; inset: 0 0 auto 0; z-index: 100;
+    background: rgba(255,255,255,.93);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav { display: flex; align-items: center; gap: 32px; height: 72px; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo img { height: 46px; width: auto; }
+  .logo .lg-txt { font-size: 17.5px; font-weight: 800; color: #14507e; letter-spacing: .03em; }
+  .nav-links { display: flex; gap: 26px; margin: 0 auto; padding: 0; list-style: none; }
+  .nav-links a { font-size: 15px; font-weight: 600; color: var(--ink-2); }
+  .nav-links a:hover { color: var(--teal); }
+  .nav-cta { display: flex; align-items: center; gap: 18px; }
+  .nav-login { font-size: 14.5px; font-weight: 700; color: var(--ink-2); }
+  .nav-cta .btn { padding: 11px 24px; font-size: 14.5px; }
+  @media (max-width: 900px) { .nav-links, .nav-login { display: none; } }
+
+  /* ---------- hero (案B: 左コピー×右診断カード) ---------- */
+  .hero {
+    position: relative; overflow: hidden; color: var(--ink);
+    background:
+      radial-gradient(720px 480px at 88% 10%, rgba(30,157,227,.10), transparent 68%),
+      radial-gradient(560px 420px at 8% 92%, rgba(86,181,58,.09), transparent 66%),
+      linear-gradient(168deg, rgba(255,255,255,.6) 0%, rgba(240,248,253,.6) 100%);
+    padding: 100px 0 48px;
+  }
+  .hero::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .7;
+    background: linear-gradient(rgba(39,149,171,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(39,149,171,.09) 1px, transparent 1px);
+    background-size: 64px 64px;
+    -webkit-mask-image: radial-gradient(800px 600px at 75% 40%, #000, transparent 75%);
+    mask-image: radial-gradient(800px 600px at 75% 40%, #000, transparent 75%);
+  }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 56px; align-items: center; position: relative; }
+  .hero-copy { opacity: 0; transform: translateY(16px); transition: opacity .7s ease .1s, transform .7s ease .1s; }
+  .hero-copy.on { opacity: 1; transform: none; }
+  .tag-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 26px; }
+  .tag { font-size: 13px; font-weight: 800; letter-spacing: .06em; background: var(--tint-2); color: var(--teal-deep); border-radius: 99px; padding: 5px 16px; }
+  .tag.hot { background: var(--yellow); color: #453604; }
+  .cert-band { display: inline-flex; align-items: center; gap: 9px; background: #fff; border: 1.5px solid var(--teal); color: var(--teal-deep); border-radius: 10px; padding: 8px 18px; font-size: 13.5px; font-weight: 800; letter-spacing: .04em; margin-bottom: 18px; box-shadow: 0 2px 10px rgba(13,107,125,.10); }
+  .cert-band .ic { display: flex; width: 20px; height: 20px; border-radius: 50%; background: var(--teal); color: #fff; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+  .hero-checks { display: flex; gap: 20px; flex-wrap: wrap; margin: 0 0 32px; font-size: 14.5px; font-weight: 700; color: var(--ink-2); }
+  .hero-checks span::before { content: "✓"; color: var(--teal); font-weight: 900; margin-right: 7px; }
+  .h1-gothic { font-family: var(--font-jp); font-weight: 800; line-height: 1.45; letter-spacing: .015em; font-size: clamp(36px, 4.6vw, 54px); }
+  .h1-gothic .g { background: linear-gradient(92deg, var(--green-deep), var(--green) 55%, #7ccf5a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  h1 {
+    font-family: var(--font-serif);
+    font-size: clamp(33px, 4.4vw, 50px); font-weight: 700;
+    line-height: 1.55; letter-spacing: .04em; margin: 0 0 22px;
+  }
+  .script { font-family: var(--font-script); color: var(--teal); }
+  .blob { position: absolute; border-radius: 50%; pointer-events: none; }
+  .blob-1 { width: 540px; height: 540px; right: -150px; top: -170px; background: radial-gradient(circle, var(--tint-2) 0%, transparent 66%); }
+  .blob-2 { width: 380px; height: 380px; left: -160px; bottom: -120px; background: radial-gradient(circle, #fdf3cf 0%, transparent 64%); }
+  .crumb { font-size: 13.5px; color: var(--ink-3); margin: 0 0 20px; position: relative; }
+  .crumb a { color: var(--teal); font-weight: 700; }
+  h1 .mk { background: linear-gradient(transparent 64%, var(--yellow) 64%, var(--yellow) 94%, transparent 94%); }
+  .hero-sub { font-size: 17px; color: var(--ink-2); margin: 0 0 30px; max-width: 29em; }
+  .hero-ctas { display: flex; gap: 16px; flex-wrap: wrap; }
+  .hero-note { font-size: 13.5px; color: var(--ink-3); margin-top: 18px; }
+  .mini-stats { display: flex; gap: 26px; margin-top: 26px; flex-wrap: wrap; }
+  .ms { border-left: 2px solid var(--green); padding-left: 14px; }
+  .ms .v { font-family: var(--font-en); font-size: 26px; font-weight: 800; line-height: 1.3; color: var(--green-deep); }
+  .ms .v small { font-size: .55em; }
+  .ms .k { font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
+  .hero-visual { position: relative; height: 410px; opacity: 0; transform: translateY(20px); transition: opacity .8s ease .35s, transform .8s ease .35s; }
+  .hero-visual.on { opacity: 1; transform: none; }
+  .fcard { position: absolute; background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 14px 40px rgba(13, 107, 125, .16); padding: 22px 24px; }
+  .fcard .cap { font-size: 12px; font-weight: 800; letter-spacing: .14em; color: var(--teal); margin-bottom: 10px; }
+  .fcB1 { top: 6px; right: 4%; width: 305px; transform: rotate(1.6deg); z-index: 3; }
+  .fcB1 .row { display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; font-weight: 700; }
+  .fcB1 .pct { color: var(--teal); font-size: 23px; font-weight: 800; font-family: var(--font-en); }
+  .fcB1 .bar { height: 8px; border-radius: 99px; background: var(--tint); margin: 8px 0 14px; overflow: hidden; }
+  .fcB1 .bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--teal), var(--teal-soft)); }
+  .fcB2 { top: 216px; left: 0; width: 285px; transform: rotate(-2deg); z-index: 4; }
+  .fcB2 .chip-ok { display: inline-block; font-size: 11.5px; font-weight: 800; color: #0c7a43; background: #e7f7ee; border-radius: 99px; padding: 4px 14px; margin-bottom: 10px; }
+  .fcB2 .amount { font-family: var(--font-en); font-size: 30px; font-weight: 800; }
+  .fcB2 .cap2 { font-size: 12px; color: var(--ink-3); }
+  .fcB3 { bottom: -6px; right: 10%; width: 250px; transform: rotate(1deg); z-index: 2; }
+  .fcB3 .drow { display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 700; padding: 7px 0; border-bottom: 1px dashed var(--line); }
+  .fcB3 .drow b { color: var(--red); font-family: var(--font-en); }
+  @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; } .hero-visual { height: 420px; max-width: 480px; } }
+
+  /* ---------- purpose chooser ---------- */
+  .chooser { position: relative; z-index: 5; }
+  .chooser-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: -38px; }
+  .choice {
+    background: #fff; border: 1px solid var(--line); border-radius: 16px;
+    padding: 18px 20px 14px; box-shadow: var(--shadow-md);
+    display: flex; flex-direction: column;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .choice:hover { transform: translateY(-3px); border-color: var(--teal-soft); }
+  .choice .q { font-size: 12px; font-weight: 800; color: var(--ink-3); letter-spacing: .08em; }
+  .choice .t { font-size: 16px; font-weight: 800; line-height: 1.6; margin: 2px 0 8px; flex: 1; }
+  .choice .a { font-size: 13.5px; color: var(--teal); font-weight: 800; }
+  .choice.hot { background: var(--yellow); border-color: var(--yellow); }
+  .choice.hot .q { color: #7a6410; }
+  .choice.hot .a { color: #453604; }
+  @media (max-width: 900px) { .chooser-grid { grid-template-columns: 1fr 1fr; } }
+
+  /* ---------- seminar+blog duo ---------- */
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+  .duo .sem + .sem { margin-top: 14px; }
+  .brows { border-top: 1px solid var(--line); margin-bottom: 14px; }
+  .brow { display: flex; gap: 14px; align-items: baseline; padding: 15px 4px; border-bottom: 1px solid var(--line); font-size: 15.5px; font-weight: 700; line-height: 1.8; }
+  .brow .bd { font-size: 13px; color: var(--ink-3); font-weight: 600; white-space: nowrap; }
+  .brow:hover { color: var(--teal-deep); }
+  @media (max-width: 820px) { .duo { grid-template-columns: 1fr; } }
+
+  /* ---------- deadline ticker ---------- */
+  .ticker { background: #fff8dc; border-bottom: 1px solid #f0e3a8; padding: 13px 0; }
+  .ticker-row { display: flex; align-items: center; gap: 18px; overflow-x: auto; white-space: nowrap; }
+  .ticker-label { font-size: 12px; font-weight: 800; color: var(--red); border: 1.5px solid var(--red); border-radius: 6px; padding: 2px 10px; flex: none; }
+  .ticker-item { font-size: 14.5px; font-weight: 700; color: #6b5a12; }
+  .ticker-item b { color: var(--red); font-family: var(--font-en); }
+  .ticker-item + .ticker-item { border-left: 1px solid #ecdc9a; padding-left: 18px; }
+
+  /* ---------- reveal ---------- */
+  .rv { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+  .rv.on { opacity: 1; transform: none; }
+
+  /* ---------- value ---------- */
+  .intro-catch { font-size: clamp(26px, 3.6vw, 38px); font-weight: 800; line-height: 1.6; letter-spacing: .03em; margin: 0 0 18px; text-wrap: balance; }
+  .value-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 56px; }
+  .value { background: var(--cream); border: 1px solid var(--line); border-radius: var(--radius); padding: 34px 30px; box-shadow: var(--shadow-sm); }
+  .value .ic { width: 58px; height: 58px; border-radius: 50%; background: var(--tint); display: grid; place-items: center; margin-bottom: 18px; }
+  .value .ic svg { stroke: var(--teal); }
+  .value h3 { font-size: 20px; font-weight: 700; margin: 0 0 10px; }
+  .value p { font-size: 15.5px; color: var(--ink-2); margin: 0; }
+  @media (max-width: 820px) { .value-grid { grid-template-columns: 1fr; } }
+
+  /* ---------- category LP hub ---------- */
+  .cat-section { background: var(--tint); border-radius: 48px 48px 0 0; }
+  .cat-group-label { display: flex; align-items: center; gap: 14px; font-size: 17px; font-weight: 800; margin: 46px 0 20px; }
+  .cat-group-label:first-of-type { margin-top: 0; }
+  .cat-group-label .gl-num { font-family: var(--font-en); color: var(--teal); font-size: 26px; }
+  .cat-group-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 11px; }
+  .cat-card {
+    background: #fff; border-radius: 14px; padding: 15px 16px 13px;
+    box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 4px;
+    border: 1px solid var(--line);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .cat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--teal-soft); }
+  .cat-card .nm { font-size: 15px; font-weight: 800; line-height: 1.5; }
+  .cat-card .mx { font-size: 13.5px; font-weight: 700; color: var(--teal-deep); }
+  .cat-card .mx b { font-family: var(--font-en); font-size: 17px; }
+  .cat-card .go { font-size: 13px; font-weight: 700; color: var(--teal); margin-top: 6px; }
+  .cat-card.wide .nm { font-size: 15px; }
+  @media (max-width: 900px) { .cat-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .cat-grid { grid-template-columns: 1fr; } }
+
+  /* ---------- diag band ---------- */
+  .diag { background: linear-gradient(180deg, #f2fafc, var(--tint-2)); padding: 56px 0 68px; }
+  .diag-card {
+    background: linear-gradient(135deg, var(--teal-deep) 0%, var(--teal) 62%, #3fb2c6 100%); color: #fff;
+    border-radius: 28px; box-shadow: var(--shadow-md);
+    padding: 44px 48px; text-align: center; position: relative; overflow: hidden;
+  }
+  .diag-card::before { content: ""; position: absolute; width: 340px; height: 340px; border-radius: 50%; background: rgba(255, 217, 59, .1); right: -110px; top: -150px; }
+  .diag-card::after { content: ""; position: absolute; width: 260px; height: 260px; border-radius: 50%; background: rgba(255,255,255,.06); left: -90px; bottom: -120px; }
+  .diag-card h2 { font-size: clamp(26px, 4vw, 40px); font-weight: 800; line-height: 1.6; margin: 0 0 12px; position: relative; }
+  .diag-card h2 .hl { color: var(--yellow); }
+  .diag-card p { color: #cfe6ec; font-size: 16.5px; margin: 0 auto 34px; max-width: 34em; position: relative; }
+  .diag-card .note { display: block; font-size: 12px; color: #a9cfd8; margin-top: 16px; }
+
+  /* ---------- works ---------- */
+  .works-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .work { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 30px 28px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 14px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { font-size: 12.5px; font-weight: 700; border-radius: 99px; padding: 4px 13px; background: var(--tint); color: var(--teal-deep); }
+  .chip-ind { background: #f4f1e8; color: #7a6a35; }
+  .work .big { font-size: 31px; font-weight: 800; line-height: 1.2; color: var(--teal-deep); font-family: var(--font-en); }
+  .work .big small { display: block; font-family: var(--font-jp); font-size: 12px; font-weight: 700; color: var(--ink-3); margin-bottom: 6px; }
+  .work .quote { font-size: 15px; color: var(--ink-2); background: var(--cream); border-radius: 12px; padding: 14px 16px; flex: 1; }
+  .work .co { font-size: 13.5px; font-weight: 700; color: var(--ink-3); }
+  @media (max-width: 820px) { .works-grid { grid-template-columns: 1fr; } }
+
+  /* ---------- price ---------- */
+  .price-section { background: var(--cream); }
+  .price-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 10px; }
+  .price-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 36px 30px; text-align: center; box-shadow: var(--shadow-sm); position: relative; }
+  .price-card .ttl { font-size: 15.5px; font-weight: 800; color: var(--ink-2); margin-bottom: 10px; }
+  .price-card .val { font-family: var(--font-en); font-size: 42px; font-weight: 800; color: var(--teal-deep); line-height: 1.1; }
+  .price-card .val small { font-size: .42em; font-family: var(--font-jp); font-weight: 800; }
+  .price-card .cap { font-size: 14px; color: var(--ink-3); margin-top: 10px; }
+  .price-card.hot { border: 2px solid var(--yellow); }
+  .price-card.hot::before { content: "不採択なら"; position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--yellow); color: #453604; font-size: 11.5px; font-weight: 800; border-radius: 99px; padding: 3px 16px; }
+  @media (max-width: 820px) { .price-grid { grid-template-columns: 1fr; } }
+
+  /* ---------- flow ---------- */
+  .flow-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .flow { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px 18px; box-shadow: var(--shadow-sm); position: relative; }
+  .flow .st { font-family: var(--font-en); font-size: 13px; font-weight: 800; color: var(--teal); letter-spacing: .1em; }
+  .flow h3 { font-size: 16.5px; font-weight: 800; margin: 4px 0 6px; }
+  .flow p { font-size: 14px; color: var(--ink-2); margin: 0; line-height: 1.8; }
+  .flow:not(:last-child)::after { content: "→"; position: absolute; right: -14px; top: 50%; transform: translateY(-50%); color: var(--teal-soft); font-weight: 800; z-index: 1; }
+  @media (max-width: 900px) { .flow-grid { grid-template-columns: 1fr; } .flow:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -22px; transform: translateX(-50%); } .flow-grid { row-gap: 26px; } }
+
+  /* ---------- voices ---------- */
+  .voices { background: var(--cream); }
+  .voice-rail { display: grid; grid-auto-flow: column; grid-auto-columns: min(340px, 78vw); gap: 20px; overflow-x: auto; padding: 4px 4px 20px; scroll-snap-type: x mandatory; }
+  .voice { scroll-snap-align: start; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow-sm); }
+  .voice .stars { color: var(--orange); font-size: 14px; letter-spacing: 3px; margin-bottom: 12px; }
+  .voice p { font-size: 14px; color: var(--ink-2); margin: 0 0 18px; }
+  .voice .who { display: flex; align-items: center; gap: 12px; }
+  .voice .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--tint-2); display: grid; place-items: center; font-size: 13px; font-weight: 800; color: var(--teal-deep); }
+  .voice .who b { display: block; font-size: 13.5px; line-height: 1.5; }
+  .voice .who span { font-size: 12px; color: var(--ink-3); }
+
+  /* ---------- seminar / blog ---------- */
+  .sem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .sem { display: flex; gap: 26px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 30px; box-shadow: var(--shadow-sm); }
+  .sem .date { text-align: center; min-width: 74px; background: var(--cream); border-radius: 14px; padding: 14px 10px; align-self: flex-start; }
+  .sem .date .d { font-family: var(--font-en); font-size: 28px; font-weight: 800; line-height: 1.1; color: var(--teal-deep); }
+  .sem .date .m { font-family: var(--font-en); font-size: 11px; font-weight: 800; color: var(--teal); letter-spacing: .12em; }
+  .sem .date .w { font-size: 11px; color: var(--ink-3); }
+  .sem h3 { font-size: 17px; font-weight: 700; margin: 8px 0; line-height: 1.7; }
+  .sem .meta { font-size: 12.5px; color: var(--ink-3); }
+  .sem .apply { font-size: 13px; font-weight: 700; color: var(--teal); }
+  @media (max-width: 820px) { .sem-grid { grid-template-columns: 1fr; } }
+
+  .blog-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .post { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); transition: transform .2s ease, box-shadow .2s ease; }
+  .post:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+  .post .thumb { aspect-ratio: 16/9; background: linear-gradient(135deg, var(--tint), var(--tint-2)); display: grid; place-items: center; }
+  .post .thumb span { font-family: var(--font-script); font-size: 17px; color: var(--teal-soft); }
+  .post .body { padding: 22px 24px 26px; }
+  .post .meta { display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--ink-3); margin-bottom: 10px; }
+  .post h3 { font-size: 15px; font-weight: 700; line-height: 1.7; margin: 0; }
+  @media (max-width: 820px) { .blog-grid { grid-template-columns: 1fr; } }
+
+  /* ---------- FAQ ---------- */
+  .faq-list { max-width: 780px; margin: 0 auto; display: grid; gap: 14px; }
+  details { background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-sm); }
+  summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 22px 26px; font-size: 17px; font-weight: 700; }
+  summary::-webkit-details-marker { display: none; }
+  summary .q { color: var(--teal); font-weight: 800; margin-right: 4px; font-family: var(--font-en); }
+  summary .pm { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--tint); display: grid; place-items: center; font-size: 15px; color: var(--teal-deep); transition: transform .2s ease; }
+  details[open] .pm { transform: rotate(45deg); }
+  details .a { padding: 0 56px 24px 26px; font-size: 15.5px; color: var(--ink-2); }
+
+  /* ---------- final ---------- */
+  .final { text-align: center; padding: 130px 0; background: linear-gradient(140deg, var(--teal-dark), var(--teal-deep)); color: #fff; }
+  .final h2 { font-size: clamp(28px, 4.6vw, 44px); font-weight: 800; line-height: 1.55; margin: 0 0 14px; }
+  .final .lede { margin: 0 auto 42px; text-align: center; color: #cfe6ec; }
+  .final-ctas { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
+  .final .tel { font-size: 15px; color: #cfe6ec; }
+  .final .tel b { font-family: var(--font-en); font-size: 24px; font-weight: 800; margin: 0 6px; color: #fff; }
+
+  footer { background: var(--teal-dark); color: #cfe6ec; padding: 76px 0 0; font-size: 14.5px; }
+  .ft-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 48px; padding-bottom: 60px; }
+  .ft-brand .logo { display: inline-flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px; padding: 10px 18px; }
+  .ft-brand .logo img { height: 38px; width: auto; }
+  .ft-brand .logo .lg-txt { font-size: 14.5px; font-weight: 800; color: #14507e; }
+  .ft-brand p { margin: 14px 0 22px; max-width: 24em; }
+  .ft-col h4 { color: #fff; font-family: var(--font-en); font-size: 12px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; margin: 0 0 18px; }
+  .ft-col ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .ft-col a:hover { color: #fff; }
+  .ft-diag { display: inline-flex; align-items: center; gap: 8px; color: var(--yellow); font-weight: 700; }
+  .ft-bottom { border-top: 1px solid rgba(255,255,255,.14); padding: 22px 0; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #9cc4cf; }
+  .ft-sns { display: flex; gap: 18px; }
+  @media (max-width: 820px) { .ft-grid { grid-template-columns: 1fr 1fr; } }
+
+  /* ワンストップ（戦略実行支援）セクション */
+  .onestop { position: relative; overflow: hidden; }
+  .onestop .bg-word { position: absolute; right: -24px; top: 4px; font-family: var(--font-en);
+    font-weight: 800; font-size: clamp(84px, 11vw, 150px); line-height: 1; letter-spacing: -.02em;
+    color: transparent; -webkit-text-stroke: 1px var(--tint-2); pointer-events: none; user-select: none; }
+  .os-grid { display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(0, .98fr); gap: 56px; align-items: center; position: relative; }
+  .os-catch { font-size: clamp(24px, 3vw, 33px); font-weight: 800; line-height: 1.75; margin: 0 0 14px; letter-spacing: .02em; }
+  .os-catch .x { font-family: var(--font-en); background: linear-gradient(92deg, var(--green-deep), var(--green) 60%, #7ccf5a);
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .os-lede { font-size: 15.5px; color: var(--ink-2); margin: 0; max-width: 36em; }
+  .os-list { margin: 26px 0 28px; }
+  .os-item { display: flex; gap: 18px; align-items: baseline; padding: 13px 2px; border-top: 1px solid var(--line); }
+  .os-item:last-child { border-bottom: 1px solid var(--line); }
+  .os-item .no { font-family: var(--font-en); font-weight: 800; color: var(--teal); font-size: 13px; letter-spacing: .12em; }
+  .os-item .t { font-size: 15.5px; font-weight: 800; }
+  .os-item .d { font-size: 12.5px; color: var(--ink-3); font-weight: 600; margin-left: auto; text-align: right; }
+  .os-svg { width: 100%; height: auto; display: block; }
+  @media (max-width: 900px) { .os-grid { grid-template-columns: 1fr; } }
+
+  /* 補助金の窓口 メディアPRバンド */
+  .media-band { padding: 12px 0 44px; }
+  .media-card { background: linear-gradient(120deg, #fff6fa 0%, #ffe9f2 100%);
+    border: 1px solid #f6d2e1; border-radius: 24px; padding: 30px 40px;
+    display: flex; align-items: center; gap: 36px; flex-wrap: wrap; box-shadow: var(--shadow-sm); }
+  .media-card .mk { flex-shrink: 0; }
+  .media-card .lb { font-family: var(--font-en); font-size: 11px; font-weight: 800;
+    letter-spacing: .22em; color: #d63d75; margin-bottom: 6px; }
+  .media-card h3 { font-size: clamp(19px, 2.4vw, 24px); font-weight: 800; margin: 0 0 8px; line-height: 1.6; }
+  .media-card h3 b { color: #d63d75; }
+  .media-card p { font-size: 14.5px; color: var(--ink-2); margin: 0; max-width: 36em; }
+  .media-card .btn-pink { background: linear-gradient(120deg, #e0457b, #ec6f9b); color: #fff;
+    box-shadow: 0 5px 0 #b7285c; margin-left: auto; }
+  @media (max-width: 900px) { .media-card .btn-pink { margin-left: 0; } }
+
+  /* 追従CTA（公式LINE + 補助金相談） */
+  .follow-cta { position: fixed; right: 20px; bottom: 20px; z-index: 90;
+    display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
+  .follow-cta a { display: inline-flex; align-items: center; gap: 9px; border-radius: 99px;
+    font-weight: 800; color: #fff; transition: transform .18s ease; white-space: nowrap; }
+  .follow-cta a:hover { transform: translateY(-2px); }
+  .fc-line { background: var(--line-green); font-size: 13.5px; padding: 12px 22px;
+    box-shadow: 0 10px 26px rgba(6, 199, 85, .35); }
+  .fc-diag { background: linear-gradient(120deg, var(--teal-deep), var(--teal) 60%, #4db8f0);
+    font-size: 15px; padding: 15px 26px; box-shadow: 0 12px 30px rgba(13, 107, 125, .35); }
+  .mobile-bar {
+    position: fixed; inset: auto 0 0 0; z-index: 95; display: none;
+    background: rgba(255,255,255,.95); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line); padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); gap: 10px;
+  }
+  .mobile-bar .btn { flex: 1; padding: 13px 10px; font-size: 14.5px; }
+  @media (max-width: 720px) {
+    .mobile-bar.show { display: flex; }
+    .line-fab { bottom: 80px; }
+    section { padding: 76px 0; }
+  }
+</style>
+
+<header id="hd">
+  <div class="wrap nav">
+    <a class="logo" href="#/"><img src="data:image/png;base64,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" alt="株式会社Salud"><span class="lg-txt">株式会社Salud</span></a>
+    <ul class="nav-links">
+      <li><a href="#services">サービス</a></li>
+      <li><a href="#works">導入事例</a></li>
+      <li><a href="#/support">料金</a></li>
+      <li><a href="#/seminar">セミナー</a></li>
+      <li><a href="#blog">ブログ</a></li>
+      <li><a href="#/faq">よくある質問</a></li>
+      <li><a href="#">会社概要</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a class="nav-login" href="#">ログイン</a>
+      <a class="btn btn-yellow" href="#">無料相談</a>
+    </div>
+  </div>
+</header>
+
+<div class="page" id="page-home">
+<div class="hero">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy" id="heroCopy">
+      <div class="cert-band"><span class="ic">✓</span>中小企業庁認定 経営革新等支援機関</div>
+      <div class="script" style="font-size:23px;margin-bottom:10px">Grow together!</div>
+      <h1 class="h1-gothic">その設備投資も、<br>AI開発も、<br><span class="g">半分は補助金で。</span></h1>
+      <p class="hero-sub" style="margin-bottom:18px">補助金の診断・申請から、採択後の実行まで。設備導入・Web制作・AI開発——「使える補助金」を見つけ、成果につながる形で実装します。</p>
+      <div class="hero-checks">
+        <span>成功報酬型</span>
+        <span>採択後の実行支援まで</span>
+        <span>全国対応</span>
+      </div>
+      <div class="hero-ctas">
+        <a class="btn btn-yellow btn-xl wiggle" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-ghost" href="#">無料相談を予約</a>
+      </div>
+      <p class="hero-note">登録不要・診断無料・しつこい営業は一切ありません</p>
+      <a class="sem-notice" href="#/seminar">
+        <span class="lbl">SEMINAR</span>
+        <span><span class="d num">7/24（金）</span> 補助金活用戦略セミナー｜参加無料</span>
+        <span class="go2">詳細 →</span>
+      </a>
+      <div class="mini-stats">
+        <div class="ms"><div class="v num">500<small>件+</small></div><div class="k">累計無料診断</div></div>
+        <div class="ms"><div class="v num">200<small>件+</small></div><div class="k">訪問サポート</div></div>
+        <div class="ms"><div class="v num">8<small>名</small></div><div class="k">専門家・士業チーム</div></div>
+      </div>
+    </div>
+    <div class="hero-visual" id="heroVisual" aria-hidden="true">
+      <div class="fcard fcB1">
+        <div class="cap">あなたの会社の診断結果</div>
+        <div class="row"><span>ものづくり補助金</span><span class="pct num">92%</span></div>
+        <div class="bar"><i style="width:92%"></i></div>
+        <div class="row"><span>省力化投資補助金</span><span class="pct num" style="font-size:17px">81%</span></div>
+        <div class="bar"><i style="width:81%;opacity:.6"></i></div>
+        <div class="row"><span>IT導入補助金</span><span class="pct num" style="color:var(--ink-3);font-size:15px">74%</span></div>
+        <div class="bar"><i style="width:74%;opacity:.35"></i></div>
+      </div>
+      <div class="fcard fcB2">
+        <div class="cap">申請結果</div>
+        <span class="chip-ok">採択されました 🎉</span>
+        <div class="amount num">¥10,000,000</div>
+        <div class="cap2">交付決定額（設備投資・製造業）</div>
+      </div>
+      <div class="fcard fcB3">
+        <div class="cap">締切カレンダー</div>
+        <div class="drow"><span>ものづくり</span><b class="num">8/22</b></div>
+        <div class="drow"><span>IT導入</span><b class="num">8/29</b></div>
+        <div class="drow" style="border:0"><span>省力化投資</span><b class="num">9/10</b></div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-ind">Scroll</div>
+</div>
+
+<div class="chooser" aria-label="目的から選ぶ">
+  <div class="wrap chooser-grid">
+    <a class="choice hot" href="#diag">
+      <span class="q">まず知りたい</span>
+      <span class="t">うちに使える補助金、ある？</span>
+      <span class="a">30秒で無料診断 →</span>
+    </a>
+    <a class="choice" href="#services">
+      <span class="q">制度から探す</span>
+      <span class="t">補助金の種類・上限額を見たい</span>
+      <span class="a">制度別に見る →</span>
+    </a>
+    <a class="choice" href="#/support">
+      <span class="q">費用が気になる</span>
+      <span class="t">料金と支援の流れを知りたい</span>
+      <span class="a">料金を見る →</span>
+    </a>
+    <a class="choice" href="#jikko">
+      <span class="q">採択後・実行</span>
+      <span class="t">HP制作・AI開発を補助金で</span>
+      <span class="a">実行支援を見る →</span>
+    </a>
+  </div>
+</div>
+
+<div class="ticker" role="region" aria-label="締切が近い補助金">
+  <div class="wrap ticker-row">
+    <span class="ticker-label">締切間近</span>
+    <span class="ticker-item">ものづくり補助金 <b class="num">8/22</b> 締切</span>
+    <span class="ticker-item">IT導入補助金 <b class="num">8/29</b> 締切</span>
+    <span class="ticker-item">省力化投資補助金 <b class="num">9/10</b> 締切</span>
+    <a class="ticker-item" href="#" style="color:var(--teal)">→ 自社に合う制度を診断する</a>
+  </div>
+</div>
+
+<div class="marq" aria-hidden="true">
+  <div class="marq-track">
+    <span>ものづくり補助金</span><span class="fill">最大4,000万円</span><span>省力化投資補助金</span><span class="fill">最大1億円</span><span>新事業進出補助金</span><span class="fill">最大9,000万円</span><span>持続化補助金</span><span class="fill">AI導入</span><span>事業承継・M&A</span>
+    <span>ものづくり補助金</span><span class="fill">最大4,000万円</span><span>省力化投資補助金</span><span class="fill">最大1億円</span><span>新事業進出補助金</span><span class="fill">最大9,000万円</span><span>持続化補助金</span><span class="fill">AI導入</span><span>事業承継・M&A</span>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="sec-en"><b>W</b>hy Salud</div>
+      <div class="sec-ja">Saludが選ばれる理由</div>
+    </div>
+    <p class="intro-catch rv">申請して終わり、ではなく。<br><span class="marker">調達した資金を成果につなげる</span>ところまで。</p>
+    <p class="lede rv">Saludは、中小企業庁認定の「経営革新等支援機関」です。軸は補助金申請支援。ただし、申請して終わりにはしません。融資も組み合わせた資金設計から、採択後の実行——設備導入・Web制作・AI開発まで一貫して伴走します。補助金は「取ること」より「使い切ること・成果につなげること」を重視しています。</p>
+    <div class="value-grid">
+      <div class="value rv">
+        <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8L12 2z"/></svg></div>
+        <h3>① 認定支援機関の専門家サポート</h3>
+        <p>中小企業庁認定の経営革新等支援機関。行政書士・中小企業診断士と連携し、審査員側の目線で採択されやすい事業計画を作成します。</p>
+      </div>
+      <div class="value rv">
+        <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg></div>
+        <h3>② 採択後まで伴走支援</h3>
+        <p>交付申請・実績報告・効果報告まで対応。さらに販路開拓やHP・LP制作など、補助金を成果に変える実行支援を行います。</p>
+      </div>
+      <div class="value rv">
+        <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div>
+        <h3>③ 最適な補助金・資金調達をご提案</h3>
+        <p>補助金・融資・助成金を総合提案。単発の申請ではなく、年間の事業計画にもとづく中長期の補助金戦略まで設計します。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="onestop" id="onestop">
+  <div class="bg-word" aria-hidden="true">ONE-STOP</div>
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="sec-en"><b>O</b>ne-Stop</div>
+      <div class="sec-ja">戦略実行支援 — 資金調達から実装まで</div>
+    </div>
+    <div class="os-grid">
+      <div class="rv">
+        <p class="os-catch">補助金 <span class="x">×</span> 融資 <span class="x">×</span> WEB <span class="x">×</span> AI。<br>窓口はひとつ、<span class="marker">戦略から実行まで。</span></p>
+        <p class="os-lede">資金調達と実装を別々の会社に頼むと、戦略が分断されます。Saludは、補助金・融資による資金設計から、Web制作・AI開発による実装までをひとつのチームで担う「戦略実行支援」。調達した資金を、確実に成果へつなげます。</p>
+        <div class="os-list">
+          <div class="os-item"><span class="no">01</span><span class="t">資金調達戦略</span><span class="d">補助金・融資を組み合わせた資金設計</span></div>
+          <div class="os-item"><span class="no">02</span><span class="t">申請実行</span><span class="d">事業計画・書類作成から採択まで</span></div>
+          <div class="os-item"><span class="no">03</span><span class="t">WEB実装</span><span class="d">HP・LP・EC の制作と集客</span></div>
+          <div class="os-item"><span class="no">04</span><span class="t">AI活用</span><span class="d">業務効率化・AI開発で生産性向上</span></div>
+        </div>
+        <a class="more-link" href="#/support">戦略実行支援についてくわしく</a>
+      </div>
+      <div class="rv">
+        <svg class="os-svg" viewBox="0 0 560 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="補助金・融資・WEB・AIをワンストップで支援する図">
+          <defs>
+            <linearGradient id="osY" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#ffe988"/><stop offset=".55" stop-color="#ffd93b"/><stop offset="1" stop-color="#f3c31d"/>
+            </linearGradient>
+            <linearGradient id="tA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6cc94b"/><stop offset="1" stop-color="#4aa32e"/></linearGradient>
+            <linearGradient id="tB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ed973"/><stop offset="1" stop-color="#5cb63c"/></linearGradient>
+            <linearGradient id="tC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2ba3e8"/><stop offset="1" stop-color="#146fa8"/></linearGradient>
+            <linearGradient id="tD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#63bef0"/><stop offset="1" stop-color="#2b8cc9"/></linearGradient>
+            <linearGradient id="base" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#155a86"/><stop offset="1" stop-color="#0c3d5e"/></linearGradient>
+            <radialGradient id="glow" cx=".5" cy=".5" r=".5">
+              <stop offset="0" stop-color="#ffd93b" stop-opacity=".35"/><stop offset=".6" stop-color="#ffe67a" stop-opacity=".12"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
+          </defs>
+
+          <!-- 床のアイソメグリッド -->
+          <g fill="none" stroke="#dfe9f0" stroke-width="1.2">
+            <polygon points="280,111 538,240 280,369 22,240" opacity=".9"/>
+            <polygon points="280,146 468,240 280,334 92,240" opacity=".6"/>
+            <polygon points="280,181 398,240 280,299 162,240" opacity=".4"/>
+          </g>
+
+          <!-- 中央の後光 -->
+          <circle cx="280" cy="215" r="165" fill="url(#glow)"/>
+
+          <!-- 接続線（衛星→中央） -->
+          <g fill="none" stroke="#9ecbe5" stroke-width="1.6" stroke-dasharray="1 8" stroke-linecap="round">
+            <path d="M150 122 Q 205 160 236 187"/>
+            <path d="M410 122 Q 355 160 324 187"/>
+            <path d="M150 358 Q 205 320 238 266"/>
+            <path d="M410 358 Q 355 320 322 266"/>
+          </g>
+          <g fill="#56b53a">
+            <polygon points="196,155 205,160 196,165 187,160"/>
+            <polygon points="364,155 373,160 364,165 355,160"/>
+            <polygon points="196,315 205,320 196,325 187,320"/>
+            <polygon points="364,315 373,320 364,325 355,320"/>
+          </g>
+
+          <!-- 中央: 土台 + 戦略実行支援 -->
+          <ellipse cx="280" cy="330" rx="130" ry="22" fill="#1479b3" opacity=".16" filter="url(#soft)"/>
+          <g>
+            <polygon points="280,177 408,241 280,305 152,241" fill="#11507a"/>
+            <polygon points="152,241 280,305 280,321 152,257" fill="url(#base)"/>
+            <polygon points="408,241 280,305 280,321 408,257" fill="#0f5681"/>
+          </g>
+          <g>
+            <polygon points="280,140 385,192 280,244 175,192" fill="url(#osY)"/>
+            <polygon points="175,192 280,244 280,276 175,224" fill="#d9ae14"/>
+            <polygon points="385,192 280,244 280,276 385,224" fill="#eec526"/>
+            <polyline points="175,192 280,140 385,192" fill="none" stroke="#fff6d6" stroke-width="2" opacity=".8"/>
+            <text x="280" y="186" text-anchor="middle" font-size="21" font-weight="800" fill="#3a2f04" font-family="'Hiragino Sans','Yu Gothic UI',sans-serif" letter-spacing="1">戦略実行支援</text>
+            <text x="280" y="210" text-anchor="middle" font-size="10.5" font-weight="700" fill="#8a6d00" letter-spacing="3.5" font-family="'Segoe UI',sans-serif">ONE-STOP</text>
+          </g>
+          <path d="M395 128 l4.5 11 11 4.5 -11 4.5 -4.5 11 -4.5-11 -11-4.5 11-4.5 Z" fill="#ffd93b"/>
+          <path d="M170 120 l3 7.5 7.5 3 -7.5 3 -3 7.5 -3-7.5 -7.5-3 7.5-3 Z" fill="#8fd0f0"/>
+
+          <!-- 補助金（左上） -->
+          <ellipse cx="115" cy="150" rx="62" ry="12" fill="#1479b3" opacity=".14" filter="url(#soft)"/>
+          <g>
+            <polygon points="115,44 183,78 115,112 47,78" fill="url(#tA)"/>
+            <polygon points="47,78 115,112 115,138 47,104" fill="#3a8a22"/>
+            <polygon points="183,78 115,112 115,138 183,104" fill="#459a2c"/>
+            <polyline points="47,78 115,44 183,78" fill="none" stroke="#bfe8ef" stroke-width="1.6" opacity=".85"/>
+            <circle cx="115" cy="66" r="11" fill="none" stroke="#fff" stroke-width="1.8"/>
+            <text x="115" y="71" text-anchor="middle" font-size="13" font-weight="800" fill="#fff" font-family="Verdana">¥</text>
+            <text x="115" y="98" text-anchor="middle" font-size="15.5" font-weight="800" fill="#fff" font-family="'Hiragino Sans','Yu Gothic UI',sans-serif" letter-spacing="1">補助金</text>
+          </g>
+
+          <!-- 融資（右上） -->
+          <ellipse cx="445" cy="150" rx="62" ry="12" fill="#1479b3" opacity=".14" filter="url(#soft)"/>
+          <g>
+            <polygon points="445,44 513,78 445,112 377,78" fill="url(#tB)"/>
+            <polygon points="377,78 445,112 445,138 377,104" fill="#4a9c31"/>
+            <polygon points="513,78 445,112 445,138 513,104" fill="#55ad3a"/>
+            <polyline points="377,78 445,44 513,78" fill="none" stroke="#c9edf4" stroke-width="1.6" opacity=".85"/>
+            <g stroke="#fff" stroke-width="1.8" fill="none">
+              <path d="M435 60 L445 54 L455 60"/>
+              <line x1="437" y1="63" x2="437" y2="72"/><line x1="445" y1="63" x2="445" y2="72"/><line x1="453" y1="63" x2="453" y2="72"/>
+              <line x1="433" y1="74" x2="457" y2="74"/>
+            </g>
+            <text x="445" y="98" text-anchor="middle" font-size="15.5" font-weight="800" fill="#fff" font-family="'Hiragino Sans','Yu Gothic UI',sans-serif" letter-spacing="2">融資</text>
+          </g>
+
+          <!-- WEB（左下） -->
+          <ellipse cx="115" cy="410" rx="62" ry="12" fill="#1479b3" opacity=".14" filter="url(#soft)"/>
+          <g>
+            <polygon points="115,304 183,338 115,372 47,338" fill="url(#tC)"/>
+            <polygon points="47,338 115,372 115,398 47,364" fill="#0e5586"/>
+            <polygon points="183,338 115,372 115,398 183,364" fill="#1264a0"/>
+            <polyline points="47,338 115,304 183,338" fill="none" stroke="#9fd3de" stroke-width="1.6" opacity=".8"/>
+            <g stroke="#fff" stroke-width="1.7" fill="none">
+              <rect x="103" y="316" width="24" height="17" rx="2.5"/>
+              <line x1="103" y1="321.5" x2="127" y2="321.5"/>
+            </g>
+            <text x="115" y="358" text-anchor="middle" font-size="14.5" font-weight="800" fill="#fff" font-family="'Segoe UI','Hiragino Sans',sans-serif" letter-spacing="2">WEB</text>
+          </g>
+
+          <!-- AI（右下） -->
+          <ellipse cx="445" cy="410" rx="62" ry="12" fill="#1479b3" opacity=".14" filter="url(#soft)"/>
+          <g>
+            <polygon points="445,304 513,338 445,372 377,338" fill="url(#tD)"/>
+            <polygon points="377,338 445,372 445,398 377,364" fill="#1d78b5"/>
+            <polygon points="513,338 445,372 445,398 513,364" fill="#2585c4"/>
+            <polyline points="377,338 445,304 513,338" fill="none" stroke="#d3e9ee" stroke-width="1.6" opacity=".85"/>
+            <path d="M445 312 l3.4 8.2 8.2 3.4 -8.2 3.4 -3.4 8.2 -3.4-8.2 -8.2-3.4 8.2-3.4 Z" fill="#fff"/>
+            <text x="445" y="358" text-anchor="middle" font-size="14.5" font-weight="800" fill="#fff" font-family="'Segoe UI','Hiragino Sans',sans-serif" letter-spacing="2">AI</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cat-section" id="services">
+  <div class="wrap">
+    <div class="sec-head sec-head-row rv">
+      <div>
+        <div class="sec-en"><b>S</b>ervice</div>
+        <div class="sec-ja">カテゴリーから探す — 各サービスは専用ページで詳しく</div>
+      </div>
+      <a class="more-link" href="#">サービス一覧を見る</a>
+    </div>
+
+    <div class="cat-group-label rv"><span class="gl-num">01</span>補助金申請支援 — 制度別（融資との併用設計も）</div>
+    <div class="cat-grid">
+      <a class="cat-card rv" href="#/monodukuri"><span class="nm">融資支援（創業・設備・運転）</span><span class="mx">融資×補助金の併用設計</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="#/monodukuri"><span class="nm">ものづくり補助金</span><span class="mx">上限 <b class="num">4,000</b>万円</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="#/monodukuri"><span class="nm">小規模事業者持続化補助金</span><span class="mx">上限 <b class="num">250</b>万円</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="#/monodukuri"><span class="nm">デジタル化・AI導入補助金</span><span class="mx">上限 <b class="num">450</b>万円</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="#/monodukuri"><span class="nm">中小企業省力化投資補助金</span><span class="mx">上限 <b class="num">1</b>億円</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="#/monodukuri"><span class="nm">新事業進出補助金</span><span class="mx">上限 <b class="num">9,000</b>万円</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="#/monodukuri"><span class="nm">成長加速化補助金</span><span class="mx">上限 <b class="num">5</b>億円</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="#/monodukuri"><span class="nm">事業承継・M&A補助金</span><span class="mx">上限 <b class="num">2,000</b>万円</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="#/monodukuri"><span class="nm">年間補助金戦略サポート</span><span class="mx">月額 <b class="num">5</b>万円〜・中長期設計</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="#diag" style="background:var(--teal);border-color:var(--teal)"><span class="nm" style="color:#fff">どの制度が合うかわからない方へ</span><span class="mx" style="color:var(--yellow)">30秒で無料診断</span><span class="go" style="color:#fff">診断する →</span></a>
+    </div>
+
+    <div class="cat-group-label rv" id="jikko"><span class="gl-num">02</span>実行支援 — 補助金を成果に変える（Web・AI・プロダクト）</div>
+    <div class="cat-grid">
+      <a class="cat-card rv" href="#/web"><span class="nm">ホームページ制作</span><span class="mx">補助金活用OK</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="#/web"><span class="nm">LP制作</span><span class="mx">成約率から設計</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="#/web"><span class="nm">SEO対策</span><span class="mx">資産型の集客基盤</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="#/web"><span class="nm">Webマーケティング</span><span class="mx">広告・SNS・分析</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="#/web"><span class="nm">プロダクト初期実装</span><span class="mx">構想を動く形に</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="#/web"><span class="nm">AI開発・AI導入</span><span class="mx">補助金活用で負担を抑える</span><span class="go">詳しく見る →</span></a>
+    </div>
+  </div>
+</section>
+
+<div class="diag" id="diag">
+  <div class="wrap">
+    <div class="diag-card rv">
+      <div class="script" style="font-size:21px;color:var(--yellow);margin-bottom:6px;position:relative">Free check!</div>
+      <h2>使える補助金、<span class="hl">30秒</span>でわかります。</h2>
+      <p>会社の情報を入力するだけで、AIが数千の制度から最適な補助金をマッチング。「取れるか」ではなく<b style="color:#fff">「使えるか」</b>を判断する診断です。診断後は、そのまま専門家との無料相談をご予約いただけます。</p>
+      <a class="btn btn-yellow btn-xl wiggle" href="#">無料で診断する →</a>
+      <span class="note">登録不要・30秒で完了・結果はその場で表示</span>
+    </div>
+  </div>
+</div>
+
+<section id="works">
+  <div class="wrap">
+    <div class="sec-head sec-head-row rv" style="margin-bottom:28px">
+      <div>
+        <div class="sec-en"><b>T</b>rust</div>
+        <div class="sec-ja">実績と体制</div>
+      </div>
+      <a class="more-link" href="#/support">専門家・料金・流れをくわしく</a>
+    </div>
+    <div class="cat-grid trio rv">
+      <a class="cat-card" href="#/support"><span class="nm">中小企業庁認定<br>経営革新等支援機関</span><span class="mx">国が認定した経営支援機関</span><span class="go">体制を見る →</span></a>
+      <a class="cat-card" href="#/support"><span class="nm">専門家・士業チーム 8名</span><span class="mx">中小企業診断士・行政書士が在籍</span><span class="go">専門家を見る →</span></a>
+      <a class="cat-card" href="#/support"><span class="nm">幅広い業種で採択実績</span><span class="mx">製造・建設・飲食・農業・EC など</span><span class="go">事例を見る →</span></a>
+    </div>
+  </div>
+</section>
+
+<div class="media-band" id="media">
+  <div class="wrap">
+    <div class="media-card rv">
+      <div class="mk">
+        <svg width="76" height="76" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M24 4 C 35.5 4 44 12 44 22.5 C 44 33 35.5 41 24 41 C 21.8 41 19.7 40.7 17.8 40.2 L 9 44 L 11.6 36.2 C 6.9 32.7 4 28 4 22.5 C 4 12 12.5 4 24 4 Z" fill="#e0457b"/>
+          <circle cx="17.5" cy="20" r="2.6" fill="#fff"/>
+          <circle cx="30.5" cy="20" r="2.6" fill="#fff"/>
+          <path d="M15.5 27 Q 24 34 32.5 27" stroke="#fff" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="lb">OUR MEDIA</div>
+        <h3>補助金相談メディア<b>「補助金の窓口」</b>を運営しています</h3>
+        <p>成功報酬型の補助金申請サポート・無料診断・最新の公募情報を発信。全国の中小企業さまの相談窓口として、累計500件以上の無料診断をお届けしてきました。</p>
+      </div>
+      <a class="btn btn-pink" href="https://hojyokinnomadoguchi.jp/" target="_blank" rel="noopener">補助金の窓口を見る →</a>
+    </div>
+  </div>
+</div>
+
+<section class="voices" hidden>
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="sec-en"><b>V</b>oice</div>
+      <div class="sec-ja">お客様の声</div>
+    </div>
+    <div class="voice-rail">
+      <div class="voice rv">
+        <div class="stars">★★★★★</div>
+        <p>「補助金は難しそう」という思い込みが変わりました。診断から採択まで、次に何をすべきかを常に示してくれたのが心強かったです。</p>
+        <div class="who"><span class="avatar">T</span><div><b>田中様</b><span>製造業・代表取締役</span></div></div>
+      </div>
+      <div class="voice rv">
+        <div class="stars">★★★★★</div>
+        <p>ホームページ制作と補助金申請を同時に任せられる会社は初めて。費用面の負担が大きく減り、想定より早く投資回収できました。</p>
+        <div class="who"><span class="avatar">S</span><div><b>佐藤様</b><span>飲食業・店舗オーナー</span></div></div>
+      </div>
+      <div class="voice rv">
+        <div class="stars">★★★★☆</div>
+        <p>ITが苦手な私たちにもわかる言葉で説明してくれます。LINEですぐ相談できる距離感が、他社にはない魅力だと思います。</p>
+        <div class="who"><span class="avatar">K</span><div><b>木村様</b><span>建設業・専務</span></div></div>
+      </div>
+      <div class="voice rv">
+        <div class="stars">★★★★★</div>
+        <p>AI導入は半信半疑でしたが、見積業務が数分で終わるようになり社内の空気が変わりました。次はDX全体をお願いする予定です。</p>
+        <div class="who"><span class="avatar">Y</span><div><b>山本様</b><span>広告業・営業部長</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="seminar" style="padding-top:0">
+  <div class="wrap">
+    <div class="duo">
+      <div>
+        <div class="sec-head sec-head-row rv" style="margin-bottom:28px">
+          <div>
+            <div class="sec-en"><b>S</b>eminar</div>
+            <div class="sec-ja">セミナー</div>
+          </div>
+          <a class="more-link" href="#/seminar">一覧・アーカイブ</a>
+        </div>
+        <article class="sem rv">
+          <div class="date"><div class="m">JUL</div><div class="d num">24</div><div class="w">金 14:00</div></div>
+          <div>
+            <span class="chip">オンライン・無料</span>
+            <h3>2026年下半期 補助金活用戦略セミナー — 御社が今すぐ狙える制度</h3>
+            <a class="apply" href="#">申し込む →</a>
+          </div>
+        </article>
+        <article class="sem rv">
+          <div class="date"><div class="m">AUG</div><div class="d num">7</div><div class="w">金 15:00</div></div>
+          <div>
+            <span class="chip">オンライン・無料</span>
+            <h3>中小企業のためのAI活用はじめの一歩 — 補助金でコストを抑える</h3>
+            <a class="apply" href="#">申し込む →</a>
+          </div>
+        </article>
+      </div>
+      <div>
+        <div class="sec-head rv" style="margin-bottom:28px">
+          <div class="sec-en"><b>B</b>log</div>
+          <div class="sec-ja">補助金・集客の最新情報</div>
+        </div>
+        <div class="brows rv">
+          <a class="brow" href="#"><span class="bd num">2026.07.01</span><span>【2026年最新】ものづくり補助金の採択率を上げる事業計画書の書き方</span></a>
+          <a class="brow" href="#"><span class="bd num">2026.06.24</span><span>中小企業のAI導入、最初の一歩は「議事録」と「見積」から</span></a>
+          <a class="brow" href="#"><span class="bd num">2026.06.18</span><span>ホームページ制作に補助金は使える？対象制度と申請の流れ</span></a>
+          <a class="brow" href="#"><span class="bd num">2026.06.10</span><span>省力化投資補助金 一般型 第7回のスケジュールと変更点</span></a>
+        </div>
+        <a class="more-link rv" href="#">ブログ一覧を見る</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="statement" hidden>
+  <div class="bg-en" aria-hidden="true">GIVE&nbsp;GROWTH</div>
+  <div class="wrap rv">
+    <p>取って終わり、にしない。<br><span class="marker">補助金を、成果に変える。</span></p>
+    <div class="sub">診断から申請、採択後の実行まで。<br>挑戦する中小企業の隣に、Saludがいます。</div>
+  </div>
+</div>
+
+<section class="final">
+  <div class="wrap rv">
+    <div class="script" style="font-size:22px;color:var(--yellow);margin-bottom:8px">Let's talk!</div>
+    <h2>その挑戦、補助金で<br>もっと大きくできます。</h2>
+    <p class="lede">課題が明確でなくても大丈夫です。現状を伺い、いま打てる最善の一手をご提案します。</p>
+    <div class="final-ctas">
+      <a class="btn btn-yellow btn-xl" href="#">30秒で無料診断する →</a>
+      <a class="btn btn-line" href="#">LINEで相談する</a>
+      <a class="btn btn-ghost-w" href="#">無料相談を予約</a>
+    </div>
+    <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
+  </div>
+</section>
+</div><!-- /page-home -->
+
+<!-- ============ 下層サンプル①: ものづくり補助金LP（制度別テンプレート） ============ -->
+<div class="page" id="page-monodukuri" hidden>
+  <div class="hero" style="padding:102px 0 70px">
+    <div class="blob blob-1"></div>
+    <div class="wrap" style="position:relative">
+      <p class="crumb"><a href="#/">TOP</a> 〉 補助金申請支援 〉 ものづくり補助金</p>
+      <div class="tag-row">
+        <span class="tag hot">公募中・締切 2026/8/22</span>
+        <span class="tag">成功報酬型</span>
+        <span class="tag">再申請2回目まで無料</span>
+      </div>
+      <h1 style="font-size:clamp(30px,4.2vw,46px)">ものづくり補助金で、<br><span class="mk">最大4,000万円</span>の設備投資を。</h1>
+      <p class="hero-sub" style="max-width:36em">機械装置・システム構築費が対象（補助率1/2・2/3）。認定支援機関のSaludが、制度の診断から書類作成、採択後の実績報告まで伴走します。</p>
+      <div class="hero-ctas">
+        <a class="btn btn-yellow btn-xl wiggle" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-ghost" href="#">無料相談を予約</a>
+      </div>
+    </div>
+  </div>
+  <section style="padding:84px 0 40px">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><div class="sec-ja">こんな投資に使えます</div></div>
+      <div class="value-grid" style="margin-top:0">
+        <div class="value rv"><h3>生産設備の自動化</h3><p>人手不足の解消や生産能力の向上に向けた、機械装置・ロボットの導入。</p></div>
+        <div class="value rv"><h3>新製品・新サービス開発</h3><p>革新的な製品・サービスの開発に必要な設備投資や試作開発。</p></div>
+        <div class="value rv"><h3>システム構築</h3><p>生産管理・受発注システムなど、事業に必要な専用ソフトウェアの構築。</p></div>
+      </div>
+    </div>
+  </section>
+  <section class="price-section" style="padding:60px 0">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><div class="sec-ja">ものづくり補助金の支援料金</div></div>
+      <div class="price-grid">
+        <div class="price-card rv"><div class="ttl">基本料金</div><div class="val num">15<small>万円</small></div><div class="cap">税別・ご依頼時のみ（相談・診断は無料）</div></div>
+        <div class="price-card hot rv"><div class="ttl">成功報酬（採択時）</div><div class="val num">10<small>〜</small>15<small>%</small></div><div class="cap">従業員数による（最低成功報酬50万円・税別）</div></div>
+        <div class="price-card rv"><div class="ttl">不採択の場合</div><div class="val num">0<small>円</small></div><div class="cap">成功報酬なし。同補助金の再申請は2回目まで無料</div></div>
+      </div>
+    </div>
+  </section>
+  <section style="padding:60px 0 40px">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>W</b>orks</div><div class="sec-ja">採択事例</div></div>
+      <div class="works-grid">
+        <article class="work rv"><div class="chips"><span class="chip chip-ind">建材設備製造</span></div><div class="big" style="font-size:21px"><small>採択事例</small>自動化製造設備の導入</div><p class="quote">生産ラインの自動化という大型の設備投資に活用。審査員目線の事業計画で採択につなげました。</p></article>
+        <article class="work rv"><div class="chips"><span class="chip chip-ind">インターネット関連</span></div><div class="big" style="font-size:21px"><small>採択事例</small>流通業者マッチングサイトの構築</div><p class="quote">システム構築費を対象に採択。Webの実装まで一貫して支援しました。</p></article>
+        <article class="work rv"><div class="chips"><span class="chip chip-ind">農業</span></div><div class="big" style="font-size:21px"><small>採択事例</small>農薬散布ドローンの導入</div><p class="quote">省力化と品質向上を両立する設備投資として採択されました。</p></article>
+      </div>
+    </div>
+  </section>
+  <section class="final" style="padding:90px 0">
+    <div class="wrap rv">
+      <div class="script" style="font-size:22px;color:var(--yellow);margin-bottom:8px">Let's check!</div>
+      <h2>まずは、対象になるか<br>確認してみませんか。</h2>
+      <div class="final-ctas">
+        <a class="btn btn-yellow btn-xl" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-line" href="#">LINEで相談する</a>
+      </div>
+      <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
+    </div>
+  </section>
+</div><!-- /page-monodukuri -->
+
+<!-- ============ 下層サンプル②: HP制作×補助金LP（実行支援テンプレート） ============ -->
+<div class="page" id="page-web" hidden>
+  <div class="hero" style="padding:102px 0 70px">
+    <div class="blob blob-2" style="left:auto;right:-120px;bottom:auto;top:-100px"></div>
+    <div class="wrap" style="position:relative">
+      <p class="crumb"><a href="#/">TOP</a> 〉 実行支援 〉 ホームページ制作</p>
+      <div class="tag-row">
+        <span class="tag hot">持続化補助金 対応</span>
+        <span class="tag">IT導入補助金 対応</span>
+        <span class="tag">申請とセットで依頼可</span>
+      </div>
+      <h1 style="font-size:clamp(30px,4.2vw,46px)">ホームページ制作、<br><span class="mk">実質1/3の負担</span>でつくれます。</h1>
+      <p class="hero-sub" style="max-width:36em">小規模事業者持続化補助金（補助率2/3）を活用すれば、60万円のサイトが実質20万円に。補助金の申請から制作・集客まで、Saludがまとめて対応します。</p>
+      <div class="hero-ctas">
+        <a class="btn btn-yellow btn-xl wiggle" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-ghost" href="#">無料相談を予約</a>
+      </div>
+    </div>
+  </div>
+  <section style="padding:84px 0 40px">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>P</b>oint</div><div class="sec-ja">Saludに頼む理由</div></div>
+      <div class="value-grid" style="margin-top:0">
+        <div class="value rv"><h3>申請と制作をワンストップで</h3><p>補助金の申請支援と制作を同じ会社に頼めるから、書類も段取りも迷いません。</p></div>
+        <div class="value rv"><h3>成果につながる設計</h3><p>見た目だけでなく、問い合わせ・集客につながる導線とSEOを設計します。</p></div>
+        <div class="value rv"><h3>保守・運用まで対応</h3><p>作って終わりにせず、公開後の更新・改善・集客まで伴走します。</p></div>
+      </div>
+    </div>
+  </section>
+  <section class="price-section" style="padding:60px 0">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>E</b>xample</div><div class="sec-ja">費用イメージ（持続化補助金を活用した場合）</div></div>
+      <div class="price-grid">
+        <div class="price-card rv"><div class="ttl">HP制作費（例）</div><div class="val num">60<small>万円</small></div><div class="cap">オリジナルデザイン・SEO・スマホ対応</div></div>
+        <div class="price-card rv"><div class="ttl">補助金（2/3）</div><div class="val num">−40<small>万円</small></div><div class="cap">小規模事業者持続化補助金を活用</div></div>
+        <div class="price-card hot rv"><div class="ttl">実質のご負担</div><div class="val num">20<small>万円</small></div><div class="cap">※採択状況・経費区分により変動します</div></div>
+      </div>
+    </div>
+  </section>
+  <section style="padding:60px 0 40px">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>W</b>orks</div><div class="sec-ja">補助金×Webの採択事例</div></div>
+      <div class="works-grid">
+        <article class="work rv"><div class="chips"><span class="chip chip-ind">地域特産品販売</span><span class="chip">IT導入補助金</span></div><div class="big" style="font-size:21px"><small>採択事例</small>ネットショップ構築・モール出店</div><p class="quote">ECサイトの構築とモール出店を支援。制作から販路開拓まで一括対応しました。</p></article>
+        <article class="work rv"><div class="chips"><span class="chip chip-ind">英会話スクール</span><span class="chip">持続化補助金</span></div><div class="big" style="font-size:21px"><small>採択事例</small>オンライン英会話サービスの提供</div><p class="quote">オンライン化に向けたWeb整備を補助金で。新しい収益の柱になりました。</p></article>
+        <article class="work rv"><div class="chips"><span class="chip chip-ind">車・バイク輸入</span><span class="chip">持続化補助金</span></div><div class="big" style="font-size:21px"><small>採択事例</small>販売情報のオンライン化</div><p class="quote">在庫情報をWebで発信する仕組みを構築。遠方からの問い合わせが増加。</p></article>
+      </div>
+    </div>
+  </section>
+  <section class="final" style="padding:90px 0">
+    <div class="wrap rv">
+      <div class="script" style="font-size:22px;color:var(--yellow);margin-bottom:8px">Let's start!</div>
+      <h2>そのWeb投資、<br>補助金が使えるかもしれません。</h2>
+      <div class="final-ctas">
+        <a class="btn btn-yellow btn-xl" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-line" href="#">LINEで相談する</a>
+      </div>
+      <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
+    </div>
+  </section>
+</div><!-- /page-web -->
+
+<!-- ============ 下層サンプル③: 支援体制・料金・流れ ============ -->
+<div class="page" id="page-support" hidden>
+  <div class="hero" style="padding:102px 0 56px">
+    <div class="blob blob-1"></div>
+    <div class="wrap" style="position:relative">
+      <p class="crumb"><a href="#/">TOP</a> 〉 補助金申請支援について</p>
+      <h1 style="font-size:clamp(28px,4vw,42px)">支援体制・料金・<span class="mk">ご依頼の流れ</span></h1>
+      <p class="hero-sub" style="max-width:38em">中小企業庁認定の経営革新等支援機関として、専門家チームが診断から採択後まで伴走します。</p>
+    </div>
+  </div>
+  <section style="padding:64px 0 24px">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <div class="sec-en"><b>E</b>xperts</div>
+        <div class="sec-ja">専門家チーム</div>
+      </div>
+      <div class="works-grid">
+        <article class="work rv">
+          <div class="chips"><span class="chip">中小企業診断士</span></div>
+          <div class="big" style="font-size:22px">住田 守弘</div>
+          <p class="quote">審査員側の目線に立って申請書類を作成。実現可能性があり、採択されやすい事業計画づくりが強み。製造・飲食・建設・卸売など業種を問わず支援。</p>
+        </article>
+        <article class="work rv">
+          <div class="chips"><span class="chip">行政書士</span></div>
+          <div class="big" style="font-size:22px">栗原 淳</div>
+          <p class="quote">商工会議所の経営指導員として約1,000件の経営相談を担当。持続化補助金では事前確認機関として130件超に携わり、その採択率は82%。</p>
+        </article>
+        <article class="work rv">
+          <div class="chips"><span class="chip">中小企業経営コンサルタント</span></div>
+          <div class="big" style="font-size:22px">和家 智也</div>
+          <p class="quote">中小企業専門のコンサルタントとして補助金支援多数。新規事業から事業承継まで、状況に応じた最適な制度選定が強み。早稲田大学大学院修了（MBA）。</p>
+        </article>
+      </div>
+      <p class="rv" style="font-size:13.5px;color:var(--ink-3);margin-top:16px">ほか、中小企業診断士・デザイナー等の専門家 計8名が在籍しています。</p>
+    </div>
+  </section>
+  <section class="price-section" style="padding:48px 0">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <div class="sec-en"><b>P</b>rice</div>
+        <div class="sec-ja">料金 — 成功報酬型</div>
+      </div>
+      <div class="price-grid">
+        <div class="price-card rv">
+          <div class="ttl">相談・診断</div>
+          <div class="val num">0<small>円</small></div>
+          <div class="cap">診断・初回相談は無料。Zoom約30分でご説明します</div>
+        </div>
+        <div class="price-card hot rv">
+          <div class="ttl">成功報酬</div>
+          <div class="val num">0<small>円</small></div>
+          <div class="cap">不採択なら成功報酬なし。同じ補助金の再申請は2回目まで無料</div>
+        </div>
+        <div class="price-card rv">
+          <div class="ttl">ご依頼時</div>
+          <div class="val num">10<small>〜</small>15<small>%</small></div>
+          <div class="cap">基本料金10〜15万円＋採択時に採択金額の10〜15%（制度・従業員数による／税別）</div>
+        </div>
+      </div>
+      <p class="rv" style="font-size:13.5px;color:var(--ink-3);margin-top:16px">※採択後の交付申請・実績報告サポートは別途（伴走サポートプラン 月額1.5万円〜）。年間補助金戦略サポートは月額5万円〜。</p>
+    </div>
+  </section>
+  <section style="padding:48px 0 32px">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <div class="sec-en"><b>F</b>low</div>
+        <div class="sec-ja">ご相談から採択までの流れ</div>
+      </div>
+      <div class="flow-grid">
+        <div class="flow rv"><span class="st">STEP 1</span><h3>無料診断・相談</h3><p>30秒の診断＋Zoom約30分。制度・流れ・費用をご説明。</p></div>
+        <div class="flow rv"><span class="st">STEP 2</span><h3>制度選定・ご依頼</h3><p>行政書士・診断士が採択の可能性を慎重に検討し、ご提案。</p></div>
+        <div class="flow rv"><span class="st">STEP 3</span><h3>書類作成</h3><p>ヒアリングをもとに行政書士が申請書類を作成。打ち合わせで精度を向上。</p></div>
+        <div class="flow rv"><span class="st">STEP 4</span><h3>申請</h3><p>オンライン申請をマニュアルとZoomでサポート。</p></div>
+        <div class="flow rv"><span class="st">STEP 5</span><h3>採択後・実行</h3><p>交付申請〜実績報告まで伴走。設備・Web・AIの実行支援も。</p></div>
+      </div>
+    </div>
+  </section>
+  <section style="padding:48px 0 56px">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <div class="sec-en"><b>W</b>orks</div>
+        <div class="sec-ja">採択事例</div>
+      </div>
+      <div class="works-grid">
+        <article class="work rv">
+          <div class="chips"><span class="chip chip-ind">建材設備製造</span><span class="chip">ものづくり補助金</span></div>
+          <div class="big" style="font-size:21px"><small>採択事例</small>自動化製造設備の導入</div>
+          <p class="quote">生産ラインの自動化という大型の設備投資に活用。審査員目線の事業計画で採択につなげました。</p>
+        </article>
+        <article class="work rv">
+          <div class="chips"><span class="chip chip-ind">IoT機器開発</span><span class="chip">新事業進出補助金</span></div>
+          <div class="big" style="font-size:21px"><small>採択事例</small>AI会話解析による人材育成・業務効率化</div>
+          <p class="quote">AIを活用した新規事業への進出に活用。開発投資の負担を大きく抑えました。</p>
+        </article>
+        <article class="work rv">
+          <div class="chips"><span class="chip chip-ind">地域特産品販売</span><span class="chip">IT導入補助金</span></div>
+          <div class="big" style="font-size:21px"><small>採択事例</small>ネットショップの構築・モール出店</div>
+          <p class="quote">ECサイトの構築とモール出店を支援。制作から販路開拓まで一括対応しました。</p>
+        </article>
+      </div>
+      <p class="rv" style="font-size:13.5px;color:var(--ink-3);margin-top:16px">※守秘義務契約のため、採択金額・申請内容の詳細は非公開です。建設業・広告代理店・和楽器製造・不動産・農家・英会話スクールなど、幅広い業種で採択実績があります。</p>
+    </div>
+  </section>
+  <section class="final" style="padding:80px 0">
+    <div class="wrap rv">
+      <div class="script" style="font-size:22px;color:var(--yellow);margin-bottom:8px">Let's talk!</div>
+      <h2>まずは、話を聞かせてください。</h2>
+      <div class="final-ctas">
+        <a class="btn btn-yellow btn-xl" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-line" href="#">LINEで相談する</a>
+      </div>
+      <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
+    </div>
+  </section>
+</div><!-- /page-support -->
+
+<!-- ============ 下層サンプル④: よくあるご質問 ============ -->
+<div class="page" id="page-faq" hidden>
+  <div class="hero" style="padding:102px 0 56px">
+    <div class="blob blob-1"></div>
+    <div class="wrap" style="position:relative">
+      <p class="crumb"><a href="#/">TOP</a> 〉 よくあるご質問</p>
+      <h1 style="font-size:clamp(28px,4vw,42px)">よくあるご質問</h1>
+      <p class="hero-sub" style="max-width:38em">費用・進め方・対応範囲について、よくいただくご質問をまとめました。解決しない場合は、お気軽に無料相談へ。</p>
+    </div>
+  </div>
+  <section style="padding:64px 0 72px;background:var(--cream)">
+    <div class="wrap">
+      <div class="faq-list rv">
+        <details>
+          <summary><span><span class="q">Q.</span>相談や診断に費用はかかりますか？</span><span class="pm">＋</span></summary>
+          <div class="a">補助金診断・初回相談は無料です。ご依頼いただく場合は基本料金（10〜15万円・制度による）と、採択時のみ成功報酬（採択金額の10〜15%）をいただきます。不採択の場合、成功報酬は発生せず、同じ補助金への再申請は2回目まで無料です。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>自社に合う補助金がわかりません。何から始めればいいですか？</span><span class="pm">＋</span></summary>
+          <div class="a">まずは30秒の無料診断をお試しください。会社の基本情報を入力するだけで、AIが最適な制度を提案します。その結果をもとに専門家が詳しくご案内します。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>地方の会社ですが対応してもらえますか？</span><span class="pm">＋</span></summary>
+          <div class="a">はい、全国対応しています。オンライン（Zoom・LINE）でのお打ち合わせを基本とし、必要に応じて訪問もいたします（累計訪問実績200件以上）。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>書類作成は全部お任せできますか？</span><span class="pm">＋</span></summary>
+          <div class="a">申請書類は行政書士が作成しますが、いわゆる「丸投げ」の代行サービスではありません。補助事業の内容についてヒアリングシートへのご記入と、精度を高めるためのお打ち合わせにご協力いただきます。申請手続き自体はオンラインで、マニュアルとZoomサポートをご用意しています。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>ホームページ制作に補助金は使えますか？</span><span class="pm">＋</span></summary>
+          <div class="a">制度によっては対象になります。小規模事業者持続化補助金やIT導入補助金など、Web制作と組み合わせられる制度のご提案から申請まで一括でサポートできるのがSaludの強みです。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>ITに詳しい社員がいなくてもAI導入はできますか？</span><span class="pm">＋</span></summary>
+          <div class="a">問題ありません。ツールの選定から初期設定、社内向けの使い方レクチャーまで含めて支援します。導入後もLINEで気軽にご質問いただけます。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>採択された後は何をすればいいですか？</span><span class="pm">＋</span></summary>
+          <div class="a">採択後は交付申請・補助事業の実施・実績報告を経て、補助金が入金されます。取引書類の整理や報告書の作成もサポートしますのでご安心ください（採択後サポートは別途、伴走プラン月額1.5万円〜）。</div>
+        </details>
+      </div>
+    </div>
+  </section>
+  <section class="final" style="padding:80px 0">
+    <div class="wrap rv">
+      <div class="script" style="font-size:22px;color:var(--yellow);margin-bottom:8px">Any questions?</div>
+      <h2>解決しないことは、<br>直接聞いてください。</h2>
+      <div class="final-ctas">
+        <a class="btn btn-yellow btn-xl" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-line" href="#">LINEで相談する</a>
+      </div>
+      <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
+    </div>
+  </section>
+</div><!-- /page-faq -->
+
+<!-- ============ 下層サンプル⑤: 代理店募集 ============ -->
+<div class="page" id="page-agency" hidden>
+  <div class="hero" style="padding:102px 0 64px">
+    <div class="blob blob-1"></div>
+    <div class="wrap" style="position:relative">
+      <p class="crumb"><a href="#/">TOP</a> 〉 代理店募集</p>
+      <div class="tag-row">
+        <span class="tag hot">紹介だけでOK</span>
+        <span class="tag">実務は専門家チームが対応</span>
+        <span class="tag">全国対応</span>
+      </div>
+      <h1 style="font-size:clamp(30px,4.2vw,46px)">補助金支援を、<br><span class="mk">貴社の新しい商材</span>に。</h1>
+      <p class="hero-sub" style="max-width:36em">お客様をご紹介いただくだけで、診断・申請・採択後の実務はSaludの専門家チームが担当。成約に応じた紹介報酬をお支払いする代理店パートナー制度です。</p>
+      <div class="hero-ctas">
+        <a class="btn btn-yellow btn-xl wiggle" href="#">代理店資料を請求する →</a>
+        <a class="btn btn-ghost" href="#">オンライン説明を聞く</a>
+      </div>
+    </div>
+  </div>
+  <section style="padding:72px 0 32px">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>M</b>erit</div><div class="sec-ja">代理店のメリット</div></div>
+      <div class="value-grid" style="margin-top:0">
+        <div class="value rv"><h3>既存顧客への新提案</h3><p>「補助金が使えるかもしれません」の一言が、既存のお客様への新しい価値提案になります。</p></div>
+        <div class="value rv"><h3>実務負担ゼロ</h3><p>診断・書類作成・採択後の報告まで、実務はすべて認定支援機関のSaludが対応します。</p></div>
+        <div class="value rv"><h3>成果に応じた紹介報酬</h3><p>ご成約に応じた紹介報酬をお支払い。継続的な収益の柱になります。</p></div>
+      </div>
+    </div>
+  </section>
+  <section style="padding:40px 0 32px">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>F</b>or</div><div class="sec-ja">こんな事業者様におすすめ</div></div>
+      <div class="cat-grid rv">
+        <span class="cat-card"><span class="nm">税理士・会計事務所</span><span class="mx">顧問先への付加価値に</span></span>
+        <span class="cat-card"><span class="nm">保険代理店・FP</span><span class="mx">法人顧客への新提案に</span></span>
+        <span class="cat-card"><span class="nm">Web制作・広告会社</span><span class="mx">制作費の補助金活用提案に</span></span>
+        <span class="cat-card"><span class="nm">設備・機械の販売会社</span><span class="mx">導入費用の負担軽減提案に</span></span>
+      </div>
+    </div>
+  </section>
+  <section style="padding:40px 0 56px">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>F</b>low</div><div class="sec-ja">パートナー開始までの流れ</div></div>
+      <div class="flow-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="flow rv"><span class="st">STEP 1</span><h3>お問い合わせ</h3><p>フォームから資料請求・説明希望をお送りください。</p></div>
+        <div class="flow rv"><span class="st">STEP 2</span><h3>オンライン説明</h3><p>制度の仕組み・報酬体系をご説明します。</p></div>
+        <div class="flow rv"><span class="st">STEP 3</span><h3>パートナー契約</h3><p>契約締結後、紹介ツールをお渡しします。</p></div>
+        <div class="flow rv"><span class="st">STEP 4</span><h3>ご紹介開始</h3><p>お客様をご紹介。以降はSaludが伴走します。</p></div>
+      </div>
+    </div>
+  </section>
+  <section class="final" style="padding:80px 0">
+    <div class="wrap rv">
+      <div class="script" style="font-size:22px;color:var(--yellow);margin-bottom:8px">Join us!</div>
+      <h2>まずは、仕組みを聞いてください。</h2>
+      <div class="final-ctas">
+        <a class="btn btn-yellow btn-xl" href="#">代理店資料を請求する →</a>
+        <a class="btn btn-line" href="#">LINEで問い合わせる</a>
+      </div>
+      <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
+    </div>
+  </section>
+</div><!-- /page-agency -->
+
+<!-- ============ 下層サンプル⑥: 専門家パートナー募集 ============ -->
+<div class="page" id="page-partner" hidden>
+  <div class="hero" style="padding:102px 0 64px">
+    <div class="blob blob-2" style="left:auto;right:-120px;bottom:auto;top:-100px"></div>
+    <div class="wrap" style="position:relative">
+      <p class="crumb"><a href="#/">TOP</a> 〉 専門家パートナー募集</p>
+      <div class="tag-row">
+        <span class="tag hot">フルリモート可</span>
+        <span class="tag">案件は本部から供給</span>
+        <span class="tag">業務委託</span>
+      </div>
+      <h1 style="font-size:clamp(30px,4.2vw,46px)">あなたの専門性を、<br><span class="mk">挑戦する中小企業</span>へ。</h1>
+      <p class="hero-sub" style="max-width:36em">中小企業診断士・行政書士をはじめとする専門家パートナーを募集しています。案件はSaludから供給。書類作成・事業計画づくりに集中できる環境です。</p>
+      <div class="hero-ctas">
+        <a class="btn btn-yellow btn-xl wiggle" href="#">パートナーに応募する →</a>
+        <a class="btn btn-ghost" href="#">まず話を聞いてみる</a>
+      </div>
+    </div>
+  </div>
+  <section style="padding:72px 0 32px">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>W</b>anted</div><div class="sec-ja">募集している専門家</div></div>
+      <div class="cat-grid rv">
+        <span class="cat-card"><span class="nm">中小企業診断士</span><span class="mx">事業計画・申請書類の作成</span></span>
+        <span class="cat-card"><span class="nm">行政書士</span><span class="mx">申請書類の作成・確認</span></span>
+        <span class="cat-card"><span class="nm">税理士・社労士</span><span class="mx">顧問連携・要件確認</span></span>
+        <span class="cat-card"><span class="nm">デザイナー・エンジニア</span><span class="mx">HP制作・AI導入の実行支援</span></span>
+      </div>
+    </div>
+  </section>
+  <section style="padding:40px 0 32px">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>M</b>erit</div><div class="sec-ja">パートナーのメリット</div></div>
+      <div class="value-grid" style="margin-top:0">
+        <div class="value rv"><h3>営業不要・案件供給</h3><p>集客・営業はSaludが担当。専門業務に集中していただけます。</p></div>
+        <div class="value rv"><h3>柔軟な働き方</h3><p>フルリモート・案件単位の業務委託。本業や事務所と両立できます。</p></div>
+        <div class="value rv"><h3>実績が積める</h3><p>幅広い業種・制度の案件に関わり、支援実績を積むことができます。</p></div>
+      </div>
+    </div>
+  </section>
+  <section class="final" style="padding:80px 0">
+    <div class="wrap rv">
+      <div class="script" style="font-size:22px;color:var(--yellow);margin-bottom:8px">Work with us!</div>
+      <h2>一緒に、中小企業の挑戦を<br>支えませんか。</h2>
+      <div class="final-ctas">
+        <a class="btn btn-yellow btn-xl" href="#">パートナーに応募する →</a>
+        <a class="btn btn-ghost-w" href="#">カジュアル面談を申し込む</a>
+      </div>
+    </div>
+  </section>
+</div><!-- /page-partner -->
+
+<!-- ============ 下層サンプル⑦: セミナー ============ -->
+<div class="page" id="page-seminar" hidden>
+  <div class="hero" style="padding:102px 0 56px">
+    <div class="blob blob-1"></div>
+    <div class="wrap" style="position:relative">
+      <p class="crumb"><a href="#/">TOP</a> 〉 セミナー</p>
+      <h1 style="font-size:clamp(28px,4vw,42px)">セミナー・勉強会</h1>
+      <p class="hero-sub" style="max-width:38em">補助金の最新動向やAI活用を、専門家がわかりやすく解説します。参加は無料。アーカイブ動画もご覧いただけます。</p>
+    </div>
+  </div>
+  <section style="padding:64px 0 32px">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>U</b>pcoming</div><div class="sec-ja">開催予定</div></div>
+      <div class="sem-grid">
+        <article class="sem rv">
+          <div class="date"><div class="m">JUL</div><div class="d num">24</div><div class="w">金 14:00</div></div>
+          <div>
+            <span class="chip">オンライン・無料</span>
+            <h3>2026年下半期 補助金活用戦略セミナー — 御社が今すぐ狙える制度</h3>
+            <div class="meta">Zoom開催 / 定員50名</div>
+            <a class="btn btn-yellow" style="padding:12px 28px;font-size:14.5px;margin-top:10px" href="#">申し込む →</a>
+          </div>
+        </article>
+        <article class="sem rv">
+          <div class="date"><div class="m">AUG</div><div class="d num">7</div><div class="w">金 15:00</div></div>
+          <div>
+            <span class="chip">オンライン・無料</span>
+            <h3>中小企業のためのAI活用はじめの一歩 — 補助金でコストを抑える</h3>
+            <div class="meta">Zoom開催 / 定員50名</div>
+            <a class="btn btn-yellow" style="padding:12px 28px;font-size:14.5px;margin-top:10px" href="#">申し込む →</a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+  <section style="padding:40px 0 64px">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>A</b>rchive</div><div class="sec-ja">過去のセミナー（アーカイブ視聴）</div></div>
+      <div class="brows rv" style="max-width:780px">
+        <a class="brow" href="#"><span class="bd num">2026.06.12</span><span>ものづくり補助金 23次締切 直前対策セミナー</span><span style="color:var(--teal);font-weight:800;white-space:nowrap">▶ 視聴</span></a>
+        <a class="brow" href="#"><span class="bd num">2026.05.16</span><span>省力化投資補助金（一般型）徹底解説</span><span style="color:var(--teal);font-weight:800;white-space:nowrap">▶ 視聴</span></a>
+        <a class="brow" href="#"><span class="bd num">2026.04.18</span><span>持続化補助金でホームページを作る方法</span><span style="color:var(--teal);font-weight:800;white-space:nowrap">▶ 視聴</span></a>
+      </div>
+    </div>
+  </section>
+  <section class="final" style="padding:80px 0">
+    <div class="wrap rv">
+      <div class="script" style="font-size:22px;color:var(--yellow);margin-bottom:8px">Join free!</div>
+      <h2>セミナーより早く知りたい方は、<br>30秒診断へ。</h2>
+      <div class="final-ctas">
+        <a class="btn btn-yellow btn-xl" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-line" href="#">LINEで相談する</a>
+      </div>
+    </div>
+  </section>
+</div><!-- /page-seminar -->
+
+<footer>
+  <div class="wrap">
+    <div class="ft-grid">
+      <div class="ft-brand">
+        <span class="logo"><img src="data:image/png;base64,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" alt=""><span class="lg-txt">株式会社Salud</span></span>
+        <p>中小企業庁認定 経営革新等支援機関。補助金申請から実行支援まで、資金を整え、Web・AI・プロダクトの実装で事業を前に進めます。</p>
+        <a class="ft-diag" href="#">▶ 無料補助金診断はこちら</a>
+      </div>
+      <div class="ft-col">
+        <h4>Funding</h4>
+        <ul>
+          <li><a href="#">融資支援</a></li>
+          <li><a href="#">ものづくり補助金</a></li>
+          <li><a href="#">持続化補助金</a></li>
+          <li><a href="#">IT導入補助金</a></li>
+          <li><a href="#">省力化投資補助金</a></li>
+          <li><a href="#">新事業進出補助金</a></li>
+          <li><a href="#">成長加速化補助金</a></li>
+          <li><a href="#">事業承継・M&A補助金</a></li>
+        </ul>
+      </div>
+      <div class="ft-col">
+        <h4>Web</h4>
+        <ul>
+          <li><a href="#">ホームページ制作</a></li>
+          <li><a href="#">LP制作</a></li>
+          <li><a href="#">SEO対策</a></li>
+          <li><a href="#">Webマーケティング</a></li>
+          <li><a href="#">プロダクト初期実装</a></li>
+          <li><a href="#">AI活用・業務効率化</a></li>
+        </ul>
+      </div>
+      <div class="ft-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#">導入事例</a></li>
+          <li><a href="#">セミナー</a></li>
+          <li><a href="#">ブログ</a></li>
+          <li><a href="#">会社概要</a></li>
+          <li><a href="#">採用情報</a></li>
+          <li><a href="#/agency">代理店募集</a></li>
+          <li><a href="#/partner">専門家パートナー募集</a></li>
+          <li><a href="#/faq">よくあるご質問</a></li>
+          <li><a href="#">お問い合わせ</a></li>
+          <li><a href="#">顧客ポータル（ログイン）</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="ft-bottom">
+      <span>© 2026 Salud Inc. — 東京都渋谷区道玄坂1-10-8</span>
+      <div class="ft-sns"><a href="#">X</a><a href="#">Instagram</a><a href="#">YouTube</a><a href="#">LINE</a></div>
+    </div>
+  </div>
+</footer>
+
+<div class="follow-cta">
+  <a class="fc-line" href="#" aria-label="公式LINEで相談する">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.9 3 2.8 6.4 2.8 10.6c0 3.8 3.3 6.9 7.8 7.5.3.1.7.2.8.5.1.2.1.6 0 .9l-.1.8c0 .2-.2.9.8.5s5.2-3.1 7.1-5.3c1.3-1.4 1.9-2.9 1.9-4.9C21.2 6.4 17.1 3 12 3z"/></svg>
+    公式LINEで相談
+  </a>
+  <a class="fc-diag" href="#diag">補助金相談はこちら →</a>
+</div>
+
+<div class="mobile-bar" id="mobileBar">
+  <a class="btn btn-yellow" href="#">30秒で無料診断</a>
+  <a class="btn btn-primary" href="#">無料相談</a>
+</div>
+
+<script>
+  document.getElementById('heroCopy').classList.add('on');
+  document.getElementById('heroVisual').classList.add('on');
+
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var els = document.querySelectorAll('.rv');
+  if (reduce || !('IntersectionObserver' in window)) {
+    els.forEach(function (el) { el.classList.add('on'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+    els.forEach(function (el) { io.observe(el); });
+  }
+
+  var hd = document.getElementById('hd');
+  var bar = document.getElementById('mobileBar');
+  window.addEventListener('scroll', function () {
+    hd.classList.toggle('scrolled', window.scrollY > 60);
+    bar.classList.toggle('show', window.scrollY > 480);
+  }, { passive: true });
+
+  // 簡易ページ切替（#/xxx で下層サンプルへ、#/ でTOPへ）
+  var pages = document.querySelectorAll('.page');
+  function route() {
+    var h = location.hash;
+    var id = h.indexOf('#/') === 0 ? h.slice(2) : 'home';
+    var target = document.getElementById('page-' + id) || document.getElementById('page-home');
+    pages.forEach(function (p) { p.hidden = (p !== target); });
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', route);
+  route();
+</script>
