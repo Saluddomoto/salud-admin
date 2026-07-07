@@ -402,6 +402,17 @@
   .os-svg { width: 100%; height: auto; display: block; }
   @media (max-width: 900px) { .os-grid { grid-template-columns: 1fr; } }
 
+  /* SWOT 診断バンド */
+  .swot-row { display: flex; gap: 10px; justify-content: center; margin: 22px 0 6px; }
+  .swot-row .sw { display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 74px; height: 64px; border-radius: 12px; font-family: var(--font-en);
+    font-size: 22px; font-weight: 800; color: #fff; line-height: 1.15;
+    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3); }
+  .swot-row .sw small { font-size: 11px; font-weight: 700; font-family: var(--font-jp); }
+  .swot-row .s4 { background: rgba(255,217,59,.22); border-color: rgba(255,217,59,.55); }
+  .swot-gift { font-size: 14.5px; font-weight: 800; color: #fff; margin-bottom: 20px; }
+  .swot-gift b { background: linear-gradient(transparent 62%, rgba(255,217,59,.85) 62%, rgba(255,217,59,.85) 94%, transparent 94%); padding: 0 2px; }
+
   /* 専門家カード */
   .exp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
   .exp { background: #fff; border: 1px solid var(--line); border-radius: 16px;
@@ -487,7 +498,7 @@
         <span>全国対応</span>
       </div>
       <div class="hero-ctas">
-        <a class="btn btn-yellow btn-xl wiggle" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-yellow btn-xl wiggle" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
         <a class="btn btn-ghost" href="#">無料相談を予約</a>
       </div>
       <p class="hero-note">登録不要・診断無料・しつこい営業は一切ありません</p>
@@ -560,7 +571,7 @@
     <span class="ticker-item">ものづくり補助金 <b class="num">8/22</b> 締切</span>
     <span class="ticker-item">IT導入補助金 <b class="num">8/29</b> 締切</span>
     <span class="ticker-item">省力化投資補助金 <b class="num">9/10</b> 締切</span>
-    <a class="ticker-item" href="#" style="color:var(--teal)">→ 自社に合う制度を診断する</a>
+    <a class="ticker-item" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener" style="color:var(--teal)">→ 自社に合う制度を診断する</a>
   </div>
 </div>
 
@@ -774,9 +785,13 @@
   <div class="wrap">
     <div class="diag-card rv">
       <div class="script" style="font-size:21px;color:var(--yellow);margin-bottom:6px;position:relative">Free check!</div>
-      <h2>使える補助金、<span class="hl">30秒</span>でわかります。</h2>
-      <p>会社の情報を入力するだけで、AIが数千の制度から最適な補助金をマッチング。「取れるか」ではなく<b style="color:#fff">「使えるか」</b>を判断する診断です。診断後は、そのまま専門家との無料相談をご予約いただけます。</p>
-      <a class="btn btn-yellow btn-xl wiggle" href="#">無料で診断する →</a>
+      <h2>SWOT分析で、最適な補助金<span class="hl">上位3つ</span>を選定。</h2>
+      <p>貴社の<b style="color:#fff">強み・弱み・機会・脅威</b>を整理し、成長戦略に沿った補助金活用を設計。「取れるか」ではなく<b style="color:#fff">「使えるか」</b>を判断し、戦略設計から申請まで伴走します。</p>
+      <div class="swot-row" aria-hidden="true">
+        <span class="sw s1">S<small>強み</small></span><span class="sw s2">W<small>弱み</small></span><span class="sw s3">O<small>機会</small></span><span class="sw s4">T<small>脅威</small></span>
+      </div>
+      <div class="swot-gift">🎁 診断結果は<b>わかりやすい図解</b>でプレゼント！</div>
+      <a class="btn btn-yellow btn-xl wiggle" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">無料で診断する →</a>
       <span class="note">登録不要・30秒で完了・結果はその場で表示</span>
     </div>
   </div>
@@ -910,7 +925,7 @@
     <h2>その挑戦、補助金で<br>もっと大きくできます。</h2>
     <p class="lede">課題が明確でなくても大丈夫です。現状を伺い、いま打てる最善の一手をご提案します。</p>
     <div class="final-ctas">
-      <a class="btn btn-yellow btn-xl" href="#">30秒で無料診断する →</a>
+      <a class="btn btn-yellow btn-xl" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
       <a class="btn btn-line" href="#">LINEで相談する</a>
       <a class="btn btn-ghost-w" href="#">無料相談を予約</a>
     </div>
@@ -933,7 +948,7 @@
       <h1 style="font-size:clamp(30px,4.2vw,46px)">ものづくり補助金で、<br><span class="mk">最大4,000万円</span>の設備投資を。</h1>
       <p class="hero-sub" style="max-width:36em">機械装置・システム構築費が対象（補助率1/2・2/3）。認定支援機関のSaludが、制度の診断から書類作成、採択後の実績報告まで伴走します。</p>
       <div class="hero-ctas">
-        <a class="btn btn-yellow btn-xl wiggle" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-yellow btn-xl wiggle" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
         <a class="btn btn-ghost" href="#">無料相談を予約</a>
       </div>
     </div>
@@ -973,7 +988,7 @@
       <div class="script" style="font-size:22px;color:var(--yellow);margin-bottom:8px">Let's check!</div>
       <h2>まずは、対象になるか<br>確認してみませんか。</h2>
       <div class="final-ctas">
-        <a class="btn btn-yellow btn-xl" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-yellow btn-xl" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
         <a class="btn btn-line" href="#">LINEで相談する</a>
       </div>
       <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
@@ -995,7 +1010,7 @@
       <h1 style="font-size:clamp(30px,4.2vw,46px)">ホームページ制作、<br><span class="mk">実質1/3の負担</span>でつくれます。</h1>
       <p class="hero-sub" style="max-width:36em">小規模事業者持続化補助金（補助率2/3）を活用すれば、60万円のサイトが実質20万円に。補助金の申請から制作・集客まで、Saludがまとめて対応します。</p>
       <div class="hero-ctas">
-        <a class="btn btn-yellow btn-xl wiggle" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-yellow btn-xl wiggle" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
         <a class="btn btn-ghost" href="#">無料相談を予約</a>
       </div>
     </div>
@@ -1035,7 +1050,7 @@
       <div class="script" style="font-size:22px;color:var(--yellow);margin-bottom:8px">Let's start!</div>
       <h2>そのWeb投資、<br>補助金が使えるかもしれません。</h2>
       <div class="final-ctas">
-        <a class="btn btn-yellow btn-xl" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-yellow btn-xl" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
         <a class="btn btn-line" href="#">LINEで相談する</a>
       </div>
       <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
@@ -1178,7 +1193,7 @@
       <div class="script" style="font-size:22px;color:var(--yellow);margin-bottom:8px">Let's talk!</div>
       <h2>まずは、話を聞かせてください。</h2>
       <div class="final-ctas">
-        <a class="btn btn-yellow btn-xl" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-yellow btn-xl" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
         <a class="btn btn-line" href="#">LINEで相談する</a>
       </div>
       <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
@@ -1235,7 +1250,7 @@
       <div class="script" style="font-size:22px;color:var(--yellow);margin-bottom:8px">Any questions?</div>
       <h2>解決しないことは、<br>直接聞いてください。</h2>
       <div class="final-ctas">
-        <a class="btn btn-yellow btn-xl" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-yellow btn-xl" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
         <a class="btn btn-line" href="#">LINEで相談する</a>
       </div>
       <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
@@ -1409,7 +1424,7 @@
       <div class="script" style="font-size:22px;color:var(--yellow);margin-bottom:8px">Join free!</div>
       <h2>セミナーより早く知りたい方は、<br>30秒診断へ。</h2>
       <div class="final-ctas">
-        <a class="btn btn-yellow btn-xl" href="#">30秒で無料診断する →</a>
+        <a class="btn btn-yellow btn-xl" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
         <a class="btn btn-line" href="#">LINEで相談する</a>
       </div>
     </div>
@@ -1422,7 +1437,7 @@
       <div class="ft-brand">
         <span class="logo"><img src="data:image/png;base64,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" alt=""><span class="lg-txt">株式会社Salud</span></span>
         <p>中小企業庁認定 経営革新等支援機関。補助金申請から実行支援まで、資金を整え、Web・AI・プロダクトの実装で事業を前に進めます。</p>
-        <a class="ft-diag" href="#">▶ 無料補助金診断はこちら</a>
+        <a class="ft-diag" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">▶ 無料補助金診断はこちら</a>
       </div>
       <div class="ft-col">
         <h4>Funding</h4>
@@ -1480,7 +1495,7 @@
 </div>
 
 <div class="mobile-bar" id="mobileBar">
-  <a class="btn btn-yellow" href="#">30秒で無料診断</a>
+  <a class="btn btn-yellow" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断</a>
   <a class="btn btn-primary" href="#">無料相談</a>
 </div>
 
