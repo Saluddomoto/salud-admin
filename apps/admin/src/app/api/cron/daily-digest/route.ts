@@ -31,7 +31,7 @@ export async function GET(req: Request) {
 
   const [{ data: members }, { data: allProfiles }, { data: events }, { data: tasks }, { count: needsReply }] = await Promise.all([
     admin.from('profiles').select('id, full_name, line_user_id')
-      .not('line_user_id', 'is', null).eq('is_active', true),
+      .not('line_user_id', 'is', null).eq('is_active', true).eq('digest_enabled', true),
     admin.from('profiles').select('id, full_name'),
     admin.from('events').select('title, start_time, end_time, assigned_user_id')
       .eq('event_date', today).order('start_time'),
