@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -98,8 +99,13 @@ export function LoginForm() {
             </button>
           </form>
 
-          <p className="text-center text-xs text-slate-400 mt-6">
-            ログインできない場合は管理者にお問い合わせください
+          <p className="text-center text-sm mt-5">
+            <Link href="/forgot-password" className="font-medium text-brand-600 hover:underline">
+              パスワードをお忘れの方はこちら
+            </Link>
+          </p>
+          <p className="text-center text-xs text-slate-400 mt-3">
+            それでもログインできない場合は管理者にお問い合わせください
           </p>
         </div>
       </div>
