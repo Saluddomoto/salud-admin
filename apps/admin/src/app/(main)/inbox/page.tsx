@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { fetchMessages, markMessageRead, markMessageReplied, type DbMessage } from '@/lib/db'
+
+const SWIPE_DISMISS_THRESHOLD = 80
 
 const CHANNEL_META: Record<DbMessage['channel'], { label: string; cls: string }> = {
   line:  { label: 'LINE',   cls: 'bg-emerald-100 text-emerald-700' },
@@ -32,6 +34,8 @@ export default function InboxPage() {
   const [loading,  setLoading]  = useState(true)
   const [channel,  setChannel]  = useState('')
   const [status,   setStatus]   = useState('')
+  const [swipeX,   setSwipeX]   = useState<Record<string, number>>({})
+  const touchStartX = useRef<Record<string, number>>({})
 
   useEffect(() => {
     fetchMessages().then(setMessages).finally(() => setLoading(false))
@@ -54,6 +58,39 @@ export default function InboxPage() {
     } catch {
       setMessages(prev => prev.map(x => x.id === m.id ? { ...x, needs_reply: m.needs_reply, is_read: m.is_read } : x))
     }
+  }
+
+  const handleDismiss = async (m: DbMessage) => {
+    setMessages(prev => prev.filter(x => x.id !== m.id))
+    try {
+      await markMessageReplied(m.id)
+    } catch {
+      setMessages(prev => [...prev, m].sort((a, b) => b.received_at.localeCompare(a.received_at)))
+    }
+  }
+
+  const handleTouchStart = (id: string, e: React.TouchEvent) => {
+    touchStartX.current[id] = e.touches[0]!.clientX
+  }
+
+  const handleTouchMove = (id: string, e: React.TouchEvent) => {
+    const start = touchStartX.current[id]
+    if (start == null) return
+    const dx = e.touches[0]!.clientX - start
+    setSwipeX(prev => ({ ...prev, [id]: Math.min(0, dx) }))
+  }
+
+  const handleTouchEnd = (m: DbMessage) => {
+    const dx = swipeX[m.id] ?? 0
+    delete touchStartX.current[m.id]
+    if (dx <= -SWIPE_DISMISS_THRESHOLD) {
+      handleDismiss(m)
+    }
+    setSwipeX(prev => {
+      const next = { ...prev }
+      delete next[m.id]
+      return next
+    })
   }
 
   const filtered = messages.filter(m => {
@@ -90,49 +127,60 @@ export default function InboxPage() {
         {loading && (
           <p className="p-12 text-center text-sm text-slate-400">読み込み中...</p>
         )}
-        {!loading && filtered.map(m => (
-          <div
-            key={m.id}
-            onClick={() => handleRead(m)}
-            className={`flex cursor-pointer items-start gap-4 p-4 transition-colors hover:bg-slate-50/60 ${
-              !m.is_read && !m.converted_to ? 'bg-brand-50/40' : ''
-            }`}
-          >
-            <span className={`badge mt-0.5 flex-shrink-0 ${CHANNEL_META[m.channel].cls}`}>
-              {CHANNEL_META[m.channel].label}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className={`text-sm ${!m.is_read && !m.converted_to ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>
-                  {m.sender_name}
-                </p>
-                <p className="text-xs text-slate-400">{m.company_name ?? '—'}</p>
-                {m.needs_reply && (
-                  <span className="badge bg-rose-100 text-xs text-rose-700">要返信</span>
-                )}
-                {m.converted_to && (
-                  <span className={`badge text-xs ${CONVERTED_META[m.converted_to].cls}`}>
-                    {CONVERTED_META[m.converted_to].label}
-                  </span>
+        {!loading && filtered.map(m => {
+          const dx = swipeX[m.id] ?? 0
+          return (
+          <div key={m.id} className="relative overflow-hidden">
+            <div className="absolute inset-0 flex items-center justify-end bg-rose-500 px-5 text-sm font-medium text-white">
+              消す
+            </div>
+            <div
+              onClick={() => handleRead(m)}
+              onTouchStart={e => handleTouchStart(m.id, e)}
+              onTouchMove={e => handleTouchMove(m.id, e)}
+              onTouchEnd={() => handleTouchEnd(m)}
+              style={{ transform: `translateX(${dx}px)`, transition: dx === 0 ? 'transform 0.2s ease' : 'none' }}
+              className={`relative flex cursor-pointer items-start gap-4 bg-white p-4 transition-colors hover:bg-slate-50/60 ${
+                !m.is_read && !m.converted_to ? 'bg-brand-50/40' : ''
+              }`}
+            >
+              <span className={`badge mt-0.5 flex-shrink-0 ${CHANNEL_META[m.channel].cls}`}>
+                {CHANNEL_META[m.channel].label}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className={`text-sm ${!m.is_read && !m.converted_to ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>
+                    {m.sender_name}
+                  </p>
+                  <p className="text-xs text-slate-400">{m.company_name ?? '—'}</p>
+                  {m.needs_reply && (
+                    <span className="badge bg-rose-100 text-xs text-rose-700">要返信</span>
+                  )}
+                  {m.converted_to && (
+                    <span className={`badge text-xs ${CONVERTED_META[m.converted_to].cls}`}>
+                      {CONVERTED_META[m.converted_to].label}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 truncate text-sm text-slate-500">{m.body}</p>
+              </div>
+              <div className="flex flex-shrink-0 flex-col items-end gap-2">
+                <span className="text-xs text-slate-400">{formatReceivedAt(m.received_at)}</span>
+                {m.needs_reply ? (
+                  <button
+                    onClick={e => { e.stopPropagation(); handleReplied(m) }}
+                    className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-500 transition-colors hover:border-emerald-300 hover:text-emerald-600"
+                  >
+                    返信済みにする
+                  </button>
+                ) : (
+                  !m.is_read && !m.converted_to && <span className="h-2 w-2 rounded-full bg-brand-500" />
                 )}
               </div>
-              <p className="mt-1 truncate text-sm text-slate-500">{m.body}</p>
-            </div>
-            <div className="flex flex-shrink-0 flex-col items-end gap-2">
-              <span className="text-xs text-slate-400">{formatReceivedAt(m.received_at)}</span>
-              {m.needs_reply ? (
-                <button
-                  onClick={e => { e.stopPropagation(); handleReplied(m) }}
-                  className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-500 transition-colors hover:border-emerald-300 hover:text-emerald-600"
-                >
-                  返信済みにする
-                </button>
-              ) : (
-                !m.is_read && !m.converted_to && <span className="h-2 w-2 rounded-full bg-brand-500" />
-              )}
             </div>
           </div>
-        ))}
+          )
+        })}
         {!loading && filtered.length === 0 && (
           <p className="p-12 text-center text-sm text-slate-400">該当するメッセージがありません</p>
         )}
