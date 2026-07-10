@@ -14,6 +14,20 @@ const CATEGORY_META: Record<DbEvent['category'], { label: string; color: string;
   internal: { label: '社内', color: '#64748b', cls: 'bg-slate-100 text-slate-600' },
 }
 
+// 入力者（担当者）ごとの色分け
+const ASSIGNEE_COLORS: Record<string, string> = {
+  '神前': '#3b82f6', // blue
+  '栗原': '#10b981', // emerald
+  '和家': '#8b5cf6', // violet
+  '三戸部': '#f97316', // orange
+}
+const DEFAULT_ASSIGNEE_COLOR = '#94a3b8' // slate（上記4名以外）
+
+function assigneeColor(name?: string | null): string {
+  if (!name) return DEFAULT_ASSIGNEE_COLOR
+  return ASSIGNEE_COLORS[name] ?? DEFAULT_ASSIGNEE_COLOR
+}
+
 function toISODate(d: Date): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -127,6 +141,20 @@ export default function SchedulePage() {
         <button className="btn-primary text-sm" onClick={() => setModalOpen(true)}>+ 予定を追加</button>
       </PageHeader>
 
+      {/* 担当者カラー凡例 */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1">
+        {Object.entries(ASSIGNEE_COLORS).map(([name, color]) => (
+          <span key={name} className="flex items-center gap-1.5 text-xs text-slate-600">
+            <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: color }} />
+            {name}
+          </span>
+        ))}
+        <span className="flex items-center gap-1.5 text-xs text-slate-400">
+          <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: DEFAULT_ASSIGNEE_COLOR }} />
+          その他
+        </span>
+      </div>
+
       {/* 週カレンダー */}
       <div className="card grid grid-cols-7 divide-x divide-slate-100 overflow-hidden">
         {weekDates.map((date, i) => {
@@ -145,18 +173,23 @@ export default function SchedulePage() {
               <div className="flex flex-col gap-1.5 p-2">
                 {dayEvents.map(e => {
                   const meta = CATEGORY_META[e.category]
+                  const aColor = assigneeColor(e.profiles?.full_name)
                   return (
                     <div
                       key={e.id}
                       className="cursor-pointer rounded-lg border-l-[3px] bg-white p-2 shadow-sm transition-shadow hover:shadow"
-                      style={{ borderLeftColor: meta.color }}
+                      style={{ borderLeftColor: aColor }}
                       title={e.notes ?? undefined}
                     >
-                      <p className="text-xs font-semibold leading-snug text-slate-800">{e.title}</p>
+                      <div className="flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: aColor }} />
+                        <p className="text-xs font-semibold leading-snug text-slate-800">{e.title}</p>
+                      </div>
                       <p className="mt-0.5 text-[10px] text-slate-400">
                         {e.start_time === e.end_time
                           ? fmtTime(e.start_time)
                           : `${fmtTime(e.start_time)}–${fmtTime(e.end_time)}`} · {e.profiles?.full_name ?? '—'}
+                        <span className={`ml-1 rounded px-1 py-0.5 ${meta.cls}`}>{meta.label}</span>
                       </p>
                     </div>
                   )
@@ -177,9 +210,10 @@ export default function SchedulePage() {
         <div className="space-y-2">
           {filtered.map(e => {
             const meta = CATEGORY_META[e.category]
+            const aColor = assigneeColor(e.profiles?.full_name)
             return (
               <div key={e.id} className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-slate-50">
-                <div className="h-10 w-1 flex-shrink-0 rounded-full" style={{ background: meta.color }} />
+                <div className="h-10 w-1 flex-shrink-0 rounded-full" style={{ background: aColor }} />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-slate-800">{e.title}</p>
                   <p className="text-xs text-slate-400">
@@ -190,7 +224,10 @@ export default function SchedulePage() {
                   </p>
                 </div>
                 <span className={`badge text-xs ${meta.cls}`}>{meta.label}</span>
-                <span className="w-16 truncate text-right text-xs text-slate-500">{e.profiles?.full_name ?? '—'}</span>
+                <span className="flex w-20 flex-shrink-0 items-center justify-end gap-1.5 text-right text-xs text-slate-500">
+                  <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: aColor }} />
+                  <span className="truncate">{e.profiles?.full_name ?? '—'}</span>
+                </span>
               </div>
             )
           })}
