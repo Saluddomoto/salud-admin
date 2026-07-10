@@ -68,6 +68,7 @@ export type DbProfile = {
   department: string | null
   is_active: boolean
   notification_prefs: NotificationPrefs
+  tasks_shared_with_team: boolean
 }
 
 export type DbEvent = {
@@ -268,13 +269,15 @@ export async function insertTask(input: {
   priority: string
   due_date: string | null
   project_id: string | null
+  assigned_user_id?: string
 }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
+  const { assigned_user_id, ...rest } = input
   const { error } = await client.from('tasks').insert({
-    ...input,
+    ...rest,
     status: 'todo',
-    assigned_user_id: user?.id ?? null,
+    assigned_user_id: assigned_user_id ?? user?.id ?? null,
     created_by: user?.id ?? null,
   })
   if (error) throw error
@@ -361,7 +364,7 @@ export async function fetchNeedsReplyCount(): Promise<number> {
 export async function fetchProfiles(): Promise<DbProfile[]> {
   const { data, error } = await db()
     .from('profiles')
-    .select('id, full_name, role, department, is_active, notification_prefs')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team')
     .order('created_at')
   if (error) throw error
   return data as DbProfile[]
@@ -373,7 +376,7 @@ export async function fetchMyProfile(): Promise<DbProfile | null> {
   if (!user) return null
   const { data, error } = await client
     .from('profiles')
-    .select('id, full_name, role, department, is_active, notification_prefs')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team')
     .eq('id', user.id)
     .single()
   if (error) throw error
@@ -399,6 +402,12 @@ export async function updateMyNotificationPrefs(prefs: NotificationPrefs) {
 export async function updateMyPassword(newPassword: string) {
   const client = db()
   const { error } = await client.auth.updateUser({ password: newPassword })
+  if (error) throw error
+}
+
+// admin のみ RLS で許可（profiles: admin all）。他ロールが呼ぶと更新 0 件になる。
+export async function updateMemberTasksSharing(id: string, shared: boolean) {
+  const { error } = await db().from('profiles').update({ tasks_shared_with_team: shared }).eq('id', id)
   if (error) throw error
 }
 

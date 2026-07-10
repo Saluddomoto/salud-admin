@@ -134,7 +134,7 @@ export default function CustomerDetailPage() {
   const st = STATUS_LABELS[customer.status]
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-4 sm:p-6">
       <div>
         <Link href="/customers" className="text-xs font-medium text-slate-400 hover:text-brand-600">← 顧客一覧</Link>
         <div className="mt-1">
@@ -158,7 +158,7 @@ export default function CustomerDetailPage() {
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       )}
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* 基本情報 */}
         <div className="card p-5">
           <h3 className="mb-4 font-semibold text-slate-900">基本情報</h3>
@@ -262,7 +262,7 @@ export default function CustomerDetailPage() {
             <label className="mb-1.5 block text-sm font-medium text-slate-700">会社名 *</label>
             <input name="company_name" required className="input" defaultValue={customer.company_name} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">業種</label>
               <input name="industry" className="input" defaultValue={customer.industry ?? ''} />
@@ -308,7 +308,7 @@ export default function CustomerDetailPage() {
       {/* 担当者追加モーダル */}
       <Modal title="先方担当者を追加" open={contactOpen} onClose={() => setContactOpen(false)}>
         <form onSubmit={handleAddContact} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">氏名 *</label>
               <input name="name" required className="input" placeholder="山田 太郎" />

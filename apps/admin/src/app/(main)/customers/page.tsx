@@ -65,7 +65,7 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="顧客管理" description={`全 ${customers.length} 社`}>
         <button className="btn-primary text-sm" onClick={() => setModalOpen(true)}>+ 顧客を追加</button>
       </PageHeader>
@@ -90,8 +90,8 @@ export default function CustomersPage() {
         <span className="ml-auto text-sm text-slate-500">{filtered.length} 件</span>
       </div>
 
-      <div className="card overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="card overflow-x-auto">
+        <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs text-slate-500">
               <th className="px-4 py-3 font-medium">会社名</th>
@@ -142,7 +142,7 @@ export default function CustomersPage() {
             <label className="mb-1.5 block text-sm font-medium text-slate-700">会社名 *</label>
             <input name="company_name" required className="input" placeholder="株式会社〇〇" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">担当者名</label>
               <input name="contact_name" className="input" placeholder="山田 太郎" />

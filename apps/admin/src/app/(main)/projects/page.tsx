@@ -66,7 +66,7 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-6 p-6">
+    <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="案件管理" description={`進行中 ${projects.filter(p => p.status !== 'completed' && p.status !== 'rejected').length} 件`}>
         <button className="btn-primary text-sm" onClick={() => setModalOpen(true)}>+ 新規案件</button>
       </PageHeader>
@@ -75,7 +75,7 @@ export default function ProjectsPage() {
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       )}
 
-      <div className="grid flex-1 grid-cols-4 gap-4">
+      <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {COLUMNS.map(col => {
           const items = projects.filter(p => p.status === col.key)
           return (
@@ -125,7 +125,7 @@ export default function ProjectsPage() {
             <label className="mb-1.5 block text-sm font-medium text-slate-700">案件名 *</label>
             <input name="title" required className="input" placeholder="ものづくり補助金 第18回" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">補助金名 *</label>
               <input name="subsidy_name" required className="input" placeholder="ものづくり補助金" />

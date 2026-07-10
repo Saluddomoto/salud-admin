@@ -92,7 +92,7 @@ export default function DashboardPage() {
   const dateLabel = now.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader
         title="ダッシュボード"
         description={`${dateLabel} — ${greeting}`}
@@ -157,7 +157,7 @@ export default function DashboardPage() {
       )}
 
       {/* KPI */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {kpiCards.map(card => (
           <div key={card.label} className="card p-5">
             <div className="mb-3 flex items-center justify-between">
@@ -173,7 +173,7 @@ export default function DashboardPage() {
       </div>
 
       {/* 下段 */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* 直近の案件 */}
         <div className="card p-5">
           <div className="mb-4 flex items-center justify-between">

@@ -69,7 +69,7 @@ export default function InboxPage() {
   const needsReply = messages.filter(m => m.needs_reply).length
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="受信トレイ" description={`未対応 ${unread} 件 · 要返信 ${needsReply} 件`}>
         <select className="input w-36 text-sm" value={channel} onChange={e => setChannel(e.target.value)}>
           <option value="">全チャネル</option>

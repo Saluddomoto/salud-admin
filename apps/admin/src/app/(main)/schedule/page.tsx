@@ -125,7 +125,7 @@ export default function SchedulePage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="スケジュール" description={rangeLabel}>
         <div className="flex items-center gap-1">
           <button className="btn-secondary px-2.5 text-sm" onClick={() => moveWeek(-1)}>◀</button>
@@ -157,8 +157,9 @@ export default function SchedulePage() {
         </span>
       </div>
 
-      {/* 週カレンダー */}
-      <div className="card grid grid-cols-7 divide-x divide-slate-100 overflow-hidden">
+      {/* 週カレンダー（モバイルは横スクロール） */}
+      <div className="card overflow-x-auto">
+      <div className="grid min-w-[700px] grid-cols-7 divide-x divide-slate-100 overflow-hidden">
         {weekDates.map((date, i) => {
           const dayEvents = filtered.filter(e => e.event_date === date)
           const isToday = date === today
@@ -200,6 +201,7 @@ export default function SchedulePage() {
             </div>
           )
         })}
+      </div>
       </div>
 
       {/* 今後の予定リスト */}
@@ -243,7 +245,7 @@ export default function SchedulePage() {
             <label className="mb-1.5 block text-sm font-medium text-slate-700">件名 *</label>
             <input name="title" required className="input" placeholder="例: 山田製作所 打ち合わせ" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">日付 *</label>
               <input name="event_date" type="date" required defaultValue={today} className="input" />

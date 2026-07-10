@@ -6,6 +6,7 @@ import { Modal } from '@/components/Modal'
 import { useAuth } from '@/hooks/useAuth'
 import {
   fetchMyProfile, fetchProfiles, updateMyProfile, updateMyNotificationPrefs, updateMyPassword,
+  updateMemberTasksSharing,
   type DbProfile, type NotificationPrefs,
 } from '@/lib/db'
 
@@ -161,6 +162,16 @@ export default function SettingsPage() {
     setInviteResult(null)
   }
 
+  const handleToggleTasksSharing = async (id: string, shared: boolean) => {
+    setMembers(prev => prev.map(m => m.id === id ? { ...m, tasks_shared_with_team: shared } : m))
+    try {
+      await updateMemberTasksSharing(id, shared)
+    } catch (e) {
+      alert(`更新に失敗しました: ${e instanceof Error ? e.message : e}`)
+      fetchProfiles().then(setMembers).catch(() => {})
+    }
+  }
+
   const handleSavePrefs = async () => {
     if (!prefs) return
     setPrefsSaving(true)
@@ -200,17 +211,17 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="設定" description="アカウント・組織の設定" />
 
-      <div className="grid grid-cols-[200px_1fr] gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[200px_1fr]">
         {/* 左ナビ */}
-        <nav className="flex flex-col gap-1">
+        <nav className="flex gap-1 overflow-x-auto md:flex-col">
           {TABS.map(t => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`rounded-xl px-3.5 py-2.5 text-left text-sm font-medium transition-colors ${
+              className={`whitespace-nowrap rounded-xl px-3.5 py-2.5 text-left text-sm font-medium transition-colors ${
                 tab === t.key
                   ? 'bg-brand-50 text-brand-700'
                   : 'text-slate-600 hover:bg-slate-50'
@@ -226,7 +237,7 @@ export default function SettingsPage() {
           {tab === 'profile' && (
             <div className="card space-y-4 p-6">
               <h3 className="font-semibold text-slate-900">プロフィール</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">氏名</label>
                   <input className="input" value={fullName} onChange={e => setFullName(e.target.value)} />
@@ -265,14 +276,25 @@ export default function SettingsPage() {
                 {members.map(m => {
                   const role = ROLE_META[m.role as keyof typeof ROLE_META] ?? ROLE_META.staff
                   return (
-                    <div key={m.id} className="flex items-center gap-3 py-3">
+                    <div key={m.id} className="flex flex-wrap items-center gap-3 py-3">
                       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
                         {m.full_name[0] ?? '?'}
                       </span>
-                      <div className="flex-1">
+                      <div className="min-w-[120px] flex-1">
                         <p className="text-sm font-medium text-slate-800">{m.full_name || '（未設定）'}</p>
                         <p className="text-xs text-slate-400">{m.department ?? '部署未設定'}</p>
                       </div>
+                      {isAdmin && (
+                        <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500">
+                          <input
+                            type="checkbox"
+                            checked={m.tasks_shared_with_team}
+                            onChange={e => handleToggleTasksSharing(m.id, e.target.checked)}
+                            className="h-3.5 w-3.5 rounded border-slate-300 text-brand-600"
+                          />
+                          タスクをチームに共有
+                        </label>
+                      )}
                       {!m.is_active && <span className="badge bg-slate-100 text-xs text-slate-400">停止中</span>}
                       <span className={`badge text-xs ${role.cls}`}>{role.label}</span>
                     </div>
@@ -448,7 +470,7 @@ export default function SettingsPage() {
               <label className="mb-1.5 block text-sm font-medium text-slate-700">メールアドレス *</label>
               <input name="email" type="email" required className="input" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">部署</label>
                 <input name="department" className="input" placeholder="コンサルティング部" />

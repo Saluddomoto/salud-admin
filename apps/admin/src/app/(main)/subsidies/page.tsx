@@ -39,10 +39,10 @@ export default function SubsidiesPage() {
   const total    = projects.reduce((sum, p) => sum + (p.applied_amount ?? 0), 0)
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="補助金管理" description="申請状況の一覧・進捗管理" />
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
           { label: '進行中の申請', value: `${active.length}件`,   color: 'text-slate-900' },
           { label: '審査待ち',     value: `${inFlight.length}件`, color: 'text-indigo-600' },

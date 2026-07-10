@@ -143,7 +143,7 @@ export default function ProjectDetailPage() {
   const doneCount = tasks.filter(t => t.status === 'done').length
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-4 sm:p-6">
       <div>
         <Link href="/projects" className="text-xs font-medium text-slate-400 hover:text-brand-600">← 案件管理</Link>
         <div className="mt-1">
@@ -260,7 +260,7 @@ export default function ProjectDetailPage() {
             <label className="mb-1.5 block text-sm font-medium text-slate-700">案件名 *</label>
             <input name="title" required className="input" defaultValue={project.title} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">補助金名 *</label>
               <input name="subsidy_name" required className="input" defaultValue={project.subsidy_name} />
@@ -297,7 +297,7 @@ export default function ProjectDetailPage() {
             <label className="mb-1.5 block text-sm font-medium text-slate-700">タスク名 *</label>
             <input name="title" required className="input" placeholder="申請書類の最終確認" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">優先度</label>
               <select name="priority" className="input" defaultValue="medium">
