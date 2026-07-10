@@ -53,12 +53,21 @@ export type DbTask = {
   profiles: { full_name: string } | null
 }
 
+export type NotificationPrefs = {
+  deadline_alert: boolean
+  new_inquiry: boolean
+  task_reminder: boolean
+  result_notice: boolean
+  weekly_summary: boolean
+}
+
 export type DbProfile = {
   id: string
   full_name: string
   role: string
   department: string | null
   is_active: boolean
+  notification_prefs: NotificationPrefs
 }
 
 export type DbEvent = {
@@ -352,7 +361,7 @@ export async function fetchNeedsReplyCount(): Promise<number> {
 export async function fetchProfiles(): Promise<DbProfile[]> {
   const { data, error } = await db()
     .from('profiles')
-    .select('id, full_name, role, department, is_active')
+    .select('id, full_name, role, department, is_active, notification_prefs')
     .order('created_at')
   if (error) throw error
   return data as DbProfile[]
@@ -364,7 +373,7 @@ export async function fetchMyProfile(): Promise<DbProfile | null> {
   if (!user) return null
   const { data, error } = await client
     .from('profiles')
-    .select('id, full_name, role, department, is_active')
+    .select('id, full_name, role, department, is_active, notification_prefs')
     .eq('id', user.id)
     .single()
   if (error) throw error
@@ -376,6 +385,20 @@ export async function updateMyProfile(input: { full_name: string; department: st
   const { data: { user } } = await client.auth.getUser()
   if (!user) throw new Error('not signed in')
   const { error } = await client.from('profiles').update(input).eq('id', user.id)
+  if (error) throw error
+}
+
+export async function updateMyNotificationPrefs(prefs: NotificationPrefs) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const { error } = await client.from('profiles').update({ notification_prefs: prefs }).eq('id', user.id)
+  if (error) throw error
+}
+
+export async function updateMyPassword(newPassword: string) {
+  const client = db()
+  const { error } = await client.auth.updateUser({ password: newPassword })
   if (error) throw error
 }
 

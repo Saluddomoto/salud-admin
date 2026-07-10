@@ -2,8 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { Modal } from '@/components/Modal'
 import { useAuth } from '@/hooks/useAuth'
-import { fetchMyProfile, fetchProfiles, updateMyProfile, type DbProfile } from '@/lib/db'
+import {
+  fetchMyProfile, fetchProfiles, updateMyProfile, updateMyNotificationPrefs, updateMyPassword,
+  type DbProfile, type NotificationPrefs,
+} from '@/lib/db'
+
+const NOTIFICATION_ITEMS: { key: keyof NotificationPrefs; label: string }[] = [
+  { key: 'deadline_alert',  label: '申請期限アラート（14日前）' },
+  { key: 'new_inquiry',     label: '新規問い合わせの通知' },
+  { key: 'task_reminder',   label: 'タスク期限のリマインド' },
+  { key: 'result_notice',   label: '採択・不採択の結果通知' },
+  { key: 'weekly_summary',  label: '週次サマリーメール' },
+]
 
 const TABS = [
   { key: 'profile',       label: 'プロフィール' },
@@ -42,6 +54,19 @@ export default function SettingsPage() {
   const [google,        setGoogle]        = useState<GoogleState | null>(null)
   const [googleBusy,    setGoogleBusy]    = useState(false)
 
+  const [inviteOpen,    setInviteOpen]    = useState(false)
+  const [inviting,      setInviting]      = useState(false)
+  const [inviteResult,  setInviteResult]  = useState<{ email: string; tempPassword: string } | null>(null)
+
+  const [prefs,         setPrefs]         = useState<NotificationPrefs | null>(null)
+  const [prefsSaving,   setPrefsSaving]   = useState(false)
+  const [prefsSaved,    setPrefsSaved]    = useState(false)
+
+  const [newPassword,        setNewPassword]        = useState('')
+  const [newPasswordConfirm, setNewPasswordConfirm]  = useState('')
+  const [pwSaving,           setPwSaving]            = useState(false)
+  const [pwMessage,          setPwMessage]           = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
+
   const loadGoogle = () => {
     fetch('/api/google/state').then(r => r.json()).then(setGoogle).catch(() => setGoogle({ connected: false }))
   }
@@ -51,6 +76,7 @@ export default function SettingsPage() {
       setMe(p)
       setFullName(p?.full_name ?? '')
       setDepartment(p?.department ?? '')
+      setPrefs(p?.notification_prefs ?? null)
     })
     fetchProfiles().then(setMembers).catch(() => setMembers([]))
     loadGoogle()
@@ -102,6 +128,76 @@ export default function SettingsPage() {
   }
 
   const myRole = ROLE_META[(me?.role ?? 'staff') as keyof typeof ROLE_META]
+  const isAdmin = me?.role === 'admin'
+
+  const handleInvite = async (ev: React.FormEvent<HTMLFormElement>) => {
+    ev.preventDefault()
+    const f = new FormData(ev.currentTarget)
+    setInviting(true)
+    try {
+      const res = await fetch('/api/admin/invite-member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name:  String(f.get('full_name')),
+          email:      String(f.get('email')),
+          department: String(f.get('department') || ''),
+          role:       String(f.get('role')),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? '招待に失敗しました')
+      setInviteResult({ email: data.email, tempPassword: data.tempPassword })
+      fetchProfiles().then(setMembers).catch(() => {})
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e))
+    } finally {
+      setInviting(false)
+    }
+  }
+
+  const closeInviteModal = () => {
+    setInviteOpen(false)
+    setInviteResult(null)
+  }
+
+  const handleSavePrefs = async () => {
+    if (!prefs) return
+    setPrefsSaving(true)
+    setPrefsSaved(false)
+    try {
+      await updateMyNotificationPrefs(prefs)
+      setPrefsSaved(true)
+    } catch (e) {
+      alert(`保存に失敗しました: ${e instanceof Error ? e.message : e}`)
+    } finally {
+      setPrefsSaving(false)
+    }
+  }
+
+  const handleChangePassword = async (ev: React.FormEvent<HTMLFormElement>) => {
+    ev.preventDefault()
+    setPwMessage(null)
+    if (newPassword.length < 8) {
+      setPwMessage({ type: 'error', text: 'パスワードは8文字以上にしてください' })
+      return
+    }
+    if (newPassword !== newPasswordConfirm) {
+      setPwMessage({ type: 'error', text: '確認用パスワードが一致しません' })
+      return
+    }
+    setPwSaving(true)
+    try {
+      await updateMyPassword(newPassword)
+      setPwMessage({ type: 'ok', text: 'パスワードを変更しました' })
+      setNewPassword('')
+      setNewPasswordConfirm('')
+    } catch (e) {
+      setPwMessage({ type: 'error', text: e instanceof Error ? e.message : String(e) })
+    } finally {
+      setPwSaving(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -161,7 +257,9 @@ export default function SettingsPage() {
             <div className="card p-6">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="font-semibold text-slate-900">メンバー管理</h3>
-                <button className="btn-primary text-sm">+ メンバーを招待</button>
+                {isAdmin && (
+                  <button className="btn-primary text-sm" onClick={() => setInviteOpen(true)}>+ メンバーを招待</button>
+                )}
               </div>
               <div className="divide-y divide-slate-50">
                 {members.map(m => {
@@ -192,35 +290,53 @@ export default function SettingsPage() {
           {tab === 'notifications' && (
             <div className="card space-y-1 p-6">
               <h3 className="mb-4 font-semibold text-slate-900">通知設定</h3>
-              {[
-                { label: '申請期限アラート（14日前）', checked: true },
-                { label: '新規問い合わせの通知',       checked: true },
-                { label: 'タスク期限のリマインド',     checked: true },
-                { label: '採択・不採択の結果通知',     checked: true },
-                { label: '週次サマリーメール',         checked: false },
-              ].map(n => (
-                <label key={n.label} className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-3 transition-colors hover:bg-slate-50">
+              {prefs && NOTIFICATION_ITEMS.map(n => (
+                <label key={n.key} className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-3 transition-colors hover:bg-slate-50">
                   <span className="text-sm text-slate-700">{n.label}</span>
-                  <input type="checkbox" defaultChecked={n.checked} className="h-4 w-4 rounded border-slate-300 text-brand-600" />
+                  <input
+                    type="checkbox"
+                    checked={prefs[n.key]}
+                    onChange={e => { setPrefs({ ...prefs, [n.key]: e.target.checked }); setPrefsSaved(false) }}
+                    className="h-4 w-4 rounded border-slate-300 text-brand-600"
+                  />
                 </label>
               ))}
+              <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+                {prefsSaved && <span className="text-sm text-emerald-600">保存しました</span>}
+                <button className="btn-primary text-sm" onClick={handleSavePrefs} disabled={prefsSaving || !prefs}>
+                  {prefsSaving ? '保存中...' : '保存'}
+                </button>
+              </div>
             </div>
           )}
 
           {tab === 'security' && (
             <div className="space-y-4">
-              <div className="card space-y-4 p-6">
+              <form onSubmit={handleChangePassword} className="card space-y-4 p-6">
                 <h3 className="font-semibold text-slate-900">パスワード変更</h3>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">現在のパスワード</label>
-                  <input type="password" className="input max-w-sm" />
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">新しいパスワード</label>
+                  <input
+                    type="password" className="input max-w-sm" value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)} placeholder="8文字以上"
+                  />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">新しいパスワード</label>
-                  <input type="password" className="input max-w-sm" />
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">新しいパスワード（確認）</label>
+                  <input
+                    type="password" className="input max-w-sm" value={newPasswordConfirm}
+                    onChange={e => setNewPasswordConfirm(e.target.value)}
+                  />
                 </div>
-                <button className="btn-primary text-sm">パスワードを変更</button>
-              </div>
+                {pwMessage && (
+                  <p className={`text-sm ${pwMessage.type === 'ok' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {pwMessage.text}
+                  </p>
+                )}
+                <button type="submit" className="btn-primary text-sm" disabled={pwSaving}>
+                  {pwSaving ? '変更中...' : 'パスワードを変更'}
+                </button>
+              </form>
               <div className="card p-6">
                 <h3 className="mb-2 font-semibold text-slate-900">ログイン情報</h3>
                 <p className="text-sm text-slate-500">
@@ -306,6 +422,55 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {/* メンバー招待モーダル */}
+      <Modal title="メンバーを招待" open={inviteOpen} onClose={closeInviteModal}>
+        {inviteResult ? (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-700">
+              アカウントを作成しました。以下の情報を本人に共有してください（このパスワードは初回のみ表示されます）。
+            </p>
+            <div className="space-y-2 rounded-xl bg-slate-50 p-4 text-sm">
+              <p><span className="text-slate-500">メールアドレス: </span>{inviteResult.email}</p>
+              <p><span className="text-slate-500">初期パスワード: </span><code className="font-mono">{inviteResult.tempPassword}</code></p>
+            </div>
+            <div className="flex justify-end border-t border-slate-100 pt-4">
+              <button type="button" className="btn-primary text-sm" onClick={closeInviteModal}>閉じる</button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleInvite} className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">氏名 *</label>
+              <input name="full_name" required className="input" placeholder="例: 山田 太郎" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">メールアドレス *</label>
+              <input name="email" type="email" required className="input" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">部署</label>
+                <input name="department" className="input" placeholder="コンサルティング部" />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">権限</label>
+                <select name="role" className="input" defaultValue="staff">
+                  <option value="staff">一般</option>
+                  <option value="manager">マネージャー</option>
+                  <option value="admin">管理者</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+              <button type="button" className="btn-secondary text-sm" onClick={closeInviteModal}>キャンセル</button>
+              <button type="submit" disabled={inviting} className="btn-primary text-sm">
+                {inviting ? '作成中...' : '招待する'}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   )
 }
