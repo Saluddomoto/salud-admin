@@ -16,6 +16,18 @@ const COLUMNS = [
   { key: 'accepted',    label: '採択',       dot: 'bg-emerald-500' },
 ] as const
 
+const SUBSIDY_NAMES = [
+  '省力化投資補助金',
+  '小規模事業者持続化補助金',
+  '新事業進出・ものづくり補助金',
+  'デジタル化・AI導入補助金',
+  '成長加速化補助金',
+  '事業承継・M&A補助金',
+]
+
+const BASE_FEE_OPTIONS = [100_000, 120_000, 150_000]
+const SUCCESS_FEE_OPTIONS = [8, 9, 10, 11, 12, 13, 14, 15]
+
 export default function ProjectsPage() {
   const [projects,  setProjects]  = useState<DbProject[]>([])
   const [customers, setCustomers] = useState<DbCustomer[]>([])
@@ -23,6 +35,7 @@ export default function ProjectsPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
+  const [subsidyChoice, setSubsidyChoice] = useState(SUBSIDY_NAMES[0]!)
 
   const load = () => {
     Promise.all([fetchProjects(), fetchCustomers()])
@@ -37,15 +50,19 @@ export default function ProjectsPage() {
     setSaving(true)
     setError('')
     const f = new FormData(e.currentTarget)
+    const subsidyName = subsidyChoice === '__other__' ? (f.get('subsidy_name_other') as string) : subsidyChoice
     try {
       await insertProject({
-        title:          f.get('title') as string,
-        subsidy_name:   f.get('subsidy_name') as string,
-        customer_id:    f.get('customer_id') as string,
-        applied_amount: f.get('amount') ? Number(f.get('amount')) * 10_000 : null,
-        deadline:       (f.get('deadline') as string) || null,
+        title:             f.get('title') as string,
+        subsidy_name:      subsidyName,
+        customer_id:       f.get('customer_id') as string,
+        applied_amount:    f.get('amount') ? Number(f.get('amount')) * 10_000 : null,
+        deadline:          (f.get('deadline') as string) || null,
+        base_fee:          f.get('base_fee') ? Number(f.get('base_fee')) : null,
+        success_fee_rate:  f.get('success_fee_rate') ? Number(f.get('success_fee_rate')) : null,
       })
       setModalOpen(false)
+      setSubsidyChoice(SUBSIDY_NAMES[0]!)
       load()
     } catch {
       setError('保存に失敗しました')
@@ -126,9 +143,22 @@ export default function ProjectsPage() {
             <input name="title" required className="input" placeholder="ものづくり補助金 第18回" />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
+            <div className="sm:col-span-2">
               <label className="mb-1.5 block text-sm font-medium text-slate-700">補助金名 *</label>
-              <input name="subsidy_name" required className="input" placeholder="ものづくり補助金" />
+              <select
+                className="input"
+                value={subsidyChoice}
+                onChange={e => setSubsidyChoice(e.target.value)}
+              >
+                {SUBSIDY_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+                <option value="__other__">その他（自由入力）</option>
+              </select>
+              {subsidyChoice === '__other__' && (
+                <input
+                  name="subsidy_name_other" required className="input mt-2"
+                  placeholder="補助金名を入力"
+                />
+              )}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">顧客 *</label>
@@ -140,6 +170,20 @@ export default function ProjectsPage() {
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">申請額（万円）</label>
               <input name="amount" type="number" className="input" placeholder="1000" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">基本料金</label>
+              <select name="base_fee" className="input" defaultValue="">
+                <option value="">未設定</option>
+                {BASE_FEE_OPTIONS.map(v => <option key={v} value={v}>{(v / 10_000).toFixed(0)}万円</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">成功報酬</label>
+              <select name="success_fee_rate" className="input" defaultValue="">
+                <option value="">未設定</option>
+                {SUCCESS_FEE_OPTIONS.map(v => <option key={v} value={v}>{v}%</option>)}
+              </select>
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">申請期限</label>

@@ -34,6 +34,9 @@ export type DbProject = {
   subsidy_name: string
   status: 'planning' | 'in_progress' | 'submitted' | 'accepted' | 'rejected' | 'completed'
   applied_amount: number | null
+  subsidy_amount: number | null
+  base_fee: number | null
+  success_fee_rate: number | null
   deadline: string | null
   notes: string | null
   customer_id: string
@@ -202,6 +205,8 @@ export async function insertProject(input: {
   customer_id: string
   applied_amount: number | null
   deadline: string | null
+  base_fee?: number | null
+  success_fee_rate?: number | null
 }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
@@ -242,6 +247,9 @@ export async function updateProject(id: string, input: {
   title: string
   subsidy_name: string
   applied_amount: number | null
+  subsidy_amount?: number | null
+  base_fee?: number | null
+  success_fee_rate?: number | null
   deadline: string | null
   notes: string | null
 }) {

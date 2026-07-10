@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import {
-  fetchCustomerCount, fetchEvents, fetchNeedsReplyCount, fetchProjects, fetchTasks,
-  formatAmount, updateTaskStatus, type DbEvent, type DbProject, type DbTask,
+  fetchCustomerCount, fetchEvents, fetchMyProfile, fetchNeedsReplyCount, fetchProjects, fetchTasks,
+  formatAmount, updateTaskStatus, type DbEvent, type DbProfile, type DbProject, type DbTask,
 } from '@/lib/db'
 
 const EVENT_COLORS: Record<DbEvent['category'], string> = {
@@ -36,6 +36,7 @@ export default function DashboardPage() {
   const [events,        setEvents]        = useState<DbEvent[]>([])
   const [customerCount, setCustomerCount] = useState(0)
   const [needsReply,    setNeedsReply]    = useState(0)
+  const [me,            setMe]            = useState<DbProfile | null>(null)
   const [loading,       setLoading]       = useState(true)
 
   const now = new Date()
@@ -48,9 +49,12 @@ export default function DashboardPage() {
       fetchEvents(today, today).then(setEvents),
       fetchCustomerCount().then(setCustomerCount),
       fetchNeedsReplyCount().then(setNeedsReply).catch(() => {}),
+      fetchMyProfile().then(setMe).catch(() => {}),
     ]).finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const isAdmin = me?.role === 'admin'
 
   const active   = projects.filter(p => ACTIVE_STATUSES.includes(p.status))
   const accepted = projects.filter(p => p.status === 'accepted')
@@ -66,6 +70,16 @@ export default function DashboardPage() {
     { label: '顧客数',       value: `${customerCount}`, sub: '登録済みの顧客', iconBg: 'bg-amber-500' },
     { label: '採択実績',     value: `${accepted.length}件`, sub: acceptRate != null ? `採択率 ${acceptRate}%` : '結果待ち', iconBg: 'bg-rose-500' },
   ]
+
+  // 売上（管理者のみ）: 基本料金 + 成功報酬%×採択額（未入力なら申請額で代用）
+  const revenueProjects = projects.filter(p => p.status === 'accepted' || p.status === 'completed')
+  const baseFeeRevenue = revenueProjects.reduce((s, p) => s + (p.base_fee ?? 0), 0)
+  const successFeeRevenue = revenueProjects.reduce(
+    (s, p) => s + ((p.success_fee_rate ?? 0) / 100) * (p.subsidy_amount ?? p.applied_amount ?? 0),
+    0,
+  )
+  const totalRevenue = baseFeeRevenue + successFeeRevenue
+  const pipelineBaseFee = active.reduce((s, p) => s + (p.base_fee ?? 0), 0)
 
   const alerts = active
     .filter(p => p.deadline && daysUntil(p.deadline, today) >= 0 && daysUntil(p.deadline, today) <= 14)
@@ -171,6 +185,33 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* 売上管理（管理者のみ） */}
+      {!loading && isAdmin && (
+        <div className="card border border-amber-200 bg-amber-50/40 p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <h3 className="font-semibold text-slate-900">売上管理</h3>
+            <span className="badge bg-amber-100 text-xs text-amber-700">管理者のみ表示</span>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <p className="text-2xl font-bold text-slate-900">{formatAmount(totalRevenue)}</p>
+              <p className="text-sm text-slate-500">確定売上（採択・完了案件）</p>
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-slate-700">{formatAmount(baseFeeRevenue)}</p>
+              <p className="text-xs text-slate-400">内・基本料金 {revenueProjects.length}件</p>
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-slate-700">{formatAmount(successFeeRevenue)}</p>
+              <p className="text-xs text-slate-400">内・成功報酬</p>
+            </div>
+          </div>
+          <p className="mt-3 border-t border-amber-100 pt-3 text-xs text-slate-500">
+            進行中案件の基本料金見込み: {formatAmount(pipelineBaseFee)}（{active.length}件）
+          </p>
+        </div>
+      )}
 
       {/* 下段 */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
