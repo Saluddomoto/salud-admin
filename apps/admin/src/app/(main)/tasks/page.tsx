@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import {
-  fetchTasks, fetchProjects, fetchProfiles, fetchMyProfile, insertTask, updateTaskStatus,
+  fetchTasks, fetchProjects, fetchProfiles, fetchMyProfile, insertTask, updateTaskStatus, deleteTask,
   formatDate, type DbTask, type DbProject, type DbProfile,
 } from '@/lib/db'
 
@@ -106,6 +106,17 @@ export default function TasksPage() {
 
   const doneCount = visibleTasks.filter(t => t.status === 'done').length
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('このタスクを削除しますか？')) return
+    setTasks(prev => prev.filter(t => t.id !== id))
+    try {
+      await deleteTask(id)
+    } catch {
+      setError('削除に失敗しました')
+      load()
+    }
+  }
+
   return (
     <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="タスク管理" description={`${doneCount}/${visibleTasks.length} 件完了`}>
@@ -165,6 +176,13 @@ export default function TasksPage() {
                               title={`${COLUMNS[colIdx + 1]!.label}へ進める`}
                               className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-50"
                             >→</button>
+                          )}
+                          {t.status === 'done' && (
+                            <button
+                              onClick={() => handleDelete(t.id)}
+                              title="削除"
+                              className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-rose-500 hover:bg-rose-50"
+                            >×</button>
                           )}
                         </div>
                       </div>
