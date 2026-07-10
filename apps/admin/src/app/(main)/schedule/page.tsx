@@ -14,18 +14,20 @@ const CATEGORY_META: Record<DbEvent['category'], { label: string; color: string;
   internal: { label: '社内', color: '#64748b', cls: 'bg-slate-100 text-slate-600' },
 }
 
-// 入力者（担当者）ごとの色分け
+// 入力者（担当者）ごとの色分け（キーは苗字。full_name の前方一致で判定）
 const ASSIGNEE_COLORS: Record<string, string> = {
   '神前': '#3b82f6', // blue
   '栗原': '#10b981', // emerald
   '和家': '#8b5cf6', // violet
   '三戸部': '#f97316', // orange
+  '檜原': '#ec4899', // pink
 }
-const DEFAULT_ASSIGNEE_COLOR = '#94a3b8' // slate（上記4名以外）
+const DEFAULT_ASSIGNEE_COLOR = '#94a3b8' // slate（上記以外）
 
 function assigneeColor(name?: string | null): string {
   if (!name) return DEFAULT_ASSIGNEE_COLOR
-  return ASSIGNEE_COLORS[name] ?? DEFAULT_ASSIGNEE_COLOR
+  const key = Object.keys(ASSIGNEE_COLORS).find(k => name.startsWith(k))
+  return (key ? ASSIGNEE_COLORS[key] : undefined) ?? DEFAULT_ASSIGNEE_COLOR
 }
 
 function toISODate(d: Date): string {
