@@ -44,7 +44,7 @@ type GoogleState = {
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<TabKey>('profile')
-  const { user } = useAuth()
+  const { user, role, isLoading: authLoading } = useAuth()
   const [me,         setMe]         = useState<DbProfile | null>(null)
   const [members,    setMembers]    = useState<DbProfile[]>([])
   const [fullName,   setFullName]   = useState('')
@@ -208,6 +208,25 @@ export default function SettingsPage() {
     } finally {
       setPwSaving(false)
     }
+  }
+
+  // 設定は管理者のみ利用可能
+  if (!authLoading && role !== 'admin') {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-6 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+          <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <h2 className="text-lg font-bold text-slate-900">設定は管理者のみ利用できます</h2>
+        <p className="text-sm text-slate-500">このページを表示する権限がありません。</p>
+        <a href="/" className="mt-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+          ダッシュボードに戻る
+        </a>
+      </div>
+    )
   }
 
   return (
