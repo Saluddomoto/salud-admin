@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
+import { DocumentsCard } from '@/components/DocumentsCard'
 import {
   deleteProject, fetchProject, fetchTasksByProject, insertTask,
   updateProject, updateProjectStatus, updateTaskStatus,
@@ -278,6 +279,9 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* 資料 */}
+      <DocumentsCard parent={{ projectId: id }} />
 
       {/* 編集モーダル */}
       <Modal title="案件を編集" open={editOpen} onClose={() => setEditOpen(false)}>

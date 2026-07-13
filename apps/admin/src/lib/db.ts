@@ -11,6 +11,15 @@ export type DbContact = {
   is_primary: boolean
 }
 
+export type DbDocument = {
+  id: string
+  customer_id: string | null
+  project_id: string | null
+  title: string
+  url: string
+  created_at: string
+}
+
 export type DbCustomer = {
   id: string
   company_name: string
@@ -152,6 +161,37 @@ export async function insertContact(customerId: string, input: {
 
 export async function deleteContact(id: string) {
   const { error } = await db().from('customer_contacts').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ── 資料（Google Drive などのリンク） ───────────────────
+export async function fetchDocuments(
+  parent: { customerId: string } | { projectId: string },
+): Promise<DbDocument[]> {
+  const column = 'customerId' in parent ? 'customer_id' : 'project_id'
+  const value  = 'customerId' in parent ? parent.customerId : parent.projectId
+  const { data, error } = await db()
+    .from('documents')
+    .select('id, customer_id, project_id, title, url, created_at')
+    .eq(column, value)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data as DbDocument[]
+}
+
+export async function insertDocument(
+  parent: { customerId: string } | { projectId: string },
+  input: { title: string; url: string },
+) {
+  const link = 'customerId' in parent
+    ? { customer_id: parent.customerId }
+    : { project_id: parent.projectId }
+  const { error } = await db().from('documents').insert({ ...link, ...input })
+  if (error) throw error
+}
+
+export async function deleteDocument(id: string) {
+  const { error } = await db().from('documents').delete().eq('id', id)
   if (error) throw error
 }
 

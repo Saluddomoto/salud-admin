@@ -5,7 +5,10 @@ import type { ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 
-type NavItem = { href: string; label: string; icon: ReactNode; badge?: number; adminOnly?: boolean }
+type NavItem = { href: string; label: string; icon: ReactNode; badge?: number; adminOnly?: boolean; external?: boolean }
+
+// 会社の共有フォルダ（社内ノウハウ・資料）
+const DRIVE_FOLDER_URL = 'https://drive.google.com/drive/folders/1lQOdZcEqPYtcYgGD8npWZ0X970ZoR_VO'
 
 const NAV_ITEMS: NavItem[] = [
   {
@@ -67,6 +70,15 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
+    href: DRIVE_FOLDER_URL,
+    label: '社内フォルダ',
+    external: true,
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+    ),
+  },
+  {
     href: '/settings',
     label: '設定',
     adminOnly: true,
@@ -114,29 +126,43 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-          {NAV_ITEMS.filter(item => !item.adminOnly || role === 'admin').map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className={`
-                flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors
-                ${isActive(item.href)
-                  ? 'bg-brand-50 text-brand-700'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
-              `}
-            >
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {item.icon}
-              </svg>
-              <span className="flex-1">{item.label}</span>
-              {item.badge && (
-                <span className="bg-rose-500 text-white text-xs px-1.5 py-0.5 rounded-full leading-none">
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          ))}
+          {NAV_ITEMS.filter(item => !item.adminOnly || role === 'admin').map(item => {
+            const className = `
+              flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors
+              ${!item.external && isActive(item.href)
+                ? 'bg-brand-50 text-brand-700'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
+            `
+            const inner = (
+              <>
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {item.icon}
+                </svg>
+                <span className="flex-1">{item.label}</span>
+                {item.external && (
+                  <svg className="w-3.5 h-3.5 flex-shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                )}
+                {item.badge && (
+                  <span className="bg-rose-500 text-white text-xs px-1.5 py-0.5 rounded-full leading-none">
+                    {item.badge}
+                  </span>
+                )}
+              </>
+            )
+            return item.external ? (
+              <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer"
+                onClick={onClose} className={className}>
+                {inner}
+              </a>
+            ) : (
+              <Link key={item.href} href={item.href} onClick={onClose} className={className}>
+                {inner}
+              </Link>
+            )
+          })}
         </nav>
 
         {/* User */}

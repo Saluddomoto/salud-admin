@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
+import { DocumentsCard } from '@/components/DocumentsCard'
 import {
   deleteContact, deleteCustomer, fetchCustomer, fetchProjectsByCustomer,
   insertContact, updateCustomer, formatAmount,
@@ -253,6 +254,9 @@ export default function CustomerDetailPage() {
             )}
           </div>
         </div>
+
+        {/* 資料 */}
+        <DocumentsCard parent={{ customerId: id }} />
       </div>
 
       {/* 編集モーダル */}
