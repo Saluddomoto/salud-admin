@@ -140,7 +140,7 @@ export default function InboxPage() {
               onTouchMove={e => handleTouchMove(m.id, e)}
               onTouchEnd={() => handleTouchEnd(m)}
               style={{ transform: `translateX(${dx}px)`, transition: dx === 0 ? 'transform 0.2s ease' : 'none' }}
-              className={`relative flex cursor-pointer items-start gap-4 bg-white p-4 transition-colors hover:bg-slate-50/60 ${
+              className={`group relative flex cursor-pointer items-start gap-4 bg-white p-4 transition-colors hover:bg-slate-50/60 ${
                 !m.is_read && !m.converted_to ? 'bg-brand-50/40' : ''
               }`}
             >
@@ -165,7 +165,19 @@ export default function InboxPage() {
                 <p className="mt-1 truncate text-sm text-slate-500">{m.body}</p>
               </div>
               <div className="flex flex-shrink-0 flex-col items-end gap-2">
-                <span className="text-xs text-slate-400">{formatReceivedAt(m.received_at)}</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={e => { e.stopPropagation(); handleDismiss(m) }}
+                    title="消す"
+                    className="hidden rounded-lg p-1 text-slate-300 opacity-0 transition-colors hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100 md:block"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                  <span className="text-xs text-slate-400">{formatReceivedAt(m.received_at)}</span>
+                </div>
                 {m.needs_reply ? (
                   <button
                     onClick={e => { e.stopPropagation(); handleReplied(m) }}
