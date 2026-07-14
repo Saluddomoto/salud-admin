@@ -127,11 +127,14 @@ export async function syncGoogleCalendars(opts: { force?: boolean } = {}): Promi
         } else if (ev.start?.date) {
           event_date = ev.start.date; start_time = '00:00'; end_time = '23:59' // 終日
         } else continue
+        const title = ev.summary || '（無題）'
+        // タイトルに「商談/営業」が含まれれば商談(sales)、それ以外は打ち合わせ(meeting)として扱う
+        const category = /商談|営業/.test(title) ? 'sales' : 'meeting'
         rows.push({
           google_event_id:  gid,
-          title:            ev.summary || '（無題）',
+          title,
           event_date, start_time, end_time,
-          category:         'meeting',
+          category,
           assigned_user_id: conn.user_id,
           created_by:       conn.user_id,
           notes:            'Google カレンダーから同期',

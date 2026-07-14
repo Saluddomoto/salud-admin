@@ -473,6 +473,41 @@ export async function fetchCustomerCount(): Promise<number> {
   return count ?? 0
 }
 
+// ── 実績（メンバー別・月間） ─────────────────────────
+export type PerfProject = {
+  id: string
+  title: string
+  status: DbProject['status']
+  applied_amount: number | null
+  subsidy_amount: number | null
+}
+
+export type MemberPerformance = {
+  user_id: string
+  full_name: string
+  meetings: number         // 商談件数（カレンダーの商談予定）
+  deals: number            // 受注（案件化）件数
+  accepted_amount: number  // 採択金額合計
+  projects: PerfProject[]  // そこから生まれた案件
+}
+
+/** 指定月（YYYY-MM-DD 〜 YYYY-MM-DD）のメンバー別実績を集計して返す */
+export async function fetchPerformance(startISO: string, endISO: string): Promise<MemberPerformance[]> {
+  const { data, error } = await db().rpc('member_performance', { p_start: startISO, p_end: endISO })
+  if (error) throw error
+  return (data ?? []).map((r: {
+    user_id: string; full_name: string; meetings: number; deals: number
+    accepted_amount: number; projects: PerfProject[] | null
+  }) => ({
+    user_id:         r.user_id,
+    full_name:       r.full_name,
+    meetings:        Number(r.meetings),
+    deals:           Number(r.deals),
+    accepted_amount: Number(r.accepted_amount),
+    projects:        r.projects ?? [],
+  }))
+}
+
 // ── 共通 ─────────────────────────────────────────────
 export function formatAmount(yen: number | null): string {
   if (yen == null) return '—'
