@@ -67,6 +67,7 @@ export default function TasksPage() {
     try {
       await insertTask({
         title,
+        description: (f.get('description') as string)?.trim() || null,
         priority:   f.get('priority') as string,
         due_date,
         project_id: (f.get('project_id') as string) || null,
@@ -157,6 +158,9 @@ export default function TasksPage() {
                         </p>
                         <span className={`badge flex-shrink-0 text-xs ${pr.cls}`}>{pr.label}</span>
                       </div>
+                      {t.description && (
+                        <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-slate-500">{t.description}</p>
+                      )}
                       <p className="mt-1.5 text-xs text-slate-400">{t.projects?.title ?? '—'}</p>
                       <div className="mt-3 flex items-center justify-between border-t border-slate-50 pt-2.5">
                         <span className="text-xs text-slate-500">
@@ -203,6 +207,15 @@ export default function TasksPage() {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">タスク名 *</label>
             <input name="title" required className="input" placeholder="申請書類の確認" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">内容・メモ</label>
+            <textarea
+              name="description"
+              rows={3}
+              className="input resize-y"
+              placeholder="作業の詳細や手順、チェック項目など（任意）"
+            />
           </div>
           {canAssignOthers && (
             <div>

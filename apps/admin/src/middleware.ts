@@ -39,6 +39,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  // 停止（無効化）されたメンバーはログインをブロックする
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_active')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (profile && profile.is_active === false) {
+    await supabase.auth.signOut()
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('disabled', '1')
+    return NextResponse.redirect(loginUrl)
+  }
+
   return response
 }
 

@@ -6,7 +6,7 @@ import { Modal } from '@/components/Modal'
 import { useAuth } from '@/hooks/useAuth'
 import {
   fetchMyProfile, fetchProfiles, updateMyProfile, updateMyNotificationPrefs, updateMyPassword,
-  updateMemberTasksSharing,
+  updateMemberTasksSharing, updateMemberActive, updateMemberDigest,
   type DbProfile, type NotificationPrefs,
 } from '@/lib/db'
 
@@ -172,6 +172,31 @@ export default function SettingsPage() {
     }
   }
 
+  const handleToggleDigest = async (id: string, enabled: boolean) => {
+    setMembers(prev => prev.map(m => m.id === id ? { ...m, digest_enabled: enabled } : m))
+    try {
+      await updateMemberDigest(id, enabled)
+    } catch (e) {
+      alert(`更新に失敗しました: ${e instanceof Error ? e.message : e}`)
+      fetchProfiles().then(setMembers).catch(() => {})
+    }
+  }
+
+  const handleToggleActive = async (m: DbProfile) => {
+    const next = !m.is_active
+    const msg = next
+      ? `${m.full_name || 'このメンバー'} を復帰させますか？\n再びログイン・各機能を利用できるようになります。`
+      : `${m.full_name || 'このメンバー'} を停止しますか？\nログインできなくなり、朝のLINEリマインドや実績・担当割当の対象から外れます。（あとで復帰できます）`
+    if (!confirm(msg)) return
+    setMembers(prev => prev.map(x => x.id === m.id ? { ...x, is_active: next } : x))
+    try {
+      await updateMemberActive(m.id, next)
+    } catch (e) {
+      alert(`更新に失敗しました: ${e instanceof Error ? e.message : e}`)
+      fetchProfiles().then(setMembers).catch(() => {})
+    }
+  }
+
   const handleSavePrefs = async () => {
     if (!prefs) return
     setPrefsSaving(true)
@@ -295,7 +320,7 @@ export default function SettingsPage() {
                 {members.map(m => {
                   const role = ROLE_META[m.role as keyof typeof ROLE_META] ?? ROLE_META.staff
                   return (
-                    <div key={m.id} className="flex flex-wrap items-center gap-3 py-3">
+                    <div key={m.id} className={`flex flex-wrap items-center gap-3 py-3 ${!m.is_active ? 'opacity-60' : ''}`}>
                       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
                         {m.full_name[0] ?? '?'}
                       </span>
@@ -304,18 +329,51 @@ export default function SettingsPage() {
                         <p className="text-xs text-slate-400">{m.department ?? '部署未設定'}</p>
                       </div>
                       {isAdmin && (
-                        <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500">
-                          <input
-                            type="checkbox"
-                            checked={m.tasks_shared_with_team}
-                            onChange={e => handleToggleTasksSharing(m.id, e.target.checked)}
-                            className="h-3.5 w-3.5 rounded border-slate-300 text-brand-600"
-                          />
-                          タスクをチームに共有
-                        </label>
+                        <>
+                          {/* 朝のLINEダイジェスト配信 */}
+                          {m.line_user_id ? (
+                            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500" title="毎朝7:30のスケジュール・タスクのLINEリマインドを送るか">
+                              <input
+                                type="checkbox"
+                                checked={m.digest_enabled}
+                                onChange={e => handleToggleDigest(m.id, e.target.checked)}
+                                className="h-3.5 w-3.5 rounded border-slate-300 text-brand-600"
+                              />
+                              朝LINE配信
+                            </label>
+                          ) : (
+                            <span
+                              className="badge bg-amber-50 text-xs text-amber-600"
+                              title="このメンバーはLINE未連携です。本人にLINE公式アカウントを友だち追加してもらい、一度メッセージを送ってもらうと連携されます。"
+                            >
+                              LINE未連携
+                            </span>
+                          )}
+                          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500">
+                            <input
+                              type="checkbox"
+                              checked={m.tasks_shared_with_team}
+                              onChange={e => handleToggleTasksSharing(m.id, e.target.checked)}
+                              className="h-3.5 w-3.5 rounded border-slate-300 text-brand-600"
+                            />
+                            タスクをチームに共有
+                          </label>
+                        </>
                       )}
                       {!m.is_active && <span className="badge bg-slate-100 text-xs text-slate-400">停止中</span>}
                       <span className={`badge text-xs ${role.cls}`}>{role.label}</span>
+                      {isAdmin && m.id !== me?.id && (
+                        <button
+                          onClick={() => handleToggleActive(m)}
+                          className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                            m.is_active
+                              ? 'text-rose-600 hover:bg-rose-50'
+                              : 'text-emerald-600 hover:bg-emerald-50'
+                          }`}
+                        >
+                          {m.is_active ? '停止' : '復帰'}
+                        </button>
+                      )}
                     </div>
                   )
                 })}

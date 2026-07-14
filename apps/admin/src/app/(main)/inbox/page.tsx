@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { fetchMessages, markMessageRead, markMessageReplied, type DbMessage } from '@/lib/db'
+import { fetchMessages, markMessageRead, markMessageReplied, dismissMessage, type DbMessage } from '@/lib/db'
 
 const SWIPE_DISMISS_THRESHOLD = 80
 
@@ -38,7 +38,16 @@ export default function InboxPage() {
   const touchStartX = useRef<Record<string, number>>({})
 
   useEffect(() => {
-    fetchMessages().then(setMessages).finally(() => setLoading(false))
+    const load = () => fetchMessages().then(setMessages).finally(() => setLoading(false))
+    load()
+    // 別端末での操作を反映するため、画面に戻ってきたら再取得して連動させる
+    const onFocus = () => { if (document.visibilityState === 'visible') fetchMessages().then(setMessages).catch(() => {}) }
+    document.addEventListener('visibilitychange', onFocus)
+    window.addEventListener('focus', onFocus)
+    return () => {
+      document.removeEventListener('visibilitychange', onFocus)
+      window.removeEventListener('focus', onFocus)
+    }
   }, [])
 
   const handleRead = async (m: DbMessage) => {
@@ -63,7 +72,7 @@ export default function InboxPage() {
   const handleDismiss = async (m: DbMessage) => {
     setMessages(prev => prev.filter(x => x.id !== m.id))
     try {
-      await markMessageReplied(m.id)
+      await dismissMessage(m.id)
     } catch {
       setMessages(prev => [...prev, m].sort((a, b) => b.received_at.localeCompare(a.received_at)))
     }

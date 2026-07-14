@@ -81,6 +81,8 @@ export type DbProfile = {
   is_active: boolean
   notification_prefs: NotificationPrefs
   tasks_shared_with_team: boolean
+  digest_enabled: boolean
+  line_user_id: string | null
 }
 
 export type DbEvent = {
@@ -314,6 +316,7 @@ export async function fetchTasks(): Promise<DbTask[]> {
 
 export async function insertTask(input: {
   title: string
+  description?: string | null
   priority: string
   due_date: string | null
   project_id: string | null
@@ -387,9 +390,18 @@ export async function fetchMessages(): Promise<DbMessage[]> {
   const { data, error } = await db()
     .from('messages')
     .select('*')
+    .is('dismissed_at', null)
     .order('received_at', { ascending: false })
   if (error) throw error
   return data as DbMessage[]
+}
+
+// 受信トレイから消す（ソフト削除）。全端末で除外され連動する。
+export async function dismissMessage(id: string) {
+  const { error } = await db().from('messages')
+    .update({ dismissed_at: new Date().toISOString(), is_read: true, needs_reply: false })
+    .eq('id', id)
+  if (error) throw error
 }
 
 export async function markMessageRead(id: string) {
@@ -417,7 +429,7 @@ export async function fetchNeedsReplyCount(): Promise<number> {
 export async function fetchProfiles(): Promise<DbProfile[]> {
   const { data, error } = await db()
     .from('profiles')
-    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id')
     .order('created_at')
   if (error) throw error
   return data as DbProfile[]
@@ -461,6 +473,18 @@ export async function updateMyPassword(newPassword: string) {
 // admin のみ RLS で許可（profiles: admin all）。他ロールが呼ぶと更新 0 件になる。
 export async function updateMemberTasksSharing(id: string, shared: boolean) {
   const { error } = await db().from('profiles').update({ tasks_shared_with_team: shared }).eq('id', id)
+  if (error) throw error
+}
+
+// メンバーの停止／復帰（admin のみ RLS で許可）。停止中はログインもブロックされる。
+export async function updateMemberActive(id: string, active: boolean) {
+  const { error } = await db().from('profiles').update({ is_active: active }).eq('id', id)
+  if (error) throw error
+}
+
+// メンバーごとの朝LINEダイジェスト配信 ON/OFF（admin のみ RLS で許可）
+export async function updateMemberDigest(id: string, enabled: boolean) {
+  const { error } = await db().from('profiles').update({ digest_enabled: enabled }).eq('id', id)
   if (error) throw error
 }
 

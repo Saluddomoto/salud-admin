@@ -12,7 +12,9 @@ export function LoginForm() {
 
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
-  const [error,    setError]    = useState('')
+  const [error,    setError]    = useState(
+    params.get('disabled') ? 'このアカウントは停止されています。管理者にお問い合わせください。' : ''
+  )
   const [loading,  setLoading]  = useState(false)
 
   const handleSubmit = async (e: FormEvent) => {
