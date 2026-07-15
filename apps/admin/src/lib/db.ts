@@ -544,3 +544,71 @@ export function formatDate(d: string | null): string {
   if (!d) return '—'
   return d.slice(5).replace('-', '/')
 }
+
+/* ─── 議事録（Zoom社内MTG）─────────────────────────── */
+export type DbMeetingNote = {
+  id: string
+  title: string
+  meeting_date: string | null
+  duration_min: number | null
+  host_name: string | null
+  recording_url: string | null
+  transcript: string | null
+  summary: string | null
+  customer_id: string | null
+  project_id: string | null
+  source: 'zoom' | 'manual'
+  created_at: string
+  customers: { company_name: string } | null
+  projects: { title: string } | null
+}
+
+export async function fetchMeetingNotes(): Promise<DbMeetingNote[]> {
+  const { data, error } = await db()
+    .from('meeting_notes')
+    .select('id, title, meeting_date, duration_min, host_name, recording_url, transcript, summary, customer_id, project_id, source, created_at, customers(company_name), projects(title)')
+    .order('meeting_date', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as unknown as DbMeetingNote[]
+}
+
+export async function insertMeetingNote(input: {
+  title: string
+  meeting_date: string | null
+  host_name?: string | null
+  recording_url?: string | null
+  transcript?: string | null
+  summary?: string | null
+  customer_id?: string | null
+  project_id?: string | null
+}) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client.from('meeting_notes').insert({
+    ...input,
+    source: 'manual',
+    created_by: user?.id ?? null,
+  })
+  if (error) throw error
+}
+
+export async function updateMeetingNote(id: string, patch: {
+  title?: string
+  summary?: string | null
+  transcript?: string | null
+  recording_url?: string | null
+  customer_id?: string | null
+  project_id?: string | null
+}) {
+  const { error } = await db()
+    .from('meeting_notes')
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteMeetingNote(id: string) {
+  const { error } = await db().from('meeting_notes').delete().eq('id', id)
+  if (error) throw error
+}
