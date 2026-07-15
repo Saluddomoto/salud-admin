@@ -67,9 +67,11 @@ export async function POST(req: Request) {
     updated_at:      new Date().toISOString(),
   }
 
-  // 3) 文字起こし完了なら .vtt を取り込む
+  // 3) 文字起こし(.vtt)があれば取り込む
+  //    transcript_completed だけでなく recording.completed でも、TRANSCRIPT ファイルが
+  //    含まれていれば拾う（イベント購読が「録画完了」だけでも文字起こしを取得できるように）
   let transcript: string | null = null
-  if (body.event === 'recording.transcript_completed') {
+  if (body.event === 'recording.transcript_completed' || body.event === 'recording.completed') {
     transcript = await fetchTranscriptText(obj.recording_files ?? [], body.download_token ?? null)
   }
 
