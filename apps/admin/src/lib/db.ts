@@ -48,7 +48,7 @@ export type DbProject = {
   success_fee_rate: number | null
   deadline: string | null
   notes: string | null
-  customer_id: string
+  customer_id: string | null
   customers: { company_name: string } | null
   profiles: { full_name: string } | null
 }
@@ -244,7 +244,7 @@ export async function fetchProjects(): Promise<DbProject[]> {
 export async function insertProject(input: {
   title: string
   subsidy_name: string
-  customer_id: string
+  customer_id: string | null
   applied_amount: number | null
   deadline: string | null
   base_fee?: number | null
@@ -288,6 +288,7 @@ export async function fetchProjectsByCustomer(customerId: string): Promise<DbPro
 export async function updateProject(id: string, input: {
   title: string
   subsidy_name: string
+  customer_id?: string | null
   applied_amount: number | null
   subsidy_amount?: number | null
   base_fee?: number | null

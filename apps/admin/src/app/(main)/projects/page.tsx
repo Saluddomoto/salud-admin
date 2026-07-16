@@ -55,7 +55,7 @@ export default function ProjectsPage() {
       await insertProject({
         title:             f.get('title') as string,
         subsidy_name:      subsidyName,
-        customer_id:       f.get('customer_id') as string,
+        customer_id:       (f.get('customer_id') as string) || null,
         applied_amount:    f.get('amount') ? Number(f.get('amount')) * 10_000 : null,
         deadline:          (f.get('deadline') as string) || null,
         base_fee:          f.get('base_fee') ? Number(f.get('base_fee')) : null,
@@ -161,9 +161,9 @@ export default function ProjectsPage() {
               )}
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">顧客 *</label>
-              <select name="customer_id" required className="input">
-                <option value="">選択してください</option>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">顧客</label>
+              <select name="customer_id" className="input" defaultValue="">
+                <option value="">未設定（あとで紐付け可）</option>
                 {customers.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
               </select>
             </div>

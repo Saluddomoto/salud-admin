@@ -7,9 +7,9 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { DocumentsCard } from '@/components/DocumentsCard'
 import {
-  deleteProject, fetchProject, fetchTasksByProject, insertTask,
+  deleteProject, fetchProject, fetchTasksByProject, fetchCustomers, insertTask,
   updateProject, updateProjectStatus, updateTaskStatus,
-  formatAmount, type DbProject, type DbTask,
+  formatAmount, type DbProject, type DbTask, type DbCustomer,
 } from '@/lib/db'
 
 const STATUSES: { key: DbProject['status']; label: string; cls: string }[] = [
@@ -44,6 +44,7 @@ export default function ProjectDetailPage() {
   const router = useRouter()
   const [project,  setProject]  = useState<DbProject | null>(null)
   const [tasks,    setTasks]    = useState<DbTask[]>([])
+  const [customers, setCustomers] = useState<DbCustomer[]>([])
   const [loading,  setLoading]  = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [error,    setError]    = useState('')
@@ -53,11 +54,12 @@ export default function ProjectDetailPage() {
   const [subsidyChoice, setSubsidyChoice] = useState('')
 
   const load = useCallback(() => {
-    Promise.all([fetchProject(id), fetchTasksByProject(id)])
-      .then(([p, t]) => {
+    Promise.all([fetchProject(id), fetchTasksByProject(id), fetchCustomers()])
+      .then(([p, t, c]) => {
         if (!p) setNotFound(true)
         setProject(p)
         setTasks(t)
+        setCustomers(c)
       })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
@@ -75,6 +77,7 @@ export default function ProjectDetailPage() {
       await updateProject(id, {
         title:             f.get('title') as string,
         subsidy_name:      subsidyName,
+        customer_id:       (f.get('customer_id') as string) || null,
         applied_amount:    f.get('amount') ? Number(f.get('amount')) * 10_000 : null,
         subsidy_amount:    f.get('subsidy_amount') ? Number(f.get('subsidy_amount')) * 10_000 : null,
         base_fee:          f.get('base_fee') ? Number(f.get('base_fee')) : null,
@@ -202,9 +205,13 @@ export default function ProjectDetailPage() {
             <div className="flex gap-3">
               <dt className="w-20 flex-shrink-0 text-slate-400">顧客</dt>
               <dd>
-                <Link href={`/customers/${project.customer_id}`} className="font-medium text-brand-600 hover:underline">
-                  {project.customers?.company_name ?? '—'}
-                </Link>
+                {project.customer_id ? (
+                  <Link href={`/customers/${project.customer_id}`} className="font-medium text-brand-600 hover:underline">
+                    {project.customers?.company_name ?? '—'}
+                  </Link>
+                ) : (
+                  <span className="text-slate-400">未設定<span className="ml-1 text-xs">（編集から紐付け可）</span></span>
+                )}
               </dd>
             </div>
             {[
@@ -304,6 +311,13 @@ export default function ProjectDetailPage() {
                   placeholder="補助金名を入力"
                 />
               )}
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">顧客</label>
+              <select name="customer_id" className="input" defaultValue={project.customer_id ?? ''}>
+                <option value="">未設定</option>
+                {customers.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+              </select>
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">申請額（万円）</label>
