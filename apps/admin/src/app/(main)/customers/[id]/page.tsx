@@ -7,9 +7,9 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { DocumentsCard } from '@/components/DocumentsCard'
 import {
-  deleteContact, deleteCustomer, fetchCustomer, fetchProjectsByCustomer,
+  deleteContact, deleteCustomer, fetchCustomer, fetchProjectsByCustomer, fetchProfiles,
   insertContact, updateCustomer, formatAmount,
-  type DbCustomer, type DbProject,
+  type DbCustomer, type DbProject, type DbProfile,
 } from '@/lib/db'
 
 const STATUS_LABELS = {
@@ -32,6 +32,7 @@ export default function CustomerDetailPage() {
   const router = useRouter()
   const [customer, setCustomer] = useState<DbCustomer | null>(null)
   const [projects, setProjects] = useState<DbProject[]>([])
+  const [members,  setMembers]  = useState<DbProfile[]>([])
   const [loading,  setLoading]  = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [error,    setError]    = useState('')
@@ -40,11 +41,12 @@ export default function CustomerDetailPage() {
   const [saving,      setSaving]      = useState(false)
 
   const load = useCallback(() => {
-    Promise.all([fetchCustomer(id), fetchProjectsByCustomer(id)])
-      .then(([c, p]) => {
+    Promise.all([fetchCustomer(id), fetchProjectsByCustomer(id), fetchProfiles()])
+      .then(([c, p, m]) => {
         if (!c) setNotFound(true)
         setCustomer(c)
         setProjects(p)
+        setMembers(m.filter(x => x.is_active))
       })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
@@ -67,6 +69,7 @@ export default function CustomerDetailPage() {
         address:        (f.get('address') as string) || null,
         website:        (f.get('website') as string) || null,
         notes:          (f.get('notes') as string) || null,
+        assigned_user_id: (f.get('assigned_user_id') as string) || null,
       })
       setEditOpen(false)
       load()
@@ -285,6 +288,13 @@ export default function CustomerDetailPage() {
                 <option value="prospect">見込み</option>
                 <option value="active">契約中</option>
                 <option value="inactive">休眠</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">社内担当</label>
+              <select name="assigned_user_id" className="input" defaultValue={customer.assigned_user_id ?? ''}>
+                <option value="">未設定</option>
+                {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
               </select>
             </div>
           </div>

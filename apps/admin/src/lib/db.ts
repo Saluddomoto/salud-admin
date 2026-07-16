@@ -144,6 +144,7 @@ export async function updateCustomer(id: string, input: {
   address: string | null
   website: string | null
   notes: string | null
+  assigned_user_id?: string | null
 }) {
   const { error } = await db().from('customers').update(input).eq('id', id)
   if (error) throw error
