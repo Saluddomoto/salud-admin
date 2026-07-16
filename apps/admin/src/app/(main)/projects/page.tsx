@@ -5,12 +5,12 @@ import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import {
-  fetchProjects, fetchCustomers, insertProject, updateProjectStatus,
-  formatAmount, formatDate, type DbProject, type DbCustomer,
+  fetchProjects, fetchCustomers, fetchProfiles, insertProject, updateProjectStatus,
+  formatAmount, formatDate, type DbProject, type DbCustomer, type DbProfile,
 } from '@/lib/db'
 
 const COLUMNS = [
-  { key: 'planning',    label: '準備中',     dot: 'bg-slate-400' },
+  { key: 'planning',    label: '見込み',     dot: 'bg-slate-400' },
   { key: 'in_progress', label: '申請準備中', dot: 'bg-amber-500' },
   { key: 'submitted',   label: '申請済み',   dot: 'bg-indigo-500' },
   { key: 'accepted',    label: '採択',       dot: 'bg-emerald-500' },
@@ -31,6 +31,7 @@ const SUCCESS_FEE_OPTIONS = [8, 9, 10, 11, 12, 13, 14, 15]
 export default function ProjectsPage() {
   const [projects,  setProjects]  = useState<DbProject[]>([])
   const [customers, setCustomers] = useState<DbCustomer[]>([])
+  const [members,   setMembers]   = useState<DbProfile[]>([])
   const [loading,   setLoading]   = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [saving,    setSaving]    = useState(false)
@@ -38,8 +39,8 @@ export default function ProjectsPage() {
   const [subsidyChoice, setSubsidyChoice] = useState(SUBSIDY_NAMES[0]!)
 
   const load = () => {
-    Promise.all([fetchProjects(), fetchCustomers()])
-      .then(([p, c]) => { setProjects(p); setCustomers(c) })
+    Promise.all([fetchProjects(), fetchCustomers(), fetchProfiles()])
+      .then(([p, c, m]) => { setProjects(p); setCustomers(c); setMembers(m.filter(x => x.is_active)) })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
   }
@@ -60,6 +61,10 @@ export default function ProjectsPage() {
         deadline:          (f.get('deadline') as string) || null,
         base_fee:          f.get('base_fee') ? Number(f.get('base_fee')) : null,
         success_fee_rate:  f.get('success_fee_rate') ? Number(f.get('success_fee_rate')) : null,
+        homepage_url:      (f.get('homepage_url') as string)?.trim() || null,
+        notes:             (f.get('notes') as string)?.trim() || null,
+        assigned_user_id:   (f.get('assigned_user_id') as string) || null,
+        assigned_user_id_2: (f.get('assigned_user_id_2') as string) || null,
       })
       setModalOpen(false)
       setSubsidyChoice(SUBSIDY_NAMES[0]!)
@@ -114,7 +119,9 @@ export default function ProjectsPage() {
                       <span className="text-slate-400">〆 {formatDate(p.deadline)}</span>
                     </div>
                     <div className="mt-2.5 flex items-center justify-between border-t border-slate-50 pt-2.5">
-                      <span className="text-xs text-slate-500">{p.profiles?.full_name ?? '—'}</span>
+                      <span className="text-xs text-slate-500">
+                        {[p.profiles?.full_name, p.assignee2?.full_name].filter(Boolean).join('・') || '—'}
+                      </span>
                       <select
                         className="rounded-lg border border-slate-200 px-1.5 py-1 text-xs text-slate-600"
                         value={p.status}
@@ -168,6 +175,20 @@ export default function ProjectsPage() {
               </select>
             </div>
             <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">社内担当1</label>
+              <select name="assigned_user_id" className="input" defaultValue="">
+                <option value="">未設定</option>
+                {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">社内担当2</label>
+              <select name="assigned_user_id_2" className="input" defaultValue="">
+                <option value="">未設定</option>
+                {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+              </select>
+            </div>
+            <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">申請額（万円）</label>
               <input name="amount" type="number" className="input" placeholder="1000" />
             </div>
@@ -188,6 +209,14 @@ export default function ProjectsPage() {
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">申請期限</label>
               <input name="deadline" type="date" className="input" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">HP URL</label>
+              <input name="homepage_url" type="url" className="input" placeholder="https://example.co.jp" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">その他メモ</label>
+              <textarea name="notes" rows={3} className="input" placeholder="補足・特記事項など" />
             </div>
           </div>
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">

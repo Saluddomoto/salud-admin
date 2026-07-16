@@ -7,13 +7,13 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { DocumentsCard } from '@/components/DocumentsCard'
 import {
-  deleteProject, fetchProject, fetchTasksByProject, fetchCustomers, insertTask,
+  deleteProject, fetchProject, fetchTasksByProject, fetchCustomers, fetchProfiles, insertTask,
   updateProject, updateProjectStatus, updateTaskStatus,
-  formatAmount, type DbProject, type DbTask, type DbCustomer,
+  formatAmount, type DbProject, type DbTask, type DbCustomer, type DbProfile,
 } from '@/lib/db'
 
 const STATUSES: { key: DbProject['status']; label: string; cls: string }[] = [
-  { key: 'planning',    label: '準備中',     cls: 'bg-slate-100 text-slate-600' },
+  { key: 'planning',    label: '見込み',     cls: 'bg-slate-100 text-slate-600' },
   { key: 'in_progress', label: '申請準備中', cls: 'bg-amber-100 text-amber-700' },
   { key: 'submitted',   label: '申請済み',   cls: 'bg-indigo-100 text-indigo-700' },
   { key: 'accepted',    label: '採択',       cls: 'bg-emerald-100 text-emerald-700' },
@@ -45,6 +45,7 @@ export default function ProjectDetailPage() {
   const [project,  setProject]  = useState<DbProject | null>(null)
   const [tasks,    setTasks]    = useState<DbTask[]>([])
   const [customers, setCustomers] = useState<DbCustomer[]>([])
+  const [members,  setMembers]  = useState<DbProfile[]>([])
   const [loading,  setLoading]  = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [error,    setError]    = useState('')
@@ -54,12 +55,13 @@ export default function ProjectDetailPage() {
   const [subsidyChoice, setSubsidyChoice] = useState('')
 
   const load = useCallback(() => {
-    Promise.all([fetchProject(id), fetchTasksByProject(id), fetchCustomers()])
-      .then(([p, t, c]) => {
+    Promise.all([fetchProject(id), fetchTasksByProject(id), fetchCustomers(), fetchProfiles()])
+      .then(([p, t, c, m]) => {
         if (!p) setNotFound(true)
         setProject(p)
         setTasks(t)
         setCustomers(c)
+        setMembers(m.filter(x => x.is_active))
       })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
@@ -84,6 +86,9 @@ export default function ProjectDetailPage() {
         success_fee_rate:  f.get('success_fee_rate') ? Number(f.get('success_fee_rate')) : null,
         deadline:          (f.get('deadline') as string) || null,
         notes:             (f.get('notes') as string) || null,
+        homepage_url:      (f.get('homepage_url') as string)?.trim() || null,
+        assigned_user_id:   (f.get('assigned_user_id') as string) || null,
+        assigned_user_id_2: (f.get('assigned_user_id_2') as string) || null,
       })
       setEditOpen(false)
       load()
@@ -221,13 +226,25 @@ export default function ProjectDetailPage() {
               { label: '基本料金',   value: formatAmount(project.base_fee) },
               { label: '成功報酬',   value: project.success_fee_rate != null ? `${project.success_fee_rate}%` : '—' },
               { label: '申請期限',   value: project.deadline ?? '—' },
-              { label: '社内担当',   value: project.profiles?.full_name ?? '—' },
+              { label: '社内担当',   value: [project.profiles?.full_name, project.assignee2?.full_name].filter(Boolean).join('・') || '—' },
             ].map(row => (
               <div key={row.label} className="flex gap-3">
                 <dt className="w-20 flex-shrink-0 text-slate-400">{row.label}</dt>
                 <dd className="text-slate-700">{row.value}</dd>
               </div>
             ))}
+            <div className="flex gap-3">
+              <dt className="w-20 flex-shrink-0 text-slate-400">HP</dt>
+              <dd className="min-w-0 break-all">
+                {project.homepage_url ? (
+                  <a href={project.homepage_url} target="_blank" rel="noreferrer" className="font-medium text-brand-600 hover:underline">
+                    {project.homepage_url}
+                  </a>
+                ) : (
+                  <span className="text-slate-400">—</span>
+                )}
+              </dd>
+            </div>
           </dl>
           {project.notes && (
             <div className="mt-4 border-t border-slate-100 pt-3">
@@ -320,6 +337,20 @@ export default function ProjectDetailPage() {
               </select>
             </div>
             <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">社内担当1</label>
+              <select name="assigned_user_id" className="input" defaultValue={project.assigned_user_id ?? ''}>
+                <option value="">未設定</option>
+                {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">社内担当2</label>
+              <select name="assigned_user_id_2" className="input" defaultValue={project.assigned_user_id_2 ?? ''}>
+                <option value="">未設定</option>
+                {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+              </select>
+            </div>
+            <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">申請額（万円）</label>
               <input
                 name="amount" type="number" className="input"
@@ -351,6 +382,10 @@ export default function ProjectDetailPage() {
               <label className="mb-1.5 block text-sm font-medium text-slate-700">申請期限</label>
               <input name="deadline" type="date" className="input" defaultValue={project.deadline ?? ''} />
             </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">HP URL</label>
+            <input name="homepage_url" type="url" className="input" defaultValue={project.homepage_url ?? ''} placeholder="https://example.co.jp" />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">メモ</label>

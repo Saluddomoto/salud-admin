@@ -48,9 +48,13 @@ export type DbProject = {
   success_fee_rate: number | null
   deadline: string | null
   notes: string | null
+  homepage_url: string | null
   customer_id: string | null
+  assigned_user_id: string | null
+  assigned_user_id_2: string | null
   customers: { company_name: string } | null
   profiles: { full_name: string } | null
+  assignee2: { full_name: string } | null
 }
 
 export type DbTask = {
@@ -235,7 +239,7 @@ export async function insertCustomer(input: {
 export async function fetchProjects(): Promise<DbProject[]> {
   const { data, error } = await db()
     .from('projects')
-    .select('*, customers(company_name), profiles(full_name)')
+    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name)')
     .order('deadline', { ascending: true, nullsFirst: false })
   if (error) throw error
   return data as DbProject[]
@@ -249,13 +253,19 @@ export async function insertProject(input: {
   deadline: string | null
   base_fee?: number | null
   success_fee_rate?: number | null
+  homepage_url?: string | null
+  notes?: string | null
+  assigned_user_id?: string | null
+  assigned_user_id_2?: string | null
 }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
   const { error } = await client.from('projects').insert({
     ...input,
     status: 'planning',
-    assigned_user_id: user?.id ?? null,
+    // 担当1は未指定なら作成者を既定に。担当2はそのまま（未指定=null）
+    assigned_user_id:   input.assigned_user_id ?? user?.id ?? null,
+    assigned_user_id_2: input.assigned_user_id_2 ?? null,
   })
   if (error) throw error
 }
@@ -268,7 +278,7 @@ export async function updateProjectStatus(id: string, status: string) {
 export async function fetchProject(id: string): Promise<DbProject | null> {
   const { data, error } = await db()
     .from('projects')
-    .select('*, customers(company_name), profiles(full_name)')
+    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name)')
     .eq('id', id)
     .maybeSingle()
   if (error) throw error
@@ -278,7 +288,7 @@ export async function fetchProject(id: string): Promise<DbProject | null> {
 export async function fetchProjectsByCustomer(customerId: string): Promise<DbProject[]> {
   const { data, error } = await db()
     .from('projects')
-    .select('*, customers(company_name), profiles(full_name)')
+    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name)')
     .eq('customer_id', customerId)
     .order('deadline', { ascending: true, nullsFirst: false })
   if (error) throw error
@@ -295,6 +305,9 @@ export async function updateProject(id: string, input: {
   success_fee_rate?: number | null
   deadline: string | null
   notes: string | null
+  homepage_url?: string | null
+  assigned_user_id?: string | null
+  assigned_user_id_2?: string | null
 }) {
   const { error } = await db().from('projects').update(input).eq('id', id)
   if (error) throw error

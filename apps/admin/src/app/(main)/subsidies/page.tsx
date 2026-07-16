@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { fetchProjects, formatAmount, type DbProject } from '@/lib/db'
 
 const STATUS_META: Record<DbProject['status'], { label: string; cls: string }> = {
-  planning:    { label: '準備中',     cls: 'bg-slate-100 text-slate-600' },
+  planning:    { label: '見込み',     cls: 'bg-slate-100 text-slate-600' },
   in_progress: { label: '申請準備中', cls: 'bg-amber-100 text-amber-700' },
   submitted:   { label: '申請済み',   cls: 'bg-indigo-100 text-indigo-700' },
   accepted:    { label: '採択',       cls: 'bg-emerald-100 text-emerald-700' },
@@ -16,7 +16,7 @@ const STATUS_META: Record<DbProject['status'], { label: string; cls: string }> =
 
 const FILTERS = [
   { key: '',            label: 'すべて' },
-  { key: 'planning',    label: '準備中' },
+  { key: 'planning',    label: '見込み' },
   { key: 'in_progress', label: '申請準備中' },
   { key: 'submitted',   label: '申請済み' },
   { key: 'accepted',    label: '採択' },

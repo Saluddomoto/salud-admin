@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { fetchPerformance, formatAmount, type MemberPerformance, type PerfProject } from '@/lib/db'
 
 const PROJECT_STATUS: Record<PerfProject['status'], { label: string; cls: string }> = {
-  planning:    { label: '準備中',     cls: 'bg-slate-100 text-slate-600' },
+  planning:    { label: '見込み',     cls: 'bg-slate-100 text-slate-600' },
   in_progress: { label: '申請準備中', cls: 'bg-amber-100 text-amber-700' },
   submitted:   { label: '申請済み',   cls: 'bg-indigo-100 text-indigo-700' },
   accepted:    { label: '採択',       cls: 'bg-emerald-100 text-emerald-700' },
