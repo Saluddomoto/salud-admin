@@ -87,6 +87,7 @@ export type DbProfile = {
   tasks_shared_with_team: boolean
   digest_enabled: boolean
   line_user_id: string | null
+  is_executive: boolean
 }
 
 export type DbEvent = {
@@ -444,7 +445,19 @@ export async function fetchNeedsReplyCount(): Promise<number> {
 export async function fetchProfiles(): Promise<DbProfile[]> {
   const { data, error } = await db()
     .from('profiles')
-    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, is_executive')
+    .order('created_at')
+  if (error) throw error
+  return data as DbProfile[]
+}
+
+// 役員本人（相互閲覧のため、役員が他の役員のプロフィールを読む用）
+export async function fetchExecutiveProfiles(): Promise<DbProfile[]> {
+  const { data, error } = await db()
+    .from('profiles')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, is_executive')
+    .eq('is_executive', true)
+    .eq('is_active', true)
     .order('created_at')
   if (error) throw error
   return data as DbProfile[]
@@ -456,7 +469,7 @@ export async function fetchMyProfile(): Promise<DbProfile | null> {
   if (!user) return null
   const { data, error } = await client
     .from('profiles')
-    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, is_executive')
     .eq('id', user.id)
     .single()
   if (error) throw error
@@ -500,6 +513,12 @@ export async function updateMemberActive(id: string, active: boolean) {
 // メンバーごとの朝LINEダイジェスト配信 ON/OFF（admin のみ RLS で許可）
 export async function updateMemberDigest(id: string, enabled: boolean) {
   const { error } = await db().from('profiles').update({ digest_enabled: enabled }).eq('id', id)
+  if (error) throw error
+}
+
+// 役員フラグの付与／解除（admin のみ RLS で許可）。役員月報の対象・相互閲覧範囲を決める
+export async function updateMemberExecutive(id: string, isExecutive: boolean) {
+  const { error } = await db().from('profiles').update({ is_executive: isExecutive }).eq('id', id)
   if (error) throw error
 }
 
@@ -625,5 +644,51 @@ export async function updateMeetingNote(id: string, patch: {
 
 export async function deleteMeetingNote(id: string) {
   const { error } = await db().from('meeting_notes').delete().eq('id', id)
+  if (error) throw error
+}
+
+/* ─── 役員月報（相互閲覧可能な月次活動報告）───────────── */
+export type DbMonthlyReport = {
+  id: string
+  user_id: string
+  period: string // 'YYYY-MM-01'
+  actions: string | null           // 行動
+  sales: string | null             // 営業
+  tasks: string | null             // タスク
+  work_performance: string | null  // 稼働実績
+  initiatives: string | null       // 取り組んだこと
+  updated_at: string
+  profiles: { full_name: string } | null
+}
+
+export type MonthlyReportInput = {
+  actions: string
+  sales: string
+  tasks: string
+  work_performance: string
+  initiatives: string
+}
+
+/** 指定月（'YYYY-MM-01'）の役員月報を全件返す。RLS で役員本人・管理者のみ取得可 */
+export async function fetchMonthlyReports(period: string): Promise<DbMonthlyReport[]> {
+  const { data, error } = await db()
+    .from('monthly_reports')
+    .select('id, user_id, period, actions, sales, tasks, work_performance, initiatives, updated_at, profiles(full_name)')
+    .eq('period', period)
+  if (error) throw error
+  return (data ?? []) as unknown as DbMonthlyReport[]
+}
+
+/** 自分の月報を作成・更新（当月分を上書き）。RLS で役員本人のみ許可 */
+export async function upsertMonthlyReport(period: string, input: MonthlyReportInput) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const { error } = await client
+    .from('monthly_reports')
+    .upsert(
+      { user_id: user.id, period, ...input, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id,period' }
+    )
   if (error) throw error
 }

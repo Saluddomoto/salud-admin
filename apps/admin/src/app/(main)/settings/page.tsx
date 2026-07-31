@@ -6,7 +6,7 @@ import { Modal } from '@/components/Modal'
 import { useAuth } from '@/hooks/useAuth'
 import {
   fetchMyProfile, fetchProfiles, updateMyProfile, updateMyNotificationPrefs, updateMyPassword,
-  updateMemberTasksSharing, updateMemberActive, updateMemberDigest,
+  updateMemberTasksSharing, updateMemberActive, updateMemberDigest, updateMemberExecutive,
   type DbProfile, type NotificationPrefs,
 } from '@/lib/db'
 
@@ -176,6 +176,16 @@ export default function SettingsPage() {
     setMembers(prev => prev.map(m => m.id === id ? { ...m, digest_enabled: enabled } : m))
     try {
       await updateMemberDigest(id, enabled)
+    } catch (e) {
+      alert(`更新に失敗しました: ${e instanceof Error ? e.message : e}`)
+      fetchProfiles().then(setMembers).catch(() => {})
+    }
+  }
+
+  const handleToggleExecutive = async (id: string, isExecutive: boolean) => {
+    setMembers(prev => prev.map(m => m.id === id ? { ...m, is_executive: isExecutive } : m))
+    try {
+      await updateMemberExecutive(id, isExecutive)
     } catch (e) {
       alert(`更新に失敗しました: ${e instanceof Error ? e.message : e}`)
       fetchProfiles().then(setMembers).catch(() => {})
@@ -357,6 +367,15 @@ export default function SettingsPage() {
                               className="h-3.5 w-3.5 rounded border-slate-300 text-brand-600"
                             />
                             タスクをチームに共有
+                          </label>
+                          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500" title="役員月報の対象にする（役員同士で相互閲覧）">
+                            <input
+                              type="checkbox"
+                              checked={m.is_executive}
+                              onChange={e => handleToggleExecutive(m.id, e.target.checked)}
+                              className="h-3.5 w-3.5 rounded border-slate-300 text-brand-600"
+                            />
+                            役員
                           </label>
                         </>
                       )}

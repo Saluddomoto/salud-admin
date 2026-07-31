@@ -2,10 +2,12 @@
 
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { fetchMyProfile } from '@/lib/db'
 
-type NavItem = { href: string; label: string; icon: ReactNode; badge?: number; adminOnly?: boolean; external?: boolean }
+type NavItem = { href: string; label: string; icon: ReactNode; badge?: number; adminOnly?: boolean; executiveOnly?: boolean; external?: boolean }
 
 // 会社の共有フォルダ（社内ノウハウ・資料）
 const DRIVE_FOLDER_URL = 'https://drive.google.com/drive/folders/1lQOdZcEqPYtcYgGD8npWZ0X970ZoR_VO'
@@ -86,6 +88,15 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
+    href: '/monthly-reports',
+    label: '役員月報',
+    executiveOnly: true,
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    ),
+  },
+  {
     href: '/manual',
     label: 'マニュアル',
     icon: (
@@ -116,6 +127,11 @@ const NAV_ITEMS: NavItem[] = [
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname()
   const { user, role, signOut } = useAuth()
+  const [isExecutive, setIsExecutive] = useState(false)
+
+  useEffect(() => {
+    fetchMyProfile().then(p => setIsExecutive(p?.is_executive === true)).catch(() => setIsExecutive(false))
+  }, [])
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
@@ -150,7 +166,10 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-          {NAV_ITEMS.filter(item => !item.adminOnly || role === 'admin').map(item => {
+          {NAV_ITEMS.filter(item =>
+            (!item.adminOnly || role === 'admin') &&
+            (!item.executiveOnly || isExecutive || role === 'admin')
+          ).map(item => {
             const className = `
               flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors
               ${!item.external && isActive(item.href)
