@@ -8,10 +8,25 @@ import {
   type DbProfile, type DbMonthlyReport, type MonthlyReportInput,
 } from '@/lib/db'
 
-const FIELDS: { key: keyof MonthlyReportInput; label: string; placeholder: string }[] = [
-  { key: 'actions',     label: '行動',           placeholder: '今月、主体的に動いたこと・意思決定したこと' },
-  { key: 'sales',       label: '営業',           placeholder: '商談・提案・新規開拓の動き' },
-  { key: 'initiatives', label: '取り組んだこと', placeholder: '新しく始めた取り組み・改善・学び' },
+const FIELDS: { key: keyof MonthlyReportInput; label: string; hint: string; example: string }[] = [
+  {
+    key: 'actions',
+    label: '行動',
+    hint: '今月、主体的に動いたこと・意思決定したこと',
+    example: '例）スタッフの案件対応が滞っていたので進め方を一緒に整理した／新規顧客A社との商談前に業界動向を調べて提案資料を作り直した',
+  },
+  {
+    key: 'sales',
+    label: '営業',
+    hint: '商談・提案・新規開拓の動き',
+    example: '例）B社と初回商談、ものづくり補助金を提案／税理士C氏からの紹介案件を2件フォロー／セミナーで名刺交換した5社に個別フォロー',
+  },
+  {
+    key: 'initiatives',
+    label: '取り組んだこと',
+    hint: '新しく始めた取り組み・改善・学び',
+    example: '例）LINE問い合わせ対応マニュアルを整備した／新しい補助金情報のキャッチアップ会を月1で開始した／申請書のひな形を見直して作成時間を短縮した',
+  },
 ]
 
 const EMPTY_INPUT: MonthlyReportInput = { actions: '', sales: '', initiatives: '' }
@@ -169,10 +184,11 @@ export default function MonthlyReportsPage() {
             <div className="space-y-4">
               {FIELDS.map(f => (
                 <div key={f.key}>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">{f.label}</label>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{f.label}</label>
+                  <p className="mb-1.5 text-xs text-slate-400">{f.example}</p>
                   <textarea
                     className="input min-h-[80px] resize-y"
-                    placeholder={f.placeholder}
+                    placeholder={f.hint}
                     value={form[f.key]}
                     onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                   />
