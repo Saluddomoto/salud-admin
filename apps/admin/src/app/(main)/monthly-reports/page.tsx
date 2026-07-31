@@ -9,14 +9,12 @@ import {
 } from '@/lib/db'
 
 const FIELDS: { key: keyof MonthlyReportInput; label: string; placeholder: string }[] = [
-  { key: 'actions',          label: '行動',       placeholder: '今月、主体的に動いたこと・意思決定したこと' },
-  { key: 'sales',            label: '営業',       placeholder: '商談・提案・新規開拓の動き' },
-  { key: 'tasks',            label: 'タスク',     placeholder: '対応したタスク・案件対応の要点' },
-  { key: 'work_performance', label: '稼働実績',   placeholder: '稼働時間の傾向・体制面での気づき' },
-  { key: 'initiatives',      label: '取り組んだこと', placeholder: '新しく始めた取り組み・改善・学び' },
+  { key: 'actions',     label: '行動',           placeholder: '今月、主体的に動いたこと・意思決定したこと' },
+  { key: 'sales',       label: '営業',           placeholder: '商談・提案・新規開拓の動き' },
+  { key: 'initiatives', label: '取り組んだこと', placeholder: '新しく始めた取り組み・改善・学び' },
 ]
 
-const EMPTY_INPUT: MonthlyReportInput = { actions: '', sales: '', tasks: '', work_performance: '', initiatives: '' }
+const EMPTY_INPUT: MonthlyReportInput = { actions: '', sales: '', initiatives: '' }
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -67,8 +65,6 @@ export default function MonthlyReportsPage() {
       ? {
           actions: myReport.actions ?? '',
           sales: myReport.sales ?? '',
-          tasks: myReport.tasks ?? '',
-          work_performance: myReport.work_performance ?? '',
           initiatives: myReport.initiatives ?? '',
         }
       : EMPTY_INPUT)
@@ -187,7 +183,7 @@ export default function MonthlyReportsPage() {
                   type="button"
                   className="btn-secondary text-sm"
                   onClick={() => { setEditing(false); setForm(myReport
-                    ? { actions: myReport.actions ?? '', sales: myReport.sales ?? '', tasks: myReport.tasks ?? '', work_performance: myReport.work_performance ?? '', initiatives: myReport.initiatives ?? '' }
+                    ? { actions: myReport.actions ?? '', sales: myReport.sales ?? '', initiatives: myReport.initiatives ?? '' }
                     : EMPTY_INPUT) }}
                 >
                   キャンセル
