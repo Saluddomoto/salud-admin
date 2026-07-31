@@ -114,6 +114,15 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
+    href: 'https://hojokin-kanri-system.vercel.app',
+    label: '補助金申請管理',
+    external: true,
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M9 12h6m-6 4h3m-3-8h6M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
+    ),
+  },
+  {
     href: '/settings',
     label: '設定',
     adminOnly: true,
