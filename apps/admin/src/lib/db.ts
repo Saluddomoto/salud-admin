@@ -591,7 +591,7 @@ export type DbMeetingNote = {
   summary: string | null
   customer_id: string | null
   project_id: string | null
-  source: 'zoom' | 'manual'
+  source: 'zoom' | 'manual' | 'google_meet'
   created_at: string
   customers: { company_name: string } | null
   projects: { title: string } | null
@@ -616,12 +616,14 @@ export async function insertMeetingNote(input: {
   summary?: string | null
   customer_id?: string | null
   project_id?: string | null
+  source?: 'manual' | 'google_meet'
 }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
+  const { source, ...rest } = input
   const { error } = await client.from('meeting_notes').insert({
-    ...input,
-    source: 'manual',
+    ...rest,
+    source: source ?? 'manual',
     created_by: user?.id ?? null,
   })
   if (error) throw error

@@ -11,6 +11,7 @@
     "clean":      "rm -rf .next"
   },
   "dependencies": {
+    "@salud/ai":                "workspace:*",
     "@salud/auth":             "workspace:*",
     "@salud/database":         "workspace:*",
     "@salud/line":             "workspace:*",

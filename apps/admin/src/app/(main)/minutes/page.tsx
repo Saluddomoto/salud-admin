@@ -18,8 +18,9 @@ function formatMeetingDate(iso: string | null): string {
 }
 
 const SOURCE_META = {
-  zoom:   { label: 'Zoom', cls: 'bg-blue-100 text-blue-700' },
-  manual: { label: '手動', cls: 'bg-slate-100 text-slate-600' },
+  zoom:        { label: 'Zoom', cls: 'bg-blue-100 text-blue-700' },
+  google_meet: { label: 'Google Meet', cls: 'bg-emerald-100 text-emerald-700' },
+  manual:      { label: '手動', cls: 'bg-slate-100 text-slate-600' },
 } as const
 
 export default function MinutesPage() {
@@ -51,6 +52,7 @@ export default function MinutesPage() {
     setSaving(true)
     const f = new FormData(e.currentTarget)
     try {
+      const source = f.get('source') as string
       await insertMeetingNote({
         title:         (f.get('title') as string) || '(無題の会議)',
         meeting_date:  (f.get('meeting_date') as string) || null,
@@ -59,6 +61,7 @@ export default function MinutesPage() {
         summary:       (f.get('summary') as string)?.trim() || null,
         customer_id:   (f.get('customer_id') as string) || null,
         project_id:    (f.get('project_id') as string) || null,
+        source:        source === 'google_meet' ? 'google_meet' : 'manual',
       })
       setAddOpen(false)
       load()
@@ -130,6 +133,19 @@ export default function MinutesPage() {
             <label className="mb-1.5 block text-sm font-medium text-slate-700">会議名 *</label>
             <input name="title" required className="input" placeholder="週次定例MTG" />
           </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">種類</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-1.5 text-sm text-slate-700">
+                <input type="radio" name="source" value="manual" defaultChecked />
+                手動
+              </label>
+              <label className="flex items-center gap-1.5 text-sm text-slate-700">
+                <input type="radio" name="source" value="google_meet" />
+                Google Meet
+              </label>
+            </div>
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">日時</label>
@@ -137,7 +153,7 @@ export default function MinutesPage() {
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">録画/共有リンク</label>
-              <input name="recording_url" type="url" className="input" placeholder="https://zoom.us/rec/..." />
+              <input name="recording_url" type="url" className="input" placeholder="https://meet.google.com/xxx-xxxx-xxx" />
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -199,7 +215,34 @@ function DetailModal({ note, customers, projects, canDelete, onClose, onSaved }:
   const [customerId, setCustomerId] = useState(note.customer_id ?? '')
   const [projectId,  setProjectId]  = useState(note.project_id ?? '')
   const [busy,       setBusy]       = useState(false)
+  const [analyzing,  setAnalyzing]  = useState(false)
   const [err,        setErr]        = useState('')
+
+  const analyze = async () => {
+    setAnalyzing(true)
+    setErr('')
+    try {
+      const res = await fetch('/api/minutes/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ noteId: note.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'AI分析に失敗しました')
+      const decisions = (data.decisions as string[]).map((d: string) => `・${d}`).join('\n')
+      const actionItems = (data.actionItems as string[]).map((a: string) => `・${a}`).join('\n')
+      const composed = [
+        data.summary,
+        decisions && `\n【決定事項】\n${decisions}`,
+        actionItems && `\n【アクションアイテム】\n${actionItems}`,
+      ].filter(Boolean).join('\n')
+      setSummary(composed)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'AI分析に失敗しました')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
 
   const save = async () => {
     setBusy(true)
@@ -268,8 +311,20 @@ function DetailModal({ note, customers, projects, canDelete, onClose, onSaved }:
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">要約・決定事項</label>
-          <textarea value={summary} onChange={e => setSummary(e.target.value)} rows={3}
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className="block text-sm font-medium text-slate-700">要約・決定事項</label>
+            {(note.transcript || note.summary) && (
+              <button
+                type="button"
+                onClick={analyze}
+                disabled={analyzing}
+                className="text-xs font-medium text-brand-600 hover:underline disabled:opacity-50"
+              >
+                {analyzing ? 'AI分析中...' : 'AIで分析する'}
+              </button>
+            )}
+          </div>
+          <textarea value={summary} onChange={e => setSummary(e.target.value)} rows={8}
             className="input resize-y" placeholder="決まったこと・ToDoなど" />
         </div>
 
