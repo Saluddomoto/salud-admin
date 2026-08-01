@@ -6,7 +6,7 @@ import { Modal } from '@/components/Modal'
 import { useAuth } from '@/hooks/useAuth'
 import {
   fetchMeetingNotes, insertMeetingNote, updateMeetingNote, deleteMeetingNote,
-  fetchCustomers, fetchProjects,
+  fetchCustomers, fetchProjects, insertTask,
   type DbMeetingNote, type DbCustomer, type DbProject,
 } from '@/lib/db'
 
@@ -210,17 +210,23 @@ function DetailModal({ note, customers, projects, canDelete, onClose, onSaved }:
   onClose: () => void
   onSaved: () => void
 }) {
-  const [title,      setTitle]      = useState(note.title)
-  const [summary,    setSummary]    = useState(note.summary ?? '')
-  const [customerId, setCustomerId] = useState(note.customer_id ?? '')
-  const [projectId,  setProjectId]  = useState(note.project_id ?? '')
-  const [busy,       setBusy]       = useState(false)
-  const [analyzing,  setAnalyzing]  = useState(false)
-  const [err,        setErr]        = useState('')
+  const [title,        setTitle]        = useState(note.title)
+  const [summary,      setSummary]      = useState(note.summary ?? '')
+  const [transcript,   setTranscript]   = useState(note.transcript ?? '')
+  const [recordingUrl, setRecordingUrl] = useState(note.recording_url ?? '')
+  const [customerId,   setCustomerId]   = useState(note.customer_id ?? '')
+  const [projectId,    setProjectId]    = useState(note.project_id ?? '')
+  const [busy,         setBusy]         = useState(false)
+  const [analyzing,    setAnalyzing]    = useState(false)
+  const [actionItems,  setActionItems]  = useState('')
+  const [addingTodos,  setAddingTodos]  = useState(false)
+  const [todoMsg,      setTodoMsg]      = useState('')
+  const [err,          setErr]          = useState('')
 
   const analyze = async () => {
     setAnalyzing(true)
     setErr('')
+    setTodoMsg('')
     try {
       const res = await fetch('/api/minutes/analyze', {
         method: 'POST',
@@ -230,17 +236,38 @@ function DetailModal({ note, customers, projects, canDelete, onClose, onSaved }:
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'AI分析に失敗しました')
       const decisions = (data.decisions as string[]).map((d: string) => `・${d}`).join('\n')
-      const actionItems = (data.actionItems as string[]).map((a: string) => `・${a}`).join('\n')
-      const composed = [
-        data.summary,
-        decisions && `\n【決定事項】\n${decisions}`,
-        actionItems && `\n【アクションアイテム】\n${actionItems}`,
-      ].filter(Boolean).join('\n')
+      const composed = [data.summary, decisions && `\n【決定事項】\n${decisions}`]
+        .filter(Boolean).join('\n')
       setSummary(composed)
+      setActionItems((data.actionItems as string[]).join('\n'))
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'AI分析に失敗しました')
     } finally {
       setAnalyzing(false)
+    }
+  }
+
+  const addTodos = async () => {
+    const items = actionItems.split('\n').map(s => s.trim()).filter(Boolean)
+    if (items.length === 0) return
+    setAddingTodos(true)
+    setErr('')
+    try {
+      for (const item of items) {
+        await insertTask({
+          title: item,
+          description: `議事録「${title}」より`,
+          priority: 'medium',
+          due_date: null,
+          project_id: projectId || null,
+        })
+      }
+      setTodoMsg(`${items.length}件をタスクに追加しました`)
+      setActionItems('')
+    } catch {
+      setErr('タスクへの追加に失敗しました')
+    } finally {
+      setAddingTodos(false)
     }
   }
 
@@ -250,9 +277,11 @@ function DetailModal({ note, customers, projects, canDelete, onClose, onSaved }:
     try {
       await updateMeetingNote(note.id, {
         title,
-        summary:     summary.trim() || null,
-        customer_id: customerId || null,
-        project_id:  projectId || null,
+        summary:       summary.trim() || null,
+        transcript:    transcript.trim() || null,
+        recording_url: recordingUrl.trim() || null,
+        customer_id:   customerId || null,
+        project_id:    projectId || null,
       })
       onSaved()
     } catch {
@@ -286,12 +315,17 @@ function DetailModal({ note, customers, projects, canDelete, onClose, onSaved }:
           </p>
         </div>
 
-        {note.recording_url && (
-          <a href={note.recording_url} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:underline">
-            ▶ Zoom録画を開く
-          </a>
-        )}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">録画/共有リンク</label>
+          <input value={recordingUrl} onChange={e => setRecordingUrl(e.target.value)}
+            type="url" className="input" placeholder="https://meet.google.com/xxx-xxxx-xxx" />
+          {recordingUrl && (
+            <a href={recordingUrl} target="_blank" rel="noopener noreferrer"
+              className="mt-1 inline-block text-xs font-medium text-brand-600 hover:underline">
+              ▶ 開く
+            </a>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -328,14 +362,26 @@ function DetailModal({ note, customers, projects, canDelete, onClose, onSaved }:
             className="input resize-y" placeholder="決まったこと・ToDoなど" />
         </div>
 
-        {note.transcript && (
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">文字起こし</label>
-            <div className="max-h-64 overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">
-              {note.transcript}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">議事録・文字起こし</label>
+          <textarea value={transcript} onChange={e => setTranscript(e.target.value)} rows={8}
+            className="input resize-y font-mono text-xs" placeholder="Zoomの文字起こしを貼り付け、または議事メモを記入" />
+        </div>
+
+        {actionItems && (
+          <div className="rounded-xl border border-brand-100 bg-brand-50/50 p-3">
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="block text-sm font-medium text-slate-700">アクションアイテム（1行1件、編集可）</label>
+              <button type="button" onClick={addTodos} disabled={addingTodos}
+                className="text-xs font-medium text-brand-600 hover:underline disabled:opacity-50">
+                {addingTodos ? '追加中...' : 'ToDoに追加'}
+              </button>
             </div>
+            <textarea value={actionItems} onChange={e => setActionItems(e.target.value)} rows={4}
+              className="input resize-y text-sm" />
           </div>
         )}
+        {todoMsg && <p className="text-sm text-emerald-600">{todoMsg}</p>}
 
         {err && <p className="text-sm text-rose-600">{err}</p>}
 
