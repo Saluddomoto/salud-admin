@@ -36,18 +36,22 @@ export default function SubsidiesPage() {
   const accepted = projects.filter(p => p.status === 'accepted')
   const inFlight = projects.filter(p => p.status === 'submitted')
   const active   = projects.filter(p => !['accepted', 'rejected', 'completed'].includes(p.status))
-  const total    = projects.reduce((sum, p) => sum + (p.applied_amount ?? 0), 0)
+  const total    = inFlight.reduce((sum, p) => sum + (p.applied_amount ?? 0), 0)
+  const pipeline = projects
+    .filter(p => p.status === 'planning' || p.status === 'in_progress')
+    .reduce((sum, p) => sum + (p.applied_amount ?? 0), 0)
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="補助金管理" description="申請状況の一覧・進捗管理" />
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {[
           { label: '進行中の申請', value: `${active.length}件`,   color: 'text-slate-900' },
           { label: '審査待ち',     value: `${inFlight.length}件`, color: 'text-indigo-600' },
           { label: '採択済み',     value: `${accepted.length}件`, color: 'text-emerald-600' },
-          { label: '申請総額',     value: formatAmount(total),    color: 'text-slate-900' },
+          { label: '申請総額（申請済み）', value: formatAmount(total),    color: 'text-slate-900' },
+          { label: '申請見込み（見込み・準備中）', value: formatAmount(pipeline), color: 'text-amber-600' },
         ].map(s => (
           <div key={s.label} className="card p-4">
             <p className="text-xs text-slate-500">{s.label}</p>
