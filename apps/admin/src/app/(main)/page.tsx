@@ -79,11 +79,16 @@ export default function DashboardPage() {
     0,
   )
   const totalRevenue = baseFeeRevenue + successFeeRevenue
-  const pipelineBaseFee = active.reduce((s, p) => s + (p.base_fee ?? 0), 0)
-  const pipelineSuccessFee = active.reduce(
-    (s, p) => s + ((p.success_fee_rate ?? 0) / 100) * (p.subsidy_amount ?? p.applied_amount ?? 0),
-    0,
-  )
+
+  // 進行中案件の見込み: 契約前（見込み）と契約後（申請準備中〜申請済み＝受注）で分けて集計
+  const prospectProjects = active.filter(p => p.status === 'planning')
+  const wonProjects       = active.filter(p => p.status === 'in_progress' || p.status === 'submitted')
+  const feeSum = (list: DbProject[]) => ({
+    base:    list.reduce((s, p) => s + (p.base_fee ?? 0), 0),
+    success: list.reduce((s, p) => s + ((p.success_fee_rate ?? 0) / 100) * (p.subsidy_amount ?? p.applied_amount ?? 0), 0),
+  })
+  const prospectFee = feeSum(prospectProjects)
+  const wonFee       = feeSum(wonProjects)
 
   const alerts = active
     .filter(p => p.deadline && daysUntil(p.deadline, today) >= 0 && daysUntil(p.deadline, today) <= 14)
@@ -193,27 +198,38 @@ export default function DashboardPage() {
       {/* 売上管理（管理者のみ） */}
       {!loading && isAdmin && (
         <div className="card border border-amber-200 bg-amber-50/40 p-5">
-          <div className="mb-3 flex items-center gap-2">
+          <div className="mb-4 flex items-center gap-2">
             <h3 className="font-semibold text-slate-900">売上管理</h3>
             <span className="badge bg-amber-100 text-xs text-amber-700">管理者のみ表示</span>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{formatAmount(totalRevenue)}</p>
-              <p className="text-sm text-slate-500">確定売上（採択・完了案件）</p>
-            </div>
-            <div>
-              <p className="text-lg font-semibold text-slate-700">{formatAmount(baseFeeRevenue)}</p>
-              <p className="text-xs text-slate-400">内・基本料金 {revenueProjects.length}件</p>
-            </div>
-            <div>
-              <p className="text-lg font-semibold text-slate-700">{formatAmount(successFeeRevenue)}</p>
-              <p className="text-xs text-slate-400">内・成功報酬</p>
-            </div>
+            {[
+              {
+                label: '見込み', sub: '契約前・見込み案件', cls: 'text-slate-700',
+                total: prospectFee.base + prospectFee.success, base: prospectFee.base, success: prospectFee.success,
+                count: prospectProjects.length,
+              },
+              {
+                label: '受注済み', sub: '契約後・申請準備中〜申請済み', cls: 'text-indigo-600',
+                total: wonFee.base + wonFee.success, base: wonFee.base, success: wonFee.success,
+                count: wonProjects.length,
+              },
+              {
+                label: '採択', sub: '採択・完了案件（確定売上）', cls: 'text-emerald-600',
+                total: totalRevenue, base: baseFeeRevenue, success: successFeeRevenue,
+                count: revenueProjects.length,
+              },
+            ].map(s => (
+              <div key={s.label} className="rounded-xl bg-white/60 p-4">
+                <p className="text-xs text-slate-500">{s.label}（{s.count}件）</p>
+                <p className={`mt-1 text-2xl font-bold ${s.cls}`}>{formatAmount(s.total)}</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  基本料金 {formatAmount(s.base)} ／ 成功報酬 {formatAmount(s.success)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-slate-400">{s.sub}</p>
+              </div>
+            ))}
           </div>
-          <p className="mt-3 border-t border-amber-100 pt-3 text-xs text-slate-500">
-            進行中案件の見込み: 基本料金 {formatAmount(pipelineBaseFee)} ／ 成功報酬 {formatAmount(pipelineSuccessFee)}（{active.length}件）
-          </p>
         </div>
       )}
 
