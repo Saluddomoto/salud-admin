@@ -66,6 +66,7 @@ export default function CustomerDetailPage() {
         employee_count: f.get('employee_count') ? Number(f.get('employee_count')) : null,
         status:         f.get('status') as string,
         phone:          (f.get('phone') as string) || null,
+        email:          (f.get('email') as string) || null,
         address:        (f.get('address') as string) || null,
         website:        (f.get('website') as string) || null,
         notes:          (f.get('notes') as string) || null,
@@ -171,6 +172,7 @@ export default function CustomerDetailPage() {
               { label: '業種',     value: customer.industry ?? '—' },
               { label: '従業員数', value: customer.employee_count ? `${customer.employee_count}名` : '—' },
               { label: '電話番号', value: customer.phone ?? '—' },
+              { label: 'メール',   value: customer.email ?? '—' },
               { label: '住所',     value: customer.address ?? '—' },
               { label: 'Web',      value: customer.website ?? '—' },
               { label: '社内担当', value: customer.profiles?.full_name ?? '—' },
@@ -281,6 +283,10 @@ export default function CustomerDetailPage() {
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">電話番号</label>
               <input name="phone" className="input" defaultValue={customer.phone ?? ''} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">メール</label>
+              <input name="email" type="email" className="input" defaultValue={customer.email ?? ''} />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">ステータス</label>

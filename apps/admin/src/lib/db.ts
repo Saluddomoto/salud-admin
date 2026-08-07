@@ -29,6 +29,7 @@ export type DbCustomer = {
   status: 'active' | 'prospect' | 'inactive'
   assigned_user_id: string | null
   phone: string | null
+  email: string | null
   address: string | null
   website: string | null
   notes: string | null
@@ -142,6 +143,7 @@ export async function updateCustomer(id: string, input: {
   employee_count: number | null
   status: string
   phone: string | null
+  email: string | null
   address: string | null
   website: string | null
   notes: string | null

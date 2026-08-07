@@ -80,6 +80,10 @@ export default function DashboardPage() {
   )
   const totalRevenue = baseFeeRevenue + successFeeRevenue
   const pipelineBaseFee = active.reduce((s, p) => s + (p.base_fee ?? 0), 0)
+  const pipelineSuccessFee = active.reduce(
+    (s, p) => s + ((p.success_fee_rate ?? 0) / 100) * (p.subsidy_amount ?? p.applied_amount ?? 0),
+    0,
+  )
 
   const alerts = active
     .filter(p => p.deadline && daysUntil(p.deadline, today) >= 0 && daysUntil(p.deadline, today) <= 14)
@@ -208,7 +212,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <p className="mt-3 border-t border-amber-100 pt-3 text-xs text-slate-500">
-            進行中案件の基本料金見込み: {formatAmount(pipelineBaseFee)}（{active.length}件）
+            進行中案件の見込み: 基本料金 {formatAmount(pipelineBaseFee)} ／ 成功報酬 {formatAmount(pipelineSuccessFee)}（{active.length}件）
           </p>
         </div>
       )}
