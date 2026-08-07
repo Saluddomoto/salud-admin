@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { fetchPerformance, formatAmount, type MemberPerformance, type PerfProject } from '@/lib/db'
+import {
+  fetchPerformance, fetchProjects, fetchProfiles, formatAmount,
+  type MemberPerformance, type PerfProject, type DbProject, type DbProfile,
+} from '@/lib/db'
 
 const PROJECT_STATUS: Record<PerfProject['status'], { label: string; cls: string }> = {
   planning:    { label: '見込み',     cls: 'bg-slate-100 text-slate-600' },
@@ -28,7 +31,9 @@ function winRateLabel(p: MemberPerformance): string {
 
 export default function PerformancePage() {
   const [{ y, m }, setYm] = useState(jstNow)
-  const [rows,    setRows]    = useState<MemberPerformance[]>([])
+  const [rows,     setRows]     = useState<MemberPerformance[]>([])
+  const [projects, setProjects] = useState<DbProject[]>([])
+  const [profiles, setProfiles] = useState<DbProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState('')
 
@@ -46,6 +51,30 @@ export default function PerformancePage() {
   }, [startISO, endISO])
 
   useEffect(load, [load])
+
+  useEffect(() => {
+    Promise.all([fetchProjects(), fetchProfiles()]).then(([p, pr]) => {
+      setProjects(p)
+      setProfiles(pr)
+    })
+  }, [])
+
+  // 今年の目標（採択金額）: 実際のカレンダー年（月送りナビとは独立）
+  const goalYear = jstNow().y
+  const goals = useMemo(() => {
+    return profiles
+      .filter(pr => pr.annual_target_amount != null)
+      .map(pr => {
+        const achieved = projects
+          .filter(p =>
+            (p.assigned_user_id === pr.id || p.assigned_user_id_2 === pr.id) &&
+            (p.status === 'accepted' || p.status === 'completed') &&
+            !!p.result_at && new Date(p.result_at).getFullYear() === goalYear,
+          )
+          .reduce((s, p) => s + (p.subsidy_amount ?? p.applied_amount ?? 0), 0)
+        return { id: pr.id, full_name: pr.full_name, target: pr.annual_target_amount as number, achieved }
+      })
+  }, [projects, profiles, goalYear])
 
   const shiftMonth = (delta: number) => {
     setYm(prev => {
@@ -93,6 +122,32 @@ export default function PerformancePage() {
 
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+      )}
+
+      {/* 今年の目標（採択金額） */}
+      {goals.length > 0 && (
+        <div className="card p-5">
+          <h3 className="mb-4 font-semibold text-slate-900">{goalYear}年の目標（採択金額）</h3>
+          <div className="space-y-4">
+            {goals.map(g => {
+              const pct = g.target > 0 ? Math.min(100, Math.round((g.achieved / g.target) * 100)) : 0
+              return (
+                <div key={g.id}>
+                  <div className="mb-1 flex items-center justify-between text-sm">
+                    <span className="font-medium text-slate-800">{g.full_name}</span>
+                    <span className="text-slate-500">
+                      <span className="font-bold text-emerald-600">{formatAmount(g.achieved)}</span>
+                      {' ／ '}{formatAmount(g.target)}（{pct}%）
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       )}
 
       {/* チーム合計 */}
