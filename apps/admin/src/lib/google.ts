@@ -3,8 +3,9 @@
 // プライバシー方針: 選択されたカレンダー以外は読まない。
 import { createAdminClient } from '@/lib/supabase-admin'
 
-const TOKEN_URL = 'https://oauth2.googleapis.com/token'
-const CAL_API   = 'https://www.googleapis.com/calendar/v3'
+const TOKEN_URL  = 'https://oauth2.googleapis.com/token'
+const CAL_API    = 'https://www.googleapis.com/calendar/v3'
+const DRIVE_API  = 'https://www.googleapis.com/drive/v3'
 const SYNC_INTERVAL_MS = 10 * 60_000 // 同一接続の再同期は10分に1回まで
 
 export function googleRedirectUri(): string {
@@ -17,7 +18,7 @@ export function googleAuthUrl(state: string): string {
     client_id:     process.env.GOOGLE_CLIENT_ID!,
     redirect_uri:  googleRedirectUri(),
     response_type: 'code',
-    scope:         'https://www.googleapis.com/auth/calendar.readonly',
+    scope:         'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly',
     access_type:   'offline',
     prompt:        'consent',
     state,
@@ -157,4 +158,99 @@ export async function syncGoogleCalendars(opts: { force?: boolean } = {}): Promi
     }
   }
   return { synced, skipped }
+}
+
+type DriveFile = { id: string; name: string; createdTime?: string }
+
+// 「Meet Recordings」フォルダ（Google Meet の Gemini メモが自動保存される、
+// 各ユーザーのマイドライブ直下にある既定フォルダ）を検索して ID を返す
+async function findMeetRecordingsFolderId(token: string): Promise<string | null> {
+  const q = "name = 'Meet Recordings' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+  const res = await fetch(`${DRIVE_API}/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=1`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error(`drive folder search failed: ${res.status}`)
+  const json = await res.json()
+  return json.files?.[0]?.id ?? null
+}
+
+async function exportDocText(fileId: string, token: string): Promise<string> {
+  const res = await fetch(`${DRIVE_API}/files/${fileId}/export?mimeType=text/plain`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error(`drive export failed: ${res.status}`)
+  return res.text()
+}
+
+/**
+ * 接続済みメンバーの「Meet Recordings」フォルダを見て、新しい Google Meet 議事録
+ * (Gemini が自動生成する Google ドキュメント)を meeting_notes に取り込む。
+ * Docs のタブ機能（メモ/文字起こし）のうち、既定表示される先頭タブ(メモ=要約)のみ取り込む。
+ */
+export async function syncGoogleMeetMinutes(opts: { force?: boolean } = {}): Promise<{ processed: number; checked: number }> {
+  const admin = createAdminClient()
+  const { data: conns } = await admin
+    .from('google_calendar_connections')
+    .select('user_id, refresh_token, drive_meet_folder_id, drive_last_synced_at')
+
+  let processed = 0, checked = 0
+  const now = Date.now()
+
+  for (const conn of conns ?? []) {
+    if (!opts.force && conn.drive_last_synced_at
+        && now - new Date(conn.drive_last_synced_at).getTime() < SYNC_INTERVAL_MS) {
+      continue
+    }
+    try {
+      const token = await accessTokenFor(conn.refresh_token)
+
+      let folderId = conn.drive_meet_folder_id
+      if (!folderId) {
+        folderId = await findMeetRecordingsFolderId(token)
+        if (!folderId) { continue } // このアカウントはまだ Meet Recordings フォルダを持たない
+        await admin.from('google_calendar_connections')
+          .update({ drive_meet_folder_id: folderId })
+          .eq('user_id', conn.user_id)
+      }
+
+      const q = `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.document' and trashed = false`
+      const params = new URLSearchParams({
+        q,
+        fields: 'files(id,name,createdTime)',
+        orderBy: 'createdTime desc',
+        pageSize: '25',
+      })
+      const res = await fetch(`${DRIVE_API}/files?${params}`, { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error(`drive files.list failed: ${res.status}`)
+      const files = ((await res.json()).files ?? []) as DriveFile[]
+      checked += files.length
+
+      for (const f of files) {
+        const summary = await exportDocText(f.id, token).catch(e => {
+          console.error(`drive export failed for ${f.id}`, e); return null
+        })
+        if (summary == null) continue
+
+        const { error } = await admin.from('meeting_notes')
+          .upsert({
+            drive_file_id: f.id,
+            title:         f.name,
+            meeting_date:  f.createdTime ?? null,
+            summary,
+            source:        'google_meet',
+            created_by:    conn.user_id,
+            updated_at:    new Date().toISOString(),
+          }, { onConflict: 'drive_file_id' })
+        if (error) { console.error('meeting_notes upsert failed', error); continue }
+        processed++
+      }
+
+      await admin.from('google_calendar_connections')
+        .update({ drive_last_synced_at: new Date().toISOString() })
+        .eq('user_id', conn.user_id)
+    } catch (e) {
+      console.error(`drive minutes sync failed for user ${conn.user_id}`, e)
+    }
+  }
+  return { processed, checked }
 }

@@ -14,7 +14,7 @@ export async function GET() {
   const admin = createAdminClient()
   const { data: conn } = await admin
     .from('google_calendar_connections')
-    .select('calendar_id, calendar_name, last_synced_at, refresh_token')
+    .select('calendar_id, calendar_name, last_synced_at, refresh_token, drive_meet_folder_id, drive_last_synced_at')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -28,11 +28,13 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    connected:      true,
-    calendar_id:    conn.calendar_id,
-    calendar_name:  conn.calendar_name,
-    last_synced_at: conn.last_synced_at,
+    connected:            true,
+    calendar_id:          conn.calendar_id,
+    calendar_name:        conn.calendar_name,
+    last_synced_at:       conn.last_synced_at,
     calendars,
+    drive_connected:      !!conn.drive_meet_folder_id,
+    drive_last_synced_at: conn.drive_last_synced_at,
   })
 }
 

@@ -40,6 +40,8 @@ type GoogleState = {
   calendar_name?: string | null
   last_synced_at?: string | null
   calendars?: { id: string; summary: string }[]
+  drive_connected?: boolean
+  drive_last_synced_at?: string | null
 }
 
 export default function SettingsPage() {
@@ -54,6 +56,7 @@ export default function SettingsPage() {
 
   const [google,        setGoogle]        = useState<GoogleState | null>(null)
   const [googleBusy,    setGoogleBusy]    = useState(false)
+  const [driveBusy,     setDriveBusy]     = useState(false)
 
   const [inviteOpen,    setInviteOpen]    = useState(false)
   const [inviting,      setInviting]      = useState(false)
@@ -97,6 +100,16 @@ export default function SettingsPage() {
       loadGoogle()
     } finally {
       setGoogleBusy(false)
+    }
+  }
+
+  const syncDrive = async () => {
+    setDriveBusy(true)
+    try {
+      await fetch('/api/google/drive-sync?force=1')
+      loadGoogle()
+    } finally {
+      setDriveBusy(false)
     }
   }
 
@@ -528,13 +541,42 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              {/* Google ドライブ */}
-              <div className="flex items-center gap-4 py-4">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-800">Google ドライブ</p>
-                  <p className="text-xs text-slate-400">書類の自動フォルダ管理（将来）</p>
+              {/* Google Meet 議事録 */}
+              <div className="py-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-800">Google Meet 議事録の自動取り込み</p>
+                    <p className="text-xs text-slate-400">
+                      マイドライブの「Meet Recordings」フォルダから Gemini メモを議事録に自動保存
+                    </p>
+                  </div>
+                  {google?.connected ? (
+                    google.drive_connected ? (
+                      <>
+                        <span className="badge bg-emerald-100 text-xs text-emerald-700">連携済み</span>
+                        <button className="btn-secondary text-xs" disabled={driveBusy} onClick={syncDrive}>
+                          {driveBusy ? '同期中...' : '今すぐ同期'}
+                        </button>
+                      </>
+                    ) : (
+                      <span className="badge bg-amber-50 text-xs text-amber-600">未検出</span>
+                    )
+                  ) : (
+                    <span className="badge bg-slate-100 text-xs text-slate-500">未接続</span>
+                  )}
                 </div>
-                <span className="badge bg-slate-100 text-xs text-slate-500">未対応</span>
+                {google?.connected && !google.drive_connected && (
+                  <p className="mt-2 text-xs text-amber-600">
+                    ⚠ Meet Recordings フォルダがまだ見つかっていません。カレンダー連携時にDriveの読み取り権限を
+                    許可していない場合は、<a href="/api/google/auth" className="underline">こちらから権限を許可し直して</a>から
+                    「今すぐ同期」をお試しください。
+                  </p>
+                )}
+                {google?.connected && google.drive_connected && (
+                  <p className="mt-2 text-xs text-slate-400">
+                    最終同期: {google.drive_last_synced_at ? new Date(google.drive_last_synced_at).toLocaleString('ja-JP') : '未実行'}
+                  </p>
+                )}
               </div>
             </div>
           )}
