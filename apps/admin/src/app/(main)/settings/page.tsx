@@ -57,6 +57,7 @@ export default function SettingsPage() {
   const [google,        setGoogle]        = useState<GoogleState | null>(null)
   const [googleBusy,    setGoogleBusy]    = useState(false)
   const [driveBusy,     setDriveBusy]     = useState(false)
+  const [driveSyncResult, setDriveSyncResult] = useState<string | null>(null)
 
   const [inviteOpen,    setInviteOpen]    = useState(false)
   const [inviting,      setInviting]      = useState(false)
@@ -105,9 +106,20 @@ export default function SettingsPage() {
 
   const syncDrive = async () => {
     setDriveBusy(true)
+    setDriveSyncResult(null)
     try {
-      await fetch('/api/google/drive-sync?force=1')
+      const res = await fetch('/api/google/drive-sync?force=1')
+      const data = await res.json()
+      if (!res.ok) {
+        setDriveSyncResult(`エラー: ${data.error ?? res.status}`)
+      } else if (data.errors?.length) {
+        setDriveSyncResult(`エラー: ${data.errors.join(' / ')}`)
+      } else {
+        setDriveSyncResult(`${data.checked}件確認、${data.processed}件処理しました`)
+      }
       loadGoogle()
+    } catch (e) {
+      setDriveSyncResult(`エラー: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
       setDriveBusy(false)
     }
@@ -551,25 +563,28 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   {google?.connected ? (
-                    google.drive_connected ? (
-                      <>
-                        <span className="badge bg-emerald-100 text-xs text-emerald-700">連携済み</span>
-                        <button className="btn-secondary text-xs" disabled={driveBusy} onClick={syncDrive}>
-                          {driveBusy ? '同期中...' : '今すぐ同期'}
-                        </button>
-                      </>
-                    ) : (
-                      <span className="badge bg-amber-50 text-xs text-amber-600">未検出</span>
-                    )
+                    <>
+                      <span className={`badge text-xs ${google.drive_connected ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-50 text-amber-600'}`}>
+                        {google.drive_connected ? '連携済み' : '未検出'}
+                      </span>
+                      <button className="btn-secondary text-xs" disabled={driveBusy} onClick={syncDrive}>
+                        {driveBusy ? '同期中...' : '今すぐ同期'}
+                      </button>
+                    </>
                   ) : (
                     <span className="badge bg-slate-100 text-xs text-slate-500">未接続</span>
                   )}
                 </div>
+                {driveSyncResult && (
+                  <p className={`mt-2 text-xs ${driveSyncResult.startsWith('エラー') ? 'text-rose-600' : 'text-slate-500'}`}>
+                    {driveSyncResult}
+                  </p>
+                )}
                 {google?.connected && !google.drive_connected && (
                   <p className="mt-2 text-xs text-amber-600">
-                    ⚠ Meet Recordings フォルダがまだ見つかっていません。カレンダー連携時にDriveの読み取り権限を
-                    許可していない場合は、<a href="/api/google/auth" className="underline">こちらから権限を許可し直して</a>から
-                    「今すぐ同期」をお試しください。
+                    ⚠ 「今すぐ同期」を押しても Meet Recordings フォルダが見つからない場合、Driveの読み取り権限が
+                    不足している可能性があります。<a href="/api/google/auth" className="underline">こちらから権限を許可し直して</a>から
+                    再度お試しください。
                   </p>
                 )}
                 {google?.connected && google.drive_connected && (

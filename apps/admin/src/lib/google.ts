@@ -187,13 +187,14 @@ async function exportDocText(fileId: string, token: string): Promise<string> {
  * (Gemini が自動生成する Google ドキュメント)を meeting_notes に取り込む。
  * Docs のタブ機能（メモ/文字起こし）のうち、既定表示される先頭タブ(メモ=要約)のみ取り込む。
  */
-export async function syncGoogleMeetMinutes(opts: { force?: boolean } = {}): Promise<{ processed: number; checked: number }> {
+export async function syncGoogleMeetMinutes(opts: { force?: boolean } = {}): Promise<{ processed: number; checked: number; errors: string[] }> {
   const admin = createAdminClient()
   const { data: conns } = await admin
     .from('google_calendar_connections')
     .select('user_id, refresh_token, drive_meet_folder_id, drive_last_synced_at')
 
   let processed = 0, checked = 0
+  const errors: string[] = []
   const now = Date.now()
 
   for (const conn of conns ?? []) {
@@ -207,7 +208,10 @@ export async function syncGoogleMeetMinutes(opts: { force?: boolean } = {}): Pro
       let folderId = conn.drive_meet_folder_id
       if (!folderId) {
         folderId = await findMeetRecordingsFolderId(token)
-        if (!folderId) { continue } // このアカウントはまだ Meet Recordings フォルダを持たない
+        if (!folderId) {
+          errors.push(`${conn.user_id}: Meet Recordings フォルダが見つかりません`)
+          continue
+        }
         await admin.from('google_calendar_connections')
           .update({ drive_meet_folder_id: folderId })
           .eq('user_id', conn.user_id)
@@ -249,8 +253,10 @@ export async function syncGoogleMeetMinutes(opts: { force?: boolean } = {}): Pro
         .update({ drive_last_synced_at: new Date().toISOString() })
         .eq('user_id', conn.user_id)
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
       console.error(`drive minutes sync failed for user ${conn.user_id}`, e)
+      errors.push(msg)
     }
   }
-  return { processed, checked }
+  return { processed, checked, errors }
 }
