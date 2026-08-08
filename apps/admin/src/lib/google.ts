@@ -169,7 +169,7 @@ async function findMeetRecordingsFolderId(token: string): Promise<string | null>
   const res = await fetch(`${DRIVE_API}/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=1`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  if (!res.ok) throw new Error(`drive folder search failed: ${res.status}`)
+  if (!res.ok) throw new Error(`drive folder search failed: ${res.status} ${await res.text()}`)
   const json = await res.json()
   return json.files?.[0]?.id ?? null
 }
@@ -178,7 +178,7 @@ async function exportDocText(fileId: string, token: string): Promise<string> {
   const res = await fetch(`${DRIVE_API}/files/${fileId}/export?mimeType=text/plain`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  if (!res.ok) throw new Error(`drive export failed: ${res.status}`)
+  if (!res.ok) throw new Error(`drive export failed: ${res.status} ${await res.text()}`)
   return res.text()
 }
 
