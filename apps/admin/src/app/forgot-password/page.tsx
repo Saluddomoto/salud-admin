@@ -56,6 +56,9 @@ export default function ForgotPasswordPage() {
                 届いたメールのリンクから新しいパスワードを設定してください。
                 （数分待っても届かない場合は迷惑メールフォルダもご確認ください）
               </p>
+              <p className="text-xs text-slate-400">
+                しばらく経ってもメールが届かない場合は、管理者に直接パスワード再設定を依頼してください。
+              </p>
               <Link href="/login" className="inline-block text-sm font-medium text-brand-600 hover:underline">
                 ログイン画面に戻る
               </Link>
