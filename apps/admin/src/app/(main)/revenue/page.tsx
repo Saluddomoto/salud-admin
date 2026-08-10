@@ -10,7 +10,7 @@ import {
   fetchProjects, formatAmount, formatDate,
   type DbRevenueEntry, type DbProject, type RevenueEntryInput,
 } from '@/lib/db'
-import { REVENUE_CATEGORIES, REVENUE_CATEGORY_NAMES, findRevenueCategory } from '@/lib/revenueCategories'
+import { REVENUE_CATEGORIES, REVENUE_CATEGORY_NAMES, matchRevenueCategoryFromSubsidyName } from '@/lib/revenueCategories'
 
 type Row = {
   id: string
@@ -27,6 +27,29 @@ type Row = {
 }
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
+
+type SortKey = 'entry_date' | 'category' | 'payer_name' | 'amount_excl_tax' | 'status'
+
+function SortableTh({
+  label, sortKey, current, dir, onClick, align,
+}: {
+  label: string; sortKey: SortKey; current: SortKey; dir: 'asc' | 'desc'
+  onClick: (key: SortKey) => void; align?: 'right'
+}) {
+  const active = current === sortKey
+  return (
+    <th className={`px-3 py-2.5 ${align === 'right' ? 'text-right' : ''}`}>
+      <button
+        type="button"
+        onClick={() => onClick(sortKey)}
+        className={`inline-flex items-center gap-1 font-medium hover:text-slate-600 ${active ? 'text-slate-600' : ''}`}
+      >
+        {label}
+        <span className="text-[10px]">{active ? (dir === 'asc' ? '▲' : '▼') : ''}</span>
+      </button>
+    </th>
+  )
+}
 
 function deriveProjectRows(projects: DbProject[]): Row[] {
   const rows: Row[] = []
@@ -57,7 +80,7 @@ function deriveProjectRows(projects: DbProject[]): Row[] {
         id: `project-${p.id}`,
         entry_date: date,
         payer_name: payer,
-        category: findRevenueCategory(p.subsidy_name ?? '')?.name ?? 'その他',
+        category: matchRevenueCategoryFromSubsidyName(p.subsidy_name ?? '')?.name ?? 'その他',
         amount_excl_tax: amount,
         status: 'confirmed',
         payment_due_date: null,
@@ -67,6 +90,37 @@ function deriveProjectRows(projects: DbProject[]): Row[] {
         projectId: p.id,
       })
     }
+  }
+  return rows
+}
+
+// 補助金パイプライン(見込み〜申請済み、まだ採択されていない案件)を
+// カテゴリの採択率で加重し、売上予測(見込み)にのみ計上する。
+// 実際の入金が発生したわけではないため売上台帳の一覧には出さない。
+function derivePipelineForecastRows(projects: DbProject[]): Row[] {
+  const rows: Row[] = []
+  for (const p of projects) {
+    if (p.project_type !== 'subsidy') continue
+    if (!['planning', 'in_progress', 'submitted'].includes(p.status)) continue
+    const cat = matchRevenueCategoryFromSubsidyName(p.subsidy_name ?? '')
+    if (!cat?.acceptanceRate) continue
+    const base = p.applied_amount ?? p.subsidy_amount ?? cat.unitPrice
+    const amount = Math.round(base * cat.acceptanceRate)
+    const date = p.deadline
+    if (amount <= 0 || !date) continue
+    rows.push({
+      id: `pipeline-${p.id}`,
+      entry_date: date,
+      payer_name: p.customers?.company_name ?? '—',
+      category: cat.name,
+      amount_excl_tax: amount,
+      status: 'forecast',
+      payment_due_date: null,
+      payment_received_date: null,
+      memo: `パイプライン見込み（採択率${Math.round(cat.acceptanceRate * 100)}%で加重）`,
+      source: 'project',
+      projectId: p.id,
+    })
   }
   return rows
 }
@@ -82,6 +136,13 @@ export default function RevenuePage() {
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
   const [year,      setYear]      = useState(new Date().getFullYear())
+  const [sortKey, setSortKey] = useState<'entry_date' | 'category' | 'payer_name' | 'amount_excl_tax' | 'status'>('entry_date')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+
+  const toggleSort = (key: typeof sortKey) => {
+    if (key === sortKey) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    else { setSortKey(key); setSortDir('asc') }
+  }
 
   const load = () => {
     Promise.all([fetchRevenueLedger(), fetchProjects()])
@@ -93,14 +154,40 @@ export default function RevenuePage() {
 
   const rows: Row[] = useMemo(() => {
     const manualRows: Row[] = manual.map(r => ({ ...r, source: 'manual' as const }))
-    return [...manualRows, ...deriveProjectRows(projects)]
-      .sort((a, b) => (a.entry_date < b.entry_date ? 1 : -1))
-  }, [manual, projects])
+    const merged = [...manualRows, ...deriveProjectRows(projects)]
+    const dir = sortDir === 'asc' ? 1 : -1
+    return merged.sort((a, b) => {
+      const av = a[sortKey]
+      const bv = b[sortKey]
+      if (av === bv) return 0
+      return av < bv ? -1 * dir : 1 * dir
+    })
+  }, [manual, projects, sortKey, sortDir])
 
   const canAccess = role === 'admin'
 
   const openCreate = () => { setEditing(null); setModalOpen(true) }
   const openEdit = (r: DbRevenueEntry) => { setEditing(r); setModalOpen(true) }
+
+  const handleToggleStatus = async (entry: DbRevenueEntry) => {
+    const next: 'confirmed' | 'forecast' = entry.status === 'confirmed' ? 'forecast' : 'confirmed'
+    setManual(prev => prev.map(m => m.id === entry.id ? { ...m, status: next } : m))
+    try {
+      await updateRevenueEntry(entry.id, {
+        entry_date: entry.entry_date,
+        payer_name: entry.payer_name,
+        category: entry.category,
+        amount_excl_tax: entry.amount_excl_tax,
+        status: next,
+        payment_due_date: entry.payment_due_date,
+        payment_received_date: entry.payment_received_date,
+        memo: entry.memo,
+      })
+    } catch {
+      setError('区分の更新に失敗しました')
+      load()
+    }
+  }
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -145,7 +232,7 @@ export default function RevenuePage() {
     for (const cat of REVENUE_CATEGORIES) {
       table.set(cat.name, { confirmed: Array(12).fill(0), withForecast: Array(12).fill(0) })
     }
-    for (const r of rows) {
+    for (const r of [...rows, ...derivePipelineForecastRows(projects)]) {
       const d = r.entry_date ? new Date(r.entry_date) : null
       if (!d || d.getFullYear() !== year) continue
       const mi = d.getMonth()
@@ -154,7 +241,7 @@ export default function RevenuePage() {
       bucket.withForecast[mi] = (bucket.withForecast[mi] ?? 0) + r.amount_excl_tax
     }
     return table
-  }, [rows, year])
+  }, [rows, projects, year])
 
   const yearTotalConfirmed = REVENUE_CATEGORIES.reduce(
     (s, c) => s + (monthlyTotals.get(c.name)?.confirmed.reduce((a, b) => a + b, 0) ?? 0), 0
@@ -207,11 +294,11 @@ export default function RevenuePage() {
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
-                <th className="px-3 py-2.5">日付</th>
-                <th className="px-3 py-2.5">顧客</th>
-                <th className="px-3 py-2.5">カテゴリ</th>
-                <th className="px-3 py-2.5 text-right">金額（税抜）</th>
-                <th className="px-3 py-2.5">区分</th>
+                <SortableTh label="日付" sortKey="entry_date" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="顧客" sortKey="payer_name" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="カテゴリ" sortKey="category" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="金額（税抜）" sortKey="amount_excl_tax" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
+                <SortableTh label="区分" sortKey="status" current={sortKey} dir={sortDir} onClick={toggleSort} />
                 <th className="px-3 py-2.5">入金予定日</th>
                 <th className="px-3 py-2.5">入金日</th>
                 <th className="px-3 py-2.5">メモ</th>
@@ -226,9 +313,20 @@ export default function RevenuePage() {
                   <td className="px-3 py-2.5">{r.category}</td>
                   <td className="px-3 py-2.5 text-right font-medium">{formatAmount(r.amount_excl_tax)}</td>
                   <td className="px-3 py-2.5">
-                    <span className={`badge text-xs ${r.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {r.status === 'confirmed' ? '確定' : '見込み'}
-                    </span>
+                    {r.source === 'manual' ? (
+                      <button
+                        type="button"
+                        title="クリックで確定⇔見込みを切替"
+                        onClick={() => handleToggleStatus(manual.find(m => m.id === r.id)!)}
+                        className={`badge text-xs transition-colors hover:opacity-75 ${r.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}
+                      >
+                        {r.status === 'confirmed' ? '確定' : '見込み'}
+                      </button>
+                    ) : (
+                      <span className={`badge text-xs ${r.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {r.status === 'confirmed' ? '確定' : '見込み'}
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-2.5 whitespace-nowrap">{r.payment_due_date ?? '—'}</td>
                   <td className="px-3 py-2.5 whitespace-nowrap">{r.payment_received_date ?? '—'}</td>
@@ -283,12 +381,16 @@ export default function RevenuePage() {
           </div>
 
           {[
-            { key: 'confirmed' as const,    title: '月次実績（確定分のみ）' },
-            { key: 'withForecast' as const, title: '売上予測（確定＋見込み）' },
+            { key: 'confirmed' as const,    title: '月次実績（確定分のみ）', note: null },
+            {
+              key: 'withForecast' as const, title: '売上予測（確定＋見込み）',
+              note: '補助金の見込み〜申請済み案件は、カテゴリの採択率で加重して含めています（案件詳細ページの申請額×採択率）',
+            },
           ].map(block => (
             <div key={block.key} className="card overflow-x-auto p-0">
               <div className="border-b border-slate-100 px-4 py-3">
                 <h3 className="text-sm font-semibold text-slate-900">{block.title}</h3>
+                {block.note && <p className="mt-0.5 text-xs text-slate-400">{block.note}</p>}
               </div>
               <table className="w-full min-w-[1000px] text-xs">
                 <thead>
