@@ -755,3 +755,106 @@ export async function deleteRevenueEntry(id: string) {
   const { error } = await db().from('revenue_ledger').delete().eq('id', id)
   if (error) throw error
 }
+
+/* ─── 月額契約（保守・SEO支援など毎月同額発生するもの）───────── */
+export type DbRecurringContract = {
+  id: string
+  payer_name: string
+  category: string
+  monthly_amount_excl_tax: number
+  start_month: string
+  end_month: string | null
+  last_generated_month: string | null
+  memo: string | null
+}
+
+export type RecurringContractInput = {
+  payer_name: string
+  category: string
+  monthly_amount_excl_tax: number
+  start_month: string
+  end_month: string | null
+  memo: string | null
+}
+
+export async function fetchRecurringContracts(): Promise<DbRecurringContract[]> {
+  const { data, error } = await db()
+    .from('recurring_contracts')
+    .select('id, payer_name, category, monthly_amount_excl_tax, start_month, end_month, last_generated_month, memo')
+    .order('payer_name', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as DbRecurringContract[]
+}
+
+export async function insertRecurringContract(input: RecurringContractInput) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client.from('recurring_contracts').insert({ ...input, created_by: user?.id ?? null })
+  if (error) throw error
+}
+
+export async function updateRecurringContract(id: string, input: RecurringContractInput) {
+  const { error } = await db().from('recurring_contracts').update(input).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteRecurringContract(id: string) {
+  const { error } = await db().from('recurring_contracts').delete().eq('id', id)
+  if (error) throw error
+}
+
+function addMonths(ymd: string, n: number): string {
+  const [y, m] = ymd.split('-').map(Number)
+  const total = (y! * 12 + (m! - 1)) + n
+  const ny = Math.floor(total / 12)
+  const nm = (total % 12) + 1
+  return `${ny}-${String(nm).padStart(2, '0')}-01`
+}
+
+/**
+ * 有効な月額契約それぞれについて、まだ売上台帳に反映していない月
+ * (last_generated_month の翌月〜当月、end_month があればそこまで)を
+ * revenue_ledger に自動追加し、last_generated_month を更新する。
+ * 売上管理ページを開くたびに呼び出すオンデマンド同期(cron不要)。
+ * 戻り値は今回追加した件数。
+ */
+export async function syncRecurringContracts(): Promise<number> {
+  const contracts = await fetchRecurringContracts()
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const thisMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`
+
+  let generated = 0
+  for (const c of contracts) {
+    let cursor = c.last_generated_month ? addMonths(c.last_generated_month, 1) : c.start_month
+    const stopAt = c.end_month && c.end_month < thisMonth ? c.end_month : thisMonth
+    if (cursor > stopAt) continue
+
+    const rows: Record<string, unknown>[] = []
+    while (cursor <= stopAt) {
+      rows.push({
+        entry_date: cursor,
+        payer_name: c.payer_name,
+        category: c.category,
+        amount_excl_tax: c.monthly_amount_excl_tax,
+        status: 'confirmed',
+        memo: '月額契約より自動反映',
+        created_by: user?.id ?? null,
+      })
+      cursor = addMonths(cursor, 1)
+    }
+    if (rows.length === 0) continue
+
+    const { error: insertError } = await client.from('revenue_ledger').insert(rows)
+    if (insertError) throw insertError
+
+    const { error: updateError } = await client
+      .from('recurring_contracts')
+      .update({ last_generated_month: stopAt })
+      .eq('id', c.id)
+    if (updateError) throw updateError
+
+    generated += rows.length
+  }
+  return generated
+}

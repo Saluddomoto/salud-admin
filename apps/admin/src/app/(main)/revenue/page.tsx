@@ -8,7 +8,10 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   fetchRevenueLedger, insertRevenueEntry, updateRevenueEntry, deleteRevenueEntry,
   fetchProjects, formatAmount, formatDate,
+  fetchRecurringContracts, insertRecurringContract, updateRecurringContract,
+  deleteRecurringContract, syncRecurringContracts,
   type DbRevenueEntry, type DbProject, type RevenueEntryInput,
+  type DbRecurringContract, type RecurringContractInput,
 } from '@/lib/db'
 import { REVENUE_CATEGORIES, REVENUE_CATEGORY_NAMES, matchRevenueCategoryFromSubsidyName } from '@/lib/revenueCategories'
 
@@ -135,15 +138,19 @@ export default function RevenuePage() {
   const { role, isLoading: authLoading } = useAuth()
   const [manual,   setManual]   = useState<DbRevenueEntry[]>([])
   const [projects, setProjects] = useState<DbProject[]>([])
+  const [contracts, setContracts] = useState<DbRecurringContract[]>([])
   const [loading,  setLoading]  = useState(true)
-  const [tab,       setTab]     = useState<'ledger' | 'monthly'>('ledger')
+  const [tab,       setTab]     = useState<'ledger' | 'monthly' | 'contracts'>('ledger')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing,   setEditing]   = useState<DbRevenueEntry | null>(null)
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
+  const [syncMsg,   setSyncMsg]   = useState('')
   const [year,      setYear]      = useState(new Date().getFullYear())
   const [sortKey, setSortKey] = useState<'entry_date' | 'category' | 'payer_name' | 'amount_excl_tax' | 'status'>('entry_date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [contractModalOpen, setContractModalOpen] = useState(false)
+  const [editingContract, setEditingContract] = useState<DbRecurringContract | null>(null)
 
   const toggleSort = (key: typeof sortKey) => {
     if (key === sortKey) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
@@ -151,12 +158,19 @@ export default function RevenuePage() {
   }
 
   const load = () => {
-    Promise.all([fetchRevenueLedger(), fetchProjects()])
-      .then(([m, p]) => { setManual(m); setProjects(p) })
+    Promise.all([fetchRevenueLedger(), fetchProjects(), fetchRecurringContracts()])
+      .then(([m, p, c]) => { setManual(m); setProjects(p); setContracts(c) })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
   }
-  useEffect(load, [])
+
+  // ページを開くたびに月額契約の未反映分を売上台帳に自動追加してから読み込む
+  useEffect(() => {
+    syncRecurringContracts()
+      .then(n => { if (n > 0) setSyncMsg(`月額契約から${n}件を売上台帳に自動反映しました`) })
+      .catch(() => {})
+      .finally(load)
+  }, [])
 
   const rows: Row[] = useMemo(() => {
     const manualRows: Row[] = manual.map(r => ({ ...r, source: 'manual' as const }))
@@ -232,6 +246,46 @@ export default function RevenuePage() {
     }
   }
 
+  const openCreateContract = () => { setEditingContract(null); setContractModalOpen(true) }
+  const openEditContract = (c: DbRecurringContract) => { setEditingContract(c); setContractModalOpen(true) }
+
+  const handleSubmitContract = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    const f = new FormData(e.currentTarget)
+    const input: RecurringContractInput = {
+      payer_name:               f.get('payer_name') as string,
+      category:                 f.get('category') as string,
+      monthly_amount_excl_tax:  Number(f.get('monthly_amount_excl_tax')),
+      start_month:              `${f.get('start_month')}-01`,
+      end_month:                f.get('end_month') ? `${f.get('end_month')}-01` : null,
+      memo:                     (f.get('memo') as string)?.trim() || null,
+    }
+    try {
+      if (editingContract) await updateRecurringContract(editingContract.id, input)
+      else await insertRecurringContract(input)
+      setContractModalOpen(false)
+      const n = await syncRecurringContracts()
+      if (n > 0) setSyncMsg(`月額契約から${n}件を売上台帳に自動反映しました`)
+      load()
+    } catch {
+      setError('保存に失敗しました')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteContract = async (id: string) => {
+    if (!confirm('この月額契約を削除しますか？（すでに売上台帳に反映済みの明細は残ります）')) return
+    try {
+      await deleteRecurringContract(id)
+      load()
+    } catch {
+      setError('削除に失敗しました')
+    }
+  }
+
   // カテゴリ×月の集計（確定のみ／確定+見込み）
   const monthlyTotals = useMemo(() => {
     const table = new Map<string, { confirmed: number[]; withForecast: number[] }>()
@@ -285,14 +339,24 @@ export default function RevenuePage() {
         {tab === 'ledger' && (
           <button className="btn-primary text-sm" onClick={openCreate}>+ 売上を追加</button>
         )}
+        {tab === 'contracts' && (
+          <button className="btn-primary text-sm" onClick={openCreateContract}>+ 月額契約を追加</button>
+        )}
       </PageHeader>
 
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       )}
+      {syncMsg && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{syncMsg}</div>
+      )}
 
       <div className="flex gap-1 border-b border-slate-200">
-        {[{ key: 'ledger', label: '売上台帳' }, { key: 'monthly', label: '月次実績・売上予測' }].map(t => (
+        {[
+          { key: 'ledger', label: '売上台帳' },
+          { key: 'monthly', label: '月次実績・売上予測' },
+          { key: 'contracts', label: '月額契約' },
+        ].map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key as typeof tab)}
@@ -463,6 +527,96 @@ export default function RevenuePage() {
           ))}
         </div>
       )}
+
+      {tab === 'contracts' && (
+        <div className="card overflow-x-auto p-0">
+          <table className="w-full min-w-[800px] text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
+                <th className="px-3 py-2.5">顧客</th>
+                <th className="px-3 py-2.5">カテゴリ</th>
+                <th className="px-3 py-2.5 text-right">月額（税抜）</th>
+                <th className="px-3 py-2.5">開始月</th>
+                <th className="px-3 py-2.5">終了月</th>
+                <th className="px-3 py-2.5">売上台帳への反映</th>
+                <th className="px-3 py-2.5" />
+              </tr>
+            </thead>
+            <tbody>
+              {contracts.map(c => (
+                <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50/60">
+                  <td className="px-3 py-2.5">{c.payer_name}</td>
+                  <td className="px-3 py-2.5">{c.category}</td>
+                  <td className="px-3 py-2.5 text-right font-medium">{formatAmount(c.monthly_amount_excl_tax)}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap">{c.start_month.slice(0, 7)}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap">{c.end_month ? c.end_month.slice(0, 7) : '継続中'}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-slate-500">
+                    {c.last_generated_month ? `${c.last_generated_month.slice(0, 7)}分まで反映済み` : '未反映'}
+                  </td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-right">
+                    <button className="text-xs font-medium text-brand-600 hover:underline" onClick={() => openEditContract(c)}>編集</button>
+                    <button className="ml-2 text-xs font-medium text-rose-600 hover:underline" onClick={() => handleDeleteContract(c.id)}>削除</button>
+                  </td>
+                </tr>
+              ))}
+              {!loading && contracts.length === 0 && (
+                <tr><td colSpan={7} className="py-10 text-center text-sm text-slate-300">月額契約はまだありません</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Modal
+        title={editingContract ? '月額契約を編集' : '月額契約を追加'}
+        open={contractModalOpen}
+        onClose={() => setContractModalOpen(false)}
+      >
+        <form onSubmit={handleSubmitContract} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">顧客 *</label>
+              <input name="payer_name" required className="input" defaultValue={editingContract?.payer_name ?? ''} placeholder="イチヤ" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">カテゴリ *</label>
+              <select name="category" required className="input" defaultValue={editingContract?.category ?? 'SEO支援'}>
+                {REVENUE_CATEGORY_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <TaxAmountInput name="monthly_amount_excl_tax" label="月額 *" defaultValueExclTax={editingContract?.monthly_amount_excl_tax} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">開始月 *</label>
+              <input
+                name="start_month" type="month" required className="input"
+                defaultValue={editingContract?.start_month?.slice(0, 7) ?? ''}
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">終了月（空欄なら継続中）</label>
+              <input
+                name="end_month" type="month" className="input"
+                defaultValue={editingContract?.end_month?.slice(0, 7) ?? ''}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">メモ</label>
+              <input name="memo" className="input" defaultValue={editingContract?.memo ?? ''} />
+            </div>
+          </div>
+          <p className="text-xs text-slate-400">
+            保存すると、開始月〜当月（終了月があればそこまで）の未反映分が売上台帳に自動追加されます。
+          </p>
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+            <button type="button" className="btn-secondary text-sm" onClick={() => setContractModalOpen(false)}>キャンセル</button>
+            <button type="submit" disabled={saving} className="btn-primary text-sm">
+              {saving ? '保存中...' : '保存'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       <Modal
         title={breakdownFilter === 'confirmed' ? `確定実績の内訳（${year}年）` : `売上予測の内訳（${year}年）`}
