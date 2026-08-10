@@ -97,6 +97,11 @@ function deriveProjectRows(projects: DbProject[]): Row[] {
 // 補助金パイプライン(見込み〜申請済み、まだ採択されていない案件)を
 // カテゴリの採択率で加重し、売上予測(見込み)にのみ計上する。
 // 実際の入金が発生したわけではないため売上台帳の一覧には出さない。
+//
+// 申請額(applied_amount)はクライアントが国に申請する補助金額であり
+// Saludの売上ではない。Saludの売上は「基本料金＋採択額×成功報酬率」
+// (採択済み案件と同じ式)。採択前は採択額が未確定なので申請額を代用し、
+// 成功報酬部分だけを採択率で加重する(基本料金は契約時に確定済みとみなし加重しない)。
 function derivePipelineForecastRows(projects: DbProject[]): Row[] {
   const rows: Row[] = []
   for (const p of projects) {
@@ -104,8 +109,9 @@ function derivePipelineForecastRows(projects: DbProject[]): Row[] {
     if (!['planning', 'in_progress', 'submitted'].includes(p.status)) continue
     const cat = matchRevenueCategoryFromSubsidyName(p.subsidy_name ?? '')
     if (!cat?.acceptanceRate) continue
-    const base = p.applied_amount ?? p.subsidy_amount ?? cat.unitPrice
-    const amount = Math.round(base * cat.acceptanceRate)
+    const expectedSubsidyAmount = p.subsidy_amount ?? p.applied_amount ?? 0
+    const successFeePortion = expectedSubsidyAmount * ((p.success_fee_rate ?? 0) / 100)
+    const amount = Math.round((p.base_fee ?? 0) + successFeePortion * cat.acceptanceRate)
     const date = p.deadline
     if (amount <= 0 || !date) continue
     rows.push({
@@ -419,6 +425,29 @@ export default function RevenuePage() {
                     )
                   })}
                 </tbody>
+                <tfoot>
+                  <tr className="border-t border-slate-200 bg-slate-50/70">
+                    <td className="px-3 py-2 font-semibold text-slate-900">合計</td>
+                    {MONTHS.map((m, i) => {
+                      const monthTotal = REVENUE_CATEGORIES.reduce(
+                        (s, cat) => s + (monthlyTotals.get(cat.name)?.[block.key][i] ?? 0), 0
+                      )
+                      return (
+                        <td key={m} className="px-2 py-2 text-right font-semibold text-slate-900">
+                          {monthTotal ? formatAmount(monthTotal) : '—'}
+                        </td>
+                      )
+                    })}
+                    <td className="px-3 py-2 text-right font-semibold text-slate-900">
+                      {formatAmount(REVENUE_CATEGORIES.reduce(
+                        (s, cat) => s + (monthlyTotals.get(cat.name)?.[block.key].reduce((a, b) => a + b, 0) ?? 0), 0
+                      ))}
+                    </td>
+                    <td className="px-3 py-2 text-right font-semibold text-slate-500">
+                      {formatAmount(REVENUE_CATEGORIES.reduce((s, c) => s + c.annualTargetCount * c.unitPrice, 0))}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           ))}
