@@ -68,7 +68,7 @@ export default function MonthlyReportsPage() {
   useEffect(load, [load])
 
   const isExecutive = me?.is_executive === true
-  const canAccess = isExecutive || role === 'admin'
+  const canAccess = isExecutive
 
   const myReport = useMemo(
     () => (me ? reports.find(r => r.user_id === me.id) ?? null : null),
