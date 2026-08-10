@@ -257,6 +257,16 @@ export default function RevenuePage() {
   )
   const yearTargetTotal = REVENUE_CATEGORIES.reduce((s, c) => s + c.annualTargetCount * c.unitPrice, 0)
 
+  const [breakdownFilter, setBreakdownFilter] = useState<'confirmed' | 'all' | null>(null)
+  const yearRows = useMemo(() => {
+    return [...rows, ...derivePipelineForecastRows(projects)]
+      .filter(r => r.entry_date && new Date(r.entry_date).getFullYear() === year)
+      .sort((a, b) => (a.entry_date < b.entry_date ? 1 : -1))
+  }, [rows, projects, year])
+  const breakdownRows = breakdownFilter === 'confirmed'
+    ? yearRows.filter(r => r.status === 'confirmed')
+    : yearRows
+
   if (!authLoading && !canAccess) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-6 text-center">
@@ -374,16 +384,16 @@ export default function RevenuePage() {
               <p className="text-xs text-slate-400">年間目標売上</p>
               <p className="mt-1 text-xl font-bold text-slate-900">{formatAmount(yearTargetTotal)}</p>
             </div>
-            <div className="card p-4">
+            <button type="button" className="card p-4 text-left transition-shadow hover:shadow-md" onClick={() => setBreakdownFilter('confirmed')}>
               <p className="text-xs text-slate-400">確定実績（{year}年）</p>
               <p className="mt-1 text-xl font-bold text-emerald-600">{formatAmount(yearTotalConfirmed)}</p>
-              <p className="text-xs text-slate-400">達成率 {yearTargetTotal ? Math.round((yearTotalConfirmed / yearTargetTotal) * 100) : 0}%</p>
-            </div>
-            <div className="card p-4">
+              <p className="text-xs text-slate-400">達成率 {yearTargetTotal ? Math.round((yearTotalConfirmed / yearTargetTotal) * 100) : 0}%（クリックで内訳）</p>
+            </button>
+            <button type="button" className="card p-4 text-left transition-shadow hover:shadow-md" onClick={() => setBreakdownFilter('all')}>
               <p className="text-xs text-slate-400">売上予測（確定＋見込み）</p>
               <p className="mt-1 text-xl font-bold text-amber-600">{formatAmount(yearTotalWithForecast)}</p>
-              <p className="text-xs text-slate-400">達成率 {yearTargetTotal ? Math.round((yearTotalWithForecast / yearTargetTotal) * 100) : 0}%</p>
-            </div>
+              <p className="text-xs text-slate-400">達成率 {yearTargetTotal ? Math.round((yearTotalWithForecast / yearTargetTotal) * 100) : 0}%（クリックで内訳）</p>
+            </button>
           </div>
 
           {[
@@ -453,6 +463,59 @@ export default function RevenuePage() {
           ))}
         </div>
       )}
+
+      <Modal
+        title={breakdownFilter === 'confirmed' ? `確定実績の内訳（${year}年）` : `売上予測の内訳（${year}年）`}
+        open={breakdownFilter !== null}
+        onClose={() => setBreakdownFilter(null)}
+      >
+        <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+          <table className="w-full min-w-[520px] text-xs">
+            <thead>
+              <tr className="border-b border-slate-100 text-left text-slate-400">
+                <th className="px-2 py-2">日付</th>
+                <th className="px-2 py-2">顧客</th>
+                <th className="px-2 py-2">カテゴリ</th>
+                <th className="px-2 py-2 text-right">金額</th>
+                <th className="px-2 py-2">区分</th>
+                <th className="px-2 py-2">根拠</th>
+              </tr>
+            </thead>
+            <tbody>
+              {breakdownRows.map(r => (
+                <tr key={r.id} className="border-b border-slate-50">
+                  <td className="px-2 py-2 whitespace-nowrap">{r.entry_date}</td>
+                  <td className="px-2 py-2">{r.payer_name}</td>
+                  <td className="px-2 py-2">{r.category}</td>
+                  <td className="px-2 py-2 text-right font-medium">{formatAmount(r.amount_excl_tax)}</td>
+                  <td className="px-2 py-2">
+                    <span className={`badge text-xs ${r.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {r.status === 'confirmed' ? '確定' : '見込み'}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2 text-slate-500">
+                    {r.id.startsWith('pipeline-') ? 'パイプライン見込み'
+                      : r.source === 'project' ? '案件由来'
+                      : '手入力'}
+                  </td>
+                </tr>
+              ))}
+              {breakdownRows.length === 0 && (
+                <tr><td colSpan={6} className="py-8 text-center text-slate-300">該当する明細はありません</td></tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-slate-200 bg-slate-50/70">
+                <td colSpan={3} className="px-2 py-2 font-semibold text-slate-900">合計</td>
+                <td className="px-2 py-2 text-right font-semibold text-slate-900">
+                  {formatAmount(breakdownRows.reduce((s, r) => s + r.amount_excl_tax, 0))}
+                </td>
+                <td colSpan={2} />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </Modal>
 
       <Modal title={editing ? '売上を編集' : '売上を追加'} open={modalOpen} onClose={() => setModalOpen(false)}>
         <form onSubmit={handleSubmit} className="space-y-4">
