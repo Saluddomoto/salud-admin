@@ -97,6 +97,15 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
+    href: '/revenue',
+    label: '売上管理',
+    adminOnly: true,
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M9 19v-6a2 2 0 012-2h2a2 2 0 012 2v6m-9 0h14a1 1 0 001-1V7.828a1 1 0 00-.293-.707l-4.828-4.828A1 1 0 0012.172 2H5a1 1 0 00-1 1v15a1 1 0 001 1z" />
+    ),
+  },
+  {
     href: '/manual',
     label: 'マニュアル',
     icon: (

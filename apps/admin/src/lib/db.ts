@@ -705,3 +705,53 @@ export async function upsertMonthlyReport(period: string, input: MonthlyReportIn
     )
   if (error) throw error
 }
+
+/* ─── 売上台帳（堂本さんのみ・RLSでも制限）─────────────────── */
+export type DbRevenueEntry = {
+  id: string
+  entry_date: string
+  payer_name: string
+  category: string
+  amount_excl_tax: number
+  status: 'confirmed' | 'forecast'
+  payment_due_date: string | null
+  payment_received_date: string | null
+  memo: string | null
+}
+
+export type RevenueEntryInput = {
+  entry_date: string
+  payer_name: string
+  category: string
+  amount_excl_tax: number
+  status: 'confirmed' | 'forecast'
+  payment_due_date: string | null
+  payment_received_date: string | null
+  memo: string | null
+}
+
+export async function fetchRevenueLedger(): Promise<DbRevenueEntry[]> {
+  const { data, error } = await db()
+    .from('revenue_ledger')
+    .select('id, entry_date, payer_name, category, amount_excl_tax, status, payment_due_date, payment_received_date, memo')
+    .order('entry_date', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as DbRevenueEntry[]
+}
+
+export async function insertRevenueEntry(input: RevenueEntryInput) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client.from('revenue_ledger').insert({ ...input, created_by: user?.id ?? null })
+  if (error) throw error
+}
+
+export async function updateRevenueEntry(id: string, input: RevenueEntryInput) {
+  const { error } = await db().from('revenue_ledger').update(input).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteRevenueEntry(id: string) {
+  const { error } = await db().from('revenue_ledger').delete().eq('id', id)
+  if (error) throw error
+}
