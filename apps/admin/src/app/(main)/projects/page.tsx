@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
+import { TaxAmountInput } from '@/components/TaxAmountInput'
 import {
   fetchProjects, fetchCustomers, fetchProfiles, insertProject, updateProjectStatus,
   formatAmount, formatDate, type DbProject, type DbCustomer, type DbProfile,
@@ -37,6 +38,7 @@ export default function ProjectsPage() {
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
   const [subsidyChoice, setSubsidyChoice] = useState(SUBSIDY_NAMES[0]!)
+  const [projectType, setProjectType] = useState<'subsidy' | 'web'>('subsidy')
 
   const load = () => {
     Promise.all([fetchProjects(), fetchCustomers(), fetchProfiles()])
@@ -55,12 +57,15 @@ export default function ProjectsPage() {
     try {
       await insertProject({
         title:             f.get('title') as string,
-        subsidy_name:      subsidyName,
+        project_type:      projectType,
+        subsidy_name:      projectType === 'web' ? null : subsidyName,
         customer_id:       (f.get('customer_id') as string) || null,
-        applied_amount:    f.get('amount') ? Number(f.get('amount')) * 10_000 : null,
-        deadline:          (f.get('deadline') as string) || null,
-        base_fee:          f.get('base_fee') ? Number(f.get('base_fee')) : null,
-        success_fee_rate:  f.get('success_fee_rate') ? Number(f.get('success_fee_rate')) : null,
+        applied_amount:    projectType === 'web' ? null : (f.get('amount') ? Number(f.get('amount')) * 10_000 : null),
+        deadline:          projectType === 'web' ? null : (f.get('deadline') as string) || null,
+        base_fee:          projectType === 'web' ? null : (f.get('base_fee') ? Number(f.get('base_fee')) : null),
+        success_fee_rate:  projectType === 'web' ? null : (f.get('success_fee_rate') ? Number(f.get('success_fee_rate')) : null),
+        web_fee_excl_tax:  projectType === 'web' ? (f.get('web_fee_excl_tax') ? Number(f.get('web_fee_excl_tax')) : null) : null,
+        payment_due_date:  projectType === 'web' ? (f.get('payment_due_date') as string) || null : null,
         homepage_url:      (f.get('homepage_url') as string)?.trim() || null,
         notes:             (f.get('notes') as string)?.trim() || null,
         assigned_user_id:   (f.get('assigned_user_id') as string) || null,
@@ -68,6 +73,7 @@ export default function ProjectsPage() {
       })
       setModalOpen(false)
       setSubsidyChoice(SUBSIDY_NAMES[0]!)
+      setProjectType('subsidy')
       load()
     } catch {
       setError('保存に失敗しました')
@@ -115,8 +121,14 @@ export default function ProjectsPage() {
                     </Link>
                     <p className="mt-1 text-xs text-slate-500">{p.customers?.company_name ?? '—'}</p>
                     <div className="mt-3 flex items-center justify-between text-xs">
-                      <span className="font-semibold text-slate-700">{formatAmount(p.applied_amount)}</span>
-                      <span className="text-slate-400">〆 {formatDate(p.deadline)}</span>
+                      <span className="font-semibold text-slate-700">
+                        {p.project_type === 'web'
+                          ? formatAmount(p.web_fee_excl_tax)
+                          : formatAmount(p.applied_amount)}
+                      </span>
+                      <span className="text-slate-400">
+                        {p.project_type === 'web' ? `入金予定 ${formatDate(p.payment_due_date)}` : `〆 ${formatDate(p.deadline)}`}
+                      </span>
                     </div>
                     <div className="mt-2.5 flex items-center justify-between border-t border-slate-50 pt-2.5">
                       <span className="text-xs text-slate-500">
@@ -151,22 +163,42 @@ export default function ProjectsPage() {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">補助金名 *</label>
-              <select
-                className="input"
-                value={subsidyChoice}
-                onChange={e => setSubsidyChoice(e.target.value)}
-              >
-                {SUBSIDY_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
-                <option value="__other__">その他（自由入力）</option>
-              </select>
-              {subsidyChoice === '__other__' && (
-                <input
-                  name="subsidy_name_other" required className="input mt-2"
-                  placeholder="補助金名を入力"
-                />
-              )}
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">案件区分 *</label>
+              <div className="flex gap-2">
+                {(['subsidy', 'web'] as const).map(t => (
+                  <button
+                    key={t} type="button"
+                    onClick={() => setProjectType(t)}
+                    className={`flex-1 rounded-xl border px-3.5 py-2 text-sm font-medium transition-colors ${
+                      projectType === t
+                        ? 'border-brand-600 bg-brand-50 text-brand-700'
+                        : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                    }`}
+                  >
+                    {t === 'subsidy' ? '補助金' : 'WEB制作'}
+                  </button>
+                ))}
+              </div>
             </div>
+            {projectType === 'subsidy' ? (
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">補助金名 *</label>
+                <select
+                  className="input"
+                  value={subsidyChoice}
+                  onChange={e => setSubsidyChoice(e.target.value)}
+                >
+                  {SUBSIDY_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+                  <option value="__other__">その他（自由入力）</option>
+                </select>
+                {subsidyChoice === '__other__' && (
+                  <input
+                    name="subsidy_name_other" required className="input mt-2"
+                    placeholder="補助金名を入力"
+                  />
+                )}
+              </div>
+            ) : null}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">顧客</label>
               <select name="customer_id" className="input" defaultValue="">
@@ -188,28 +220,40 @@ export default function ProjectsPage() {
                 {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
               </select>
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">申請額（万円）</label>
-              <input name="amount" type="number" className="input" placeholder="1000" />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">基本料金</label>
-              <select name="base_fee" className="input" defaultValue="">
-                <option value="">未設定</option>
-                {BASE_FEE_OPTIONS.map(v => <option key={v} value={v}>{(v / 10_000).toFixed(0)}万円</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">成功報酬</label>
-              <select name="success_fee_rate" className="input" defaultValue="">
-                <option value="">未設定</option>
-                {SUCCESS_FEE_OPTIONS.map(v => <option key={v} value={v}>{v}%</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">申請期限</label>
-              <input name="deadline" type="date" className="input" />
-            </div>
+            {projectType === 'subsidy' ? (
+              <>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">申請額（万円）</label>
+                  <input name="amount" type="number" className="input" placeholder="1000" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">基本料金</label>
+                  <select name="base_fee" className="input" defaultValue="">
+                    <option value="">未設定</option>
+                    {BASE_FEE_OPTIONS.map(v => <option key={v} value={v}>{(v / 10_000).toFixed(0)}万円</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">成功報酬</label>
+                  <select name="success_fee_rate" className="input" defaultValue="">
+                    <option value="">未設定</option>
+                    {SUCCESS_FEE_OPTIONS.map(v => <option key={v} value={v}>{v}%</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">申請期限</label>
+                  <input name="deadline" type="date" className="input" />
+                </div>
+              </>
+            ) : (
+              <>
+                <TaxAmountInput name="web_fee_excl_tax" label="制作費" />
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">入金予定日</label>
+                  <input name="payment_due_date" type="date" className="input" />
+                </div>
+              </>
+            )}
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-sm font-medium text-slate-700">HP URL</label>
               <input name="homepage_url" type="url" className="input" placeholder="https://example.co.jp" />

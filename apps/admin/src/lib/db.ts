@@ -41,12 +41,16 @@ export type DbCustomer = {
 export type DbProject = {
   id: string
   title: string
-  subsidy_name: string
+  subsidy_name: string | null
+  project_type: 'subsidy' | 'web'
   status: 'planning' | 'in_progress' | 'submitted' | 'accepted' | 'rejected' | 'completed'
   applied_amount: number | null
   subsidy_amount: number | null
   base_fee: number | null
   success_fee_rate: number | null
+  web_fee_excl_tax: number | null
+  payment_due_date: string | null
+  payment_received_date: string | null
   deadline: string | null
   result_at: string | null
   notes: string | null
@@ -253,12 +257,15 @@ export async function fetchProjects(): Promise<DbProject[]> {
 
 export async function insertProject(input: {
   title: string
-  subsidy_name: string
+  subsidy_name: string | null
+  project_type?: 'subsidy' | 'web'
   customer_id: string | null
   applied_amount: number | null
   deadline: string | null
   base_fee?: number | null
   success_fee_rate?: number | null
+  web_fee_excl_tax?: number | null
+  payment_due_date?: string | null
   homepage_url?: string | null
   notes?: string | null
   assigned_user_id?: string | null
@@ -303,12 +310,16 @@ export async function fetchProjectsByCustomer(customerId: string): Promise<DbPro
 
 export async function updateProject(id: string, input: {
   title: string
-  subsidy_name: string
+  subsidy_name: string | null
+  project_type?: 'subsidy' | 'web'
   customer_id?: string | null
   applied_amount: number | null
   subsidy_amount?: number | null
   base_fee?: number | null
   success_fee_rate?: number | null
+  web_fee_excl_tax?: number | null
+  payment_due_date?: string | null
+  payment_received_date?: string | null
   deadline: string | null
   notes: string | null
   homepage_url?: string | null
