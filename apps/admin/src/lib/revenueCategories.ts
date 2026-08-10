@@ -16,6 +16,7 @@ export const REVENUE_CATEGORIES: RevenueCategory[] = [
   { name: '伴走',              annualTargetCount: 10, unitPrice: 30_000,    costRate: 0.6 },
   { name: '保守',              annualTargetCount: 4,  unitPrice: 7_000,     costRate: 0.1 },
   { name: 'SEO支援',           annualTargetCount: 1,  unitPrice: 100_000,   costRate: 0.3 },
+  { name: 'ビビッドガーデン売上', annualTargetCount: 1, unitPrice: 3_000_000, costRate: 0.3 },
   { name: 'その他',            annualTargetCount: 0,  unitPrice: 0,         costRate: 0.3 },
 ]
 
