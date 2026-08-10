@@ -9,7 +9,7 @@ import {
   fetchRevenueLedger, insertRevenueEntry, updateRevenueEntry, deleteRevenueEntry,
   fetchProjects, formatAmount, formatDate,
   fetchRecurringContracts, insertRecurringContract, updateRecurringContract,
-  deleteRecurringContract, syncRecurringContracts,
+  deleteRecurringContract, syncRecurringContracts, addMonths,
   type DbRevenueEntry, type DbProject, type RevenueEntryInput,
   type DbRecurringContract, type RecurringContractInput,
 } from '@/lib/db'
@@ -130,6 +130,39 @@ function derivePipelineForecastRows(projects: DbProject[]): Row[] {
       source: 'project',
       projectId: p.id,
     })
+  }
+  return rows
+}
+
+// 月額契約は当月分までしか売上台帳(revenue_ledger)に反映しない(syncRecurringContracts)。
+// 今後も継続する前提のものなので、来月〜表示中の年の12月までは
+// 「見込み」として売上予測にのみ投影する(台帳には書き込まない)。
+function deriveFutureContractForecastRows(contracts: DbRecurringContract[], year: number): Row[] {
+  const rows: Row[] = []
+  const now = new Date()
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  const yearEnd = `${year}-12-01`
+
+  for (const c of contracts) {
+    let cursor = c.last_generated_month ? addMonths(c.last_generated_month, 1) : c.start_month
+    if (cursor <= thisMonth) cursor = addMonths(thisMonth, 1)
+    const stop = c.end_month && c.end_month < yearEnd ? c.end_month : yearEnd
+
+    while (cursor <= stop) {
+      rows.push({
+        id: `contract-forecast-${c.id}-${cursor}`,
+        entry_date: cursor,
+        payer_name: c.payer_name,
+        category: c.category,
+        amount_excl_tax: c.monthly_amount_excl_tax,
+        status: 'forecast',
+        payment_due_date: null,
+        payment_received_date: null,
+        memo: '月額契約の今後の見込み',
+        source: 'project',
+      })
+      cursor = addMonths(cursor, 1)
+    }
   }
   return rows
 }
@@ -292,7 +325,7 @@ export default function RevenuePage() {
     for (const cat of REVENUE_CATEGORIES) {
       table.set(cat.name, { confirmed: Array(12).fill(0), withForecast: Array(12).fill(0) })
     }
-    for (const r of [...rows, ...derivePipelineForecastRows(projects)]) {
+    for (const r of [...rows, ...derivePipelineForecastRows(projects), ...deriveFutureContractForecastRows(contracts, year)]) {
       const d = r.entry_date ? new Date(r.entry_date) : null
       if (!d || d.getFullYear() !== year) continue
       const mi = d.getMonth()
@@ -301,7 +334,7 @@ export default function RevenuePage() {
       bucket.withForecast[mi] = (bucket.withForecast[mi] ?? 0) + r.amount_excl_tax
     }
     return table
-  }, [rows, projects, year])
+  }, [rows, projects, contracts, year])
 
   const yearTotalConfirmed = REVENUE_CATEGORIES.reduce(
     (s, c) => s + (monthlyTotals.get(c.name)?.confirmed.reduce((a, b) => a + b, 0) ?? 0), 0
@@ -313,10 +346,10 @@ export default function RevenuePage() {
 
   const [breakdownFilter, setBreakdownFilter] = useState<'confirmed' | 'all' | null>(null)
   const yearRows = useMemo(() => {
-    return [...rows, ...derivePipelineForecastRows(projects)]
+    return [...rows, ...derivePipelineForecastRows(projects), ...deriveFutureContractForecastRows(contracts, year)]
       .filter(r => r.entry_date && new Date(r.entry_date).getFullYear() === year)
       .sort((a, b) => (a.entry_date < b.entry_date ? 1 : -1))
-  }, [rows, projects, year])
+  }, [rows, projects, contracts, year])
   const breakdownRows = breakdownFilter === 'confirmed'
     ? yearRows.filter(r => r.status === 'confirmed')
     : yearRows
@@ -649,6 +682,7 @@ export default function RevenuePage() {
                   </td>
                   <td className="px-2 py-2 text-slate-500">
                     {r.id.startsWith('pipeline-') ? 'パイプライン見込み'
+                      : r.id.startsWith('contract-forecast-') ? '月額契約の見込み'
                       : r.source === 'project' ? '案件由来'
                       : '手入力'}
                   </td>

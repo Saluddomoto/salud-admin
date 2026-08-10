@@ -803,7 +803,7 @@ export async function deleteRecurringContract(id: string) {
   if (error) throw error
 }
 
-function addMonths(ymd: string, n: number): string {
+export function addMonths(ymd: string, n: number): string {
   const [y, m] = ymd.split('-').map(Number)
   const total = (y! * 12 + (m! - 1)) + n
   const ny = Math.floor(total / 12)
