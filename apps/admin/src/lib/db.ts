@@ -803,6 +803,76 @@ export async function deleteRecurringContract(id: string) {
   if (error) throw error
 }
 
+/* ─── 売上目標設定（会社全体KGI・カテゴリ別前提、Excel「入力_前提」相当）─ */
+export type DbRevenueSettings = {
+  year: number
+  annual_target_amount: number
+  target_gross_margin_rate: number
+  executive_compensation_monthly: number | null
+}
+
+export type RevenueSettingsInput = {
+  annual_target_amount: number
+  target_gross_margin_rate: number
+  executive_compensation_monthly: number | null
+}
+
+export async function fetchRevenueSettings(year: number): Promise<DbRevenueSettings | null> {
+  const { data, error } = await db()
+    .from('revenue_settings')
+    .select('year, annual_target_amount, target_gross_margin_rate, executive_compensation_monthly')
+    .eq('year', year)
+    .maybeSingle()
+  if (error) throw error
+  return data as DbRevenueSettings | null
+}
+
+export async function upsertRevenueSettings(year: number, input: RevenueSettingsInput) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client
+    .from('revenue_settings')
+    .upsert({ year, ...input, updated_by: user?.id ?? null, updated_at: new Date().toISOString() }, { onConflict: 'year' })
+  if (error) throw error
+}
+
+export type DbRevenueCategoryTarget = {
+  id: string
+  year: number
+  category: string
+  target_count: number
+  unit_price: number
+  cost_rate: number
+  acceptance_rate: number | null
+  is_monthly: boolean
+  memo: string | null
+}
+
+export type RevenueCategoryTargetInput = {
+  target_count: number
+  unit_price: number
+  cost_rate: number
+  acceptance_rate: number | null
+  is_monthly: boolean
+  memo: string | null
+}
+
+export async function fetchRevenueCategoryTargets(year: number): Promise<DbRevenueCategoryTarget[]> {
+  const { data, error } = await db()
+    .from('revenue_category_targets')
+    .select('id, year, category, target_count, unit_price, cost_rate, acceptance_rate, is_monthly, memo')
+    .eq('year', year)
+  if (error) throw error
+  return (data ?? []) as DbRevenueCategoryTarget[]
+}
+
+export async function upsertRevenueCategoryTarget(year: number, category: string, input: RevenueCategoryTargetInput) {
+  const { error } = await db()
+    .from('revenue_category_targets')
+    .upsert({ year, category, ...input, updated_at: new Date().toISOString() }, { onConflict: 'year,category' })
+  if (error) throw error
+}
+
 export function addMonths(ymd: string, n: number): string {
   const [y, m] = ymd.split('-').map(Number)
   const total = (y! * 12 + (m! - 1)) + n

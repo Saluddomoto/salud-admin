@@ -10,10 +10,19 @@ import {
   fetchProjects, formatAmount, formatDate,
   fetchRecurringContracts, insertRecurringContract, updateRecurringContract,
   deleteRecurringContract, syncRecurringContracts, addMonths,
+  fetchRevenueSettings, upsertRevenueSettings, fetchRevenueCategoryTargets, upsertRevenueCategoryTarget,
   type DbRevenueEntry, type DbProject, type RevenueEntryInput,
   type DbRecurringContract, type RecurringContractInput,
+  type DbRevenueSettings, type DbRevenueCategoryTarget,
 } from '@/lib/db'
-import { REVENUE_CATEGORIES, REVENUE_CATEGORY_NAMES, matchRevenueCategoryFromSubsidyName } from '@/lib/revenueCategories'
+import { REVENUE_CATEGORIES, REVENUE_CATEGORY_NAMES, matchRevenueCategoryFromSubsidyName, annualTargetAmount, type RevenueCategory } from '@/lib/revenueCategories'
+
+// Excel「入力_前提」シートの全体KGI相当のデフォルト値。revenue_settings に上書きが無い年はこれを使う。
+const DEFAULT_SETTINGS = {
+  annual_target_amount: 40_000_000,
+  target_gross_margin_rate: 0.6,
+  executive_compensation_monthly: 5_300_000,
+}
 
 type Row = {
   id: string
@@ -173,7 +182,7 @@ export default function RevenuePage() {
   const [projects, setProjects] = useState<DbProject[]>([])
   const [contracts, setContracts] = useState<DbRecurringContract[]>([])
   const [loading,  setLoading]  = useState(true)
-  const [tab,       setTab]     = useState<'ledger' | 'monthly' | 'contracts'>('ledger')
+  const [tab,       setTab]     = useState<'ledger' | 'monthly' | 'contracts' | 'goals'>('ledger')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing,   setEditing]   = useState<DbRevenueEntry | null>(null)
   const [saving,    setSaving]    = useState(false)
@@ -184,6 +193,96 @@ export default function RevenuePage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [contractModalOpen, setContractModalOpen] = useState(false)
   const [editingContract, setEditingContract] = useState<DbRecurringContract | null>(null)
+
+  // 目標設定（会社全体KGI・カテゴリ別前提）— 年ごとにDBの上書きを読み込みデフォルトとマージする
+  const [settingsOverride, setSettingsOverride] = useState<DbRevenueSettings | null>(null)
+  const [categoryOverrides, setCategoryOverrides] = useState<DbRevenueCategoryTarget[]>([])
+  const [goalsLoaded, setGoalsLoaded] = useState(false)
+  const [goalsSaving, setGoalsSaving] = useState(false)
+  const [goalsSavedMsg, setGoalsSavedMsg] = useState('')
+  const [settingsDraft, setSettingsDraft] = useState(DEFAULT_SETTINGS)
+  const [categoryDraft, setCategoryDraft] = useState<Record<string, { targetCount: number; unitPrice: number; costRate: number; memo: string }>>({})
+
+  useEffect(() => {
+    setGoalsLoaded(false)
+    Promise.all([fetchRevenueSettings(year), fetchRevenueCategoryTargets(year)])
+      .then(([s, c]) => { setSettingsOverride(s); setCategoryOverrides(c) })
+      .catch(() => {})
+      .finally(() => setGoalsLoaded(true))
+  }, [year])
+
+  const categories: RevenueCategory[] = useMemo(() => {
+    return REVENUE_CATEGORIES.map(def => {
+      const ov = categoryOverrides.find(c => c.category === def.name)
+      if (!ov) return def
+      return {
+        ...def,
+        annualTargetCount: ov.target_count,
+        unitPrice: ov.unit_price,
+        costRate: ov.cost_rate,
+        acceptanceRate: ov.acceptance_rate ?? def.acceptanceRate,
+        isMonthly: ov.is_monthly,
+        memo: ov.memo ?? def.memo,
+      }
+    })
+  }, [categoryOverrides])
+
+  const mergedSettings = useMemo(() => ({
+    annual_target_amount: settingsOverride?.annual_target_amount ?? DEFAULT_SETTINGS.annual_target_amount,
+    target_gross_margin_rate: settingsOverride?.target_gross_margin_rate ?? DEFAULT_SETTINGS.target_gross_margin_rate,
+    executive_compensation_monthly: settingsOverride?.executive_compensation_monthly ?? DEFAULT_SETTINGS.executive_compensation_monthly,
+  }), [settingsOverride])
+
+  // 目標設定タブを開いた時、編集フォームの初期値を最新のマージ済み値に合わせる
+  useEffect(() => {
+    if (!goalsLoaded) return
+    setSettingsDraft(mergedSettings)
+    setCategoryDraft(Object.fromEntries(categories.map(c => [c.name, {
+      targetCount: c.annualTargetCount, unitPrice: c.unitPrice, costRate: c.costRate, memo: c.memo ?? '',
+    }])))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goalsLoaded, year])
+
+  const handleSaveSettings = async () => {
+    setGoalsSaving(true)
+    setGoalsSavedMsg('')
+    try {
+      await upsertRevenueSettings(year, settingsDraft)
+      const fresh = await fetchRevenueSettings(year)
+      setSettingsOverride(fresh)
+      setGoalsSavedMsg('会社全体の目標を保存しました')
+    } catch {
+      setError('会社全体目標の保存に失敗しました')
+    } finally {
+      setGoalsSaving(false)
+    }
+  }
+
+  const handleSaveCategoryTargets = async () => {
+    setGoalsSaving(true)
+    setGoalsSavedMsg('')
+    try {
+      for (const cat of categories) {
+        const d = categoryDraft[cat.name]
+        if (!d) continue
+        await upsertRevenueCategoryTarget(year, cat.name, {
+          target_count: d.targetCount,
+          unit_price: d.unitPrice,
+          cost_rate: d.costRate,
+          acceptance_rate: cat.acceptanceRate ?? null,
+          is_monthly: cat.isMonthly ?? false,
+          memo: d.memo.trim() || null,
+        })
+      }
+      const fresh = await fetchRevenueCategoryTargets(year)
+      setCategoryOverrides(fresh)
+      setGoalsSavedMsg('カテゴリ別目標を保存しました')
+    } catch {
+      setError('カテゴリ別目標の保存に失敗しました')
+    } finally {
+      setGoalsSaving(false)
+    }
+  }
 
   const toggleSort = (key: typeof sortKey) => {
     if (key === sortKey) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
@@ -322,7 +421,7 @@ export default function RevenuePage() {
   // カテゴリ×月の集計（確定のみ／確定+見込み）
   const monthlyTotals = useMemo(() => {
     const table = new Map<string, { confirmed: number[]; withForecast: number[] }>()
-    for (const cat of REVENUE_CATEGORIES) {
+    for (const cat of categories) {
       table.set(cat.name, { confirmed: Array(12).fill(0), withForecast: Array(12).fill(0) })
     }
     for (const r of [...rows, ...derivePipelineForecastRows(projects), ...deriveFutureContractForecastRows(contracts, year)]) {
@@ -334,15 +433,15 @@ export default function RevenuePage() {
       bucket.withForecast[mi] = (bucket.withForecast[mi] ?? 0) + r.amount_excl_tax
     }
     return table
-  }, [rows, projects, contracts, year])
+  }, [rows, projects, contracts, year, categories])
 
-  const yearTotalConfirmed = REVENUE_CATEGORIES.reduce(
+  const yearTotalConfirmed = categories.reduce(
     (s, c) => s + (monthlyTotals.get(c.name)?.confirmed.reduce((a, b) => a + b, 0) ?? 0), 0
   )
-  const yearTotalWithForecast = REVENUE_CATEGORIES.reduce(
+  const yearTotalWithForecast = categories.reduce(
     (s, c) => s + (monthlyTotals.get(c.name)?.withForecast.reduce((a, b) => a + b, 0) ?? 0), 0
   )
-  const yearTargetTotal = REVENUE_CATEGORIES.reduce((s, c) => s + c.annualTargetCount * c.unitPrice, 0)
+  const yearTargetTotal = categories.reduce((s, c) => s + annualTargetAmount(c), 0)
 
   const [breakdownFilter, setBreakdownFilter] = useState<'confirmed' | 'all' | null>(null)
   const yearRows = useMemo(() => {
@@ -389,6 +488,7 @@ export default function RevenuePage() {
           { key: 'ledger', label: '売上台帳' },
           { key: 'monthly', label: '月次実績・売上予測' },
           { key: 'contracts', label: '月額契約' },
+          { key: 'goals', label: '目標設定' },
         ].map(t => (
           <button
             key={t.key}
@@ -512,14 +612,16 @@ export default function RevenuePage() {
                     {MONTHS.map(m => <th key={m} className="px-2 py-2 text-right">{m}月</th>)}
                     <th className="px-3 py-2 text-right">年間計</th>
                     <th className="px-3 py-2 text-right">目標</th>
+                    <th className="px-3 py-2 text-right">達成率</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {REVENUE_CATEGORIES.map(cat => {
+                  {categories.map(cat => {
                     const bucket = monthlyTotals.get(cat.name)!
                     const arr = bucket[block.key]
                     const total = arr.reduce((a, b) => a + b, 0)
-                    const target = cat.annualTargetCount * cat.unitPrice
+                    const target = annualTargetAmount(cat)
+                    const rate = target ? Math.round((total / target) * 100) : null
                     return (
                       <tr key={cat.name} className="border-b border-slate-50">
                         <td className="px-3 py-2 font-medium text-slate-700">{cat.name}</td>
@@ -528,6 +630,9 @@ export default function RevenuePage() {
                         ))}
                         <td className="px-3 py-2 text-right font-semibold text-slate-900">{formatAmount(total)}</td>
                         <td className="px-3 py-2 text-right text-slate-400">{target ? formatAmount(target) : '—'}</td>
+                        <td className={`px-3 py-2 text-right font-medium ${rate === null ? 'text-slate-300' : rate >= 100 ? 'text-emerald-600' : rate >= 60 ? 'text-amber-600' : 'text-rose-500'}`}>
+                          {rate === null ? '—' : `${rate}%`}
+                        </td>
                       </tr>
                     )
                   })}
@@ -536,7 +641,7 @@ export default function RevenuePage() {
                   <tr className="border-t border-slate-200 bg-slate-50/70">
                     <td className="px-3 py-2 font-semibold text-slate-900">合計</td>
                     {MONTHS.map((m, i) => {
-                      const monthTotal = REVENUE_CATEGORIES.reduce(
+                      const monthTotal = categories.reduce(
                         (s, cat) => s + (monthlyTotals.get(cat.name)?.[block.key][i] ?? 0), 0
                       )
                       return (
@@ -545,14 +650,22 @@ export default function RevenuePage() {
                         </td>
                       )
                     })}
-                    <td className="px-3 py-2 text-right font-semibold text-slate-900">
-                      {formatAmount(REVENUE_CATEGORIES.reduce(
+                    {(() => {
+                      const grandTotal = categories.reduce(
                         (s, cat) => s + (monthlyTotals.get(cat.name)?.[block.key].reduce((a, b) => a + b, 0) ?? 0), 0
-                      ))}
-                    </td>
-                    <td className="px-3 py-2 text-right font-semibold text-slate-500">
-                      {formatAmount(REVENUE_CATEGORIES.reduce((s, c) => s + c.annualTargetCount * c.unitPrice, 0))}
-                    </td>
+                      )
+                      const grandTarget = categories.reduce((s, c) => s + annualTargetAmount(c), 0)
+                      const grandRate = grandTarget ? Math.round((grandTotal / grandTarget) * 100) : null
+                      return (
+                        <>
+                          <td className="px-3 py-2 text-right font-semibold text-slate-900">{formatAmount(grandTotal)}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-slate-500">{formatAmount(grandTarget)}</td>
+                          <td className={`px-3 py-2 text-right font-semibold ${grandRate === null ? 'text-slate-300' : grandRate >= 100 ? 'text-emerald-600' : grandRate >= 60 ? 'text-amber-600' : 'text-rose-500'}`}>
+                            {grandRate === null ? '—' : `${grandRate}%`}
+                          </td>
+                        </>
+                      )
+                    })()}
                   </tr>
                 </tfoot>
               </table>
@@ -597,6 +710,194 @@ export default function RevenuePage() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {tab === 'goals' && (
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center gap-2">
+            <button className="btn-secondary text-sm" onClick={() => setYear(y => y - 1)}>← {year - 1}年</button>
+            <span className="text-sm font-semibold text-slate-700">{year}年</span>
+            <button className="btn-secondary text-sm" onClick={() => setYear(y => y + 1)}>{year + 1}年 →</button>
+          </div>
+
+          {goalsSavedMsg && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{goalsSavedMsg}</div>
+          )}
+
+          <div className="card p-5">
+            <h3 className="text-sm font-semibold text-slate-900">全体KGI（{year}年）</h3>
+            <p className="mt-0.5 text-xs text-slate-400">Excel「入力_前提」シートの全体KGI相当。会社全体の年間目標です。</p>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">年商目標（円）</label>
+                <input
+                  type="number" className="input" value={settingsDraft.annual_target_amount}
+                  onChange={e => setSettingsDraft(s => ({ ...s, annual_target_amount: Number(e.target.value) }))}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">粗利率目標（%）</label>
+                <input
+                  type="number" step="0.1" className="input" value={Math.round(settingsDraft.target_gross_margin_rate * 1000) / 10}
+                  onChange={e => setSettingsDraft(s => ({ ...s, target_gross_margin_rate: Number(e.target.value) / 100 }))}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">役員報酬（月額・円）</label>
+                <input
+                  type="number" className="input" value={settingsDraft.executive_compensation_monthly ?? 0}
+                  onChange={e => setSettingsDraft(s => ({ ...s, executive_compensation_monthly: Number(e.target.value) }))}
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button type="button" disabled={goalsSaving} className="btn-primary text-sm" onClick={handleSaveSettings}>
+                {goalsSaving ? '保存中...' : '全体KGIを保存'}
+              </button>
+            </div>
+          </div>
+
+          <div className="card overflow-x-auto p-0">
+            <div className="border-b border-slate-100 px-4 py-3">
+              <h3 className="text-sm font-semibold text-slate-900">商品カテゴリ別 前提（{year}年）</h3>
+              <p className="mt-0.5 text-xs text-slate-400">Excel「入力_前提」シートの商品別前提相当。件数×単価（月額のカテゴリは×12）が年間目標売上になります。</p>
+            </div>
+            <table className="w-full min-w-[900px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
+                  <th className="px-3 py-2.5">項目</th>
+                  <th className="px-3 py-2.5 text-right">目標件数/社数</th>
+                  <th className="px-3 py-2.5 text-right">単価{'（月額のものは月額）'}</th>
+                  <th className="px-3 py-2.5 text-right">原価率（%）</th>
+                  <th className="px-3 py-2.5">備考</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categories.map(cat => {
+                  const d = categoryDraft[cat.name]
+                  if (!d) return null
+                  return (
+                    <tr key={cat.name} className="border-b border-slate-50">
+                      <td className="px-3 py-2.5 font-medium text-slate-700 whitespace-nowrap">
+                        {cat.name}{cat.isMonthly && <span className="ml-1 badge bg-slate-100 text-slate-500 text-[10px]">月額×12</span>}
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        <input type="number" className="input w-24 text-right" value={d.targetCount}
+                          onChange={e => setCategoryDraft(prev => ({ ...prev, [cat.name]: { ...prev[cat.name]!, targetCount: Number(e.target.value) } }))} />
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        <input type="number" className="input w-28 text-right" value={d.unitPrice}
+                          onChange={e => setCategoryDraft(prev => ({ ...prev, [cat.name]: { ...prev[cat.name]!, unitPrice: Number(e.target.value) } }))} />
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        <input type="number" step="0.1" className="input w-20 text-right" value={Math.round(d.costRate * 1000) / 10}
+                          onChange={e => setCategoryDraft(prev => ({ ...prev, [cat.name]: { ...prev[cat.name]!, costRate: Number(e.target.value) / 100 } }))} />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <input className="input" value={d.memo}
+                          onChange={e => setCategoryDraft(prev => ({ ...prev, [cat.name]: { ...prev[cat.name]!, memo: e.target.value } }))} />
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+            <div className="flex justify-end px-4 py-3">
+              <button type="button" disabled={goalsSaving} className="btn-primary text-sm" onClick={handleSaveCategoryTargets}>
+                {goalsSaving ? '保存中...' : 'カテゴリ別目標を保存'}
+              </button>
+            </div>
+          </div>
+
+          <div className="card overflow-x-auto p-0">
+            <div className="border-b border-slate-100 px-4 py-3">
+              <h3 className="text-sm font-semibold text-slate-900">年間KGI（自動計算）</h3>
+              <p className="mt-0.5 text-xs text-slate-400">上の前提から自動計算した目標売上・目標原価・目標粗利です（保存すると最新の値に更新されます）。</p>
+            </div>
+            <table className="w-full min-w-[800px] text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 text-left text-slate-400">
+                  <th className="px-3 py-2">項目</th>
+                  <th className="px-3 py-2 text-right">目標件数/社数</th>
+                  <th className="px-3 py-2 text-right">単価</th>
+                  <th className="px-3 py-2 text-right">目標売上</th>
+                  <th className="px-3 py-2 text-right">原価率</th>
+                  <th className="px-3 py-2 text-right">目標原価</th>
+                  <th className="px-3 py-2 text-right">目標粗利</th>
+                  <th className="px-3 py-2 text-right">粗利率</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categories.map(cat => {
+                  const targetSales = annualTargetAmount(cat)
+                  const targetCost = Math.round(targetSales * cat.costRate)
+                  const targetProfit = targetSales - targetCost
+                  const marginRate = targetSales ? Math.round((targetProfit / targetSales) * 1000) / 10 : 0
+                  return (
+                    <tr key={cat.name} className="border-b border-slate-50">
+                      <td className="px-3 py-2 font-medium text-slate-700">{cat.name}</td>
+                      <td className="px-3 py-2 text-right text-slate-500">{cat.annualTargetCount}</td>
+                      <td className="px-3 py-2 text-right text-slate-500">{formatAmount(cat.unitPrice)}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-slate-900">{formatAmount(targetSales)}</td>
+                      <td className="px-3 py-2 text-right text-slate-500">{Math.round(cat.costRate * 1000) / 10}%</td>
+                      <td className="px-3 py-2 text-right text-slate-500">{formatAmount(targetCost)}</td>
+                      <td className="px-3 py-2 text-right font-medium text-emerald-700">{formatAmount(targetProfit)}</td>
+                      <td className="px-3 py-2 text-right text-slate-500">{marginRate}%</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+              <tfoot>
+                {(() => {
+                  const totalSales = categories.reduce((s, c) => s + annualTargetAmount(c), 0)
+                  const totalCost = categories.reduce((s, c) => s + Math.round(annualTargetAmount(c) * c.costRate), 0)
+                  const totalProfit = totalSales - totalCost
+                  const totalMarginRate = totalSales ? Math.round((totalProfit / totalSales) * 1000) / 10 : 0
+                  return (
+                    <tr className="border-t border-slate-200 bg-slate-50/70">
+                      <td className="px-3 py-2 font-semibold text-slate-900">合計</td>
+                      <td className="px-3 py-2" />
+                      <td className="px-3 py-2" />
+                      <td className="px-3 py-2 text-right font-semibold text-slate-900">{formatAmount(totalSales)}</td>
+                      <td className="px-3 py-2" />
+                      <td className="px-3 py-2 text-right font-semibold text-slate-900">{formatAmount(totalCost)}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-emerald-700">{formatAmount(totalProfit)}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-slate-900">{totalMarginRate}%</td>
+                    </tr>
+                  )
+                })()}
+              </tfoot>
+            </table>
+            {(() => {
+              const totalSales = categories.reduce((s, c) => s + annualTargetAmount(c), 0)
+              const totalProfit = totalSales - categories.reduce((s, c) => s + Math.round(annualTargetAmount(c) * c.costRate), 0)
+              const marginTargetAmount = Math.round(mergedSettings.annual_target_amount * mergedSettings.target_gross_margin_rate)
+              const diff = totalSales - mergedSettings.annual_target_amount
+              return (
+                <div className="grid grid-cols-1 gap-3 border-t border-slate-100 p-4 text-xs sm:grid-cols-4">
+                  <div>
+                    <p className="text-slate-400">年商目標（入力）</p>
+                    <p className="mt-0.5 font-semibold text-slate-900">{formatAmount(mergedSettings.annual_target_amount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">目標売上合計（上表）</p>
+                    <p className={`mt-0.5 font-semibold ${diff < 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+                      {formatAmount(totalSales)}{diff !== 0 && ` （${diff > 0 ? '+' : ''}${formatAmount(diff)}）`}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">目標粗利（上表）</p>
+                    <p className="mt-0.5 font-semibold text-slate-900">{formatAmount(totalProfit)}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">粗利目標（年商×粗利率）</p>
+                    <p className="mt-0.5 font-semibold text-slate-900">{formatAmount(marginTargetAmount)}</p>
+                  </div>
+                </div>
+              )
+            })()}
+          </div>
         </div>
       )}
 
