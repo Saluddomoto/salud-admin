@@ -230,6 +230,20 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+          <a
+            href="https://claude.ai/code/artifact/136bb715-388d-46c8-9e9a-3a69a75f34bd"
+            target="_blank" rel="noopener noreferrer"
+            className="mt-4 flex items-center justify-between rounded-xl bg-white/60 p-4 transition-colors hover:bg-white"
+          >
+            <div>
+              <p className="text-sm font-medium text-slate-800">営業・経営分析レポート</p>
+              <p className="mt-0.5 text-xs text-slate-400">実データから自動集計・毎週月曜更新</p>
+            </div>
+            <svg className="h-4 w-4 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
         </div>
       )}
 

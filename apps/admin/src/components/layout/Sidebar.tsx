@@ -11,6 +11,8 @@ type NavItem = { href: string; label: string; icon: ReactNode; badge?: number; a
 
 // 会社の共有フォルダ（社内ノウハウ・資料）
 const DRIVE_FOLDER_URL = 'https://drive.google.com/drive/folders/1lQOdZcEqPYtcYgGD8npWZ0X970ZoR_VO'
+// 営業・経営分析レポート（毎週月曜9時頃に自動更新されるArtifact）
+const ANALYSIS_REPORT_URL = 'https://claude.ai/code/artifact/136bb715-388d-46c8-9e9a-3a69a75f34bd'
 
 const NAV_ITEMS: NavItem[] = [
   {
@@ -129,6 +131,16 @@ const NAV_ITEMS: NavItem[] = [
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M9 12h6m-6 4h3m-3-8h6M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
+    ),
+  },
+  {
+    href: ANALYSIS_REPORT_URL,
+    label: '営業・経営分析レポート',
+    adminOnly: true,
+    external: true,
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M9 19v-6a2 2 0 012-2h2a2 2 0 012 2v6m-9 0h14a1 1 0 001-1V7.828a1 1 0 00-.293-.707l-4.828-4.828A1 1 0 0012.172 2H5a1 1 0 00-1 1v15a1 1 0 001 1z" />
     ),
   },
   {
