@@ -245,9 +245,15 @@ export default function SubsidiesPage() {
                     <td className="px-4 py-3 text-right text-rose-500">{c.rejected}件</td>
                     <td className="px-4 py-3 text-right font-semibold text-slate-900">
                       {c.actualRate == null ? '— （採択/不採択の実績なし）' : `${c.actualRate}%（${c.accepted}/${c.decided}）`}
+                      {c.decided >= MIN_DECIDED_FOR_ACTUAL_ACCEPTANCE_RATE && (
+                        <span className="ml-1.5 badge bg-brand-100 text-brand-700 text-[10px] align-middle">予測に反映中</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right text-slate-400">
                       {c.assumedRate == null ? '—' : `${c.assumedRate}%`}
+                      {c.decided >= MIN_DECIDED_FOR_ACTUAL_ACCEPTANCE_RATE && (
+                        <span className="ml-1.5 text-[10px] text-slate-300">（未使用）</span>
+                      )}
                     </td>
                   </tr>
                   {expanded === c.name && (

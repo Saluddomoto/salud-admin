@@ -1021,10 +1021,11 @@ export default function RevenuePage() {
                     </span>
                   </td>
                   <td className="px-2 py-2 text-slate-500">
-                    {r.id.startsWith('pipeline-') ? 'パイプライン見込み'
-                      : r.id.startsWith('contract-forecast-') ? '月額契約の見込み'
-                      : r.source === 'project' ? '案件由来'
-                      : '手入力'}
+                    {r.memo ??
+                      (r.id.startsWith('pipeline-') ? 'パイプライン見込み'
+                        : r.id.startsWith('contract-forecast-') ? '月額契約の見込み'
+                        : r.source === 'project' ? '案件由来'
+                        : '手入力')}
                   </td>
                 </tr>
               ))}
