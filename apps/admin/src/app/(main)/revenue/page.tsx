@@ -104,19 +104,25 @@ function deriveProjectRows(projects: DbProject[]): Row[] {
     } else if (p.status === 'submitted') {
       // 申請済み案件は「採択されたらもらえる満額」を見込み（下書き）として台帳に出す。
       // 採択率での加重はしない（それは月次集計側の別枠 = derivePipelineForecastRows が担う）。
-      const amount = (p.base_fee ?? 0) + (p.subsidy_amount ?? p.applied_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100)
+      // 基本料金・成功報酬率が未入力（契約条件が後決めのケース）でも下書きが出るよう、
+      // その場合はカテゴリの平均単価（目標設定タブの単価）を暫定額として使う。
+      // 後から成功報酬率を入力すれば、そちらの実額計算に自動で置き換わる。
+      const cat = matchRevenueCategoryFromSubsidyName(p.subsidy_name ?? '')
+      const preciseAmount = (p.base_fee ?? 0) + (p.subsidy_amount ?? p.applied_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100)
+      const isEstimate = preciseAmount <= 0
+      const amount = isEstimate ? (cat?.unitPrice ?? 0) : preciseAmount
       const date = p.deadline
       if (amount <= 0 || !date) continue
       rows.push({
         id: `project-${p.id}`,
         entry_date: date,
         payer_name: payer,
-        category: matchRevenueCategoryFromSubsidyName(p.subsidy_name ?? '')?.name ?? 'その他',
+        category: cat?.name ?? 'その他',
         amount_excl_tax: amount,
         status: 'forecast',
         payment_due_date: null,
         payment_received_date: null,
-        memo: '申請中の見込み（下書き）',
+        memo: isEstimate ? '申請中の見込み（金額未定・カテゴリ平均額で暫定計算）' : '申請中の見込み（下書き）',
         source: 'project',
         projectId: p.id,
       })
