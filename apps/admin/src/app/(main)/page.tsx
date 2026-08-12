@@ -5,8 +5,11 @@ import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import {
   fetchCustomerCount, fetchEvents, fetchMyProfile, fetchNeedsReplyCount, fetchProjects, fetchTasks,
+  fetchRevenueLedger, fetchRecurringContracts,
   formatAmount, updateTaskStatus, type DbEvent, type DbProfile, type DbProject, type DbTask,
+  type DbRevenueEntry, type DbRecurringContract,
 } from '@/lib/db'
+import { buildLedgerRows, derivePipelineForecastRows, deriveFutureContractForecastRows } from '@/lib/revenueRows'
 
 const EVENT_COLORS: Record<DbEvent['category'], string> = {
   sales: '#f59e0b', meeting: '#6366f1', deadline: '#ef4444', internal: '#64748b',
@@ -37,6 +40,8 @@ export default function DashboardPage() {
   const [customerCount, setCustomerCount] = useState(0)
   const [needsReply,    setNeedsReply]    = useState(0)
   const [me,            setMe]            = useState<DbProfile | null>(null)
+  const [ledger,        setLedger]        = useState<DbRevenueEntry[]>([])
+  const [contracts,     setContracts]     = useState<DbRecurringContract[]>([])
   const [loading,       setLoading]       = useState(true)
 
   const now = new Date()
@@ -50,6 +55,8 @@ export default function DashboardPage() {
       fetchCustomerCount().then(setCustomerCount),
       fetchNeedsReplyCount().then(setNeedsReply).catch(() => {}),
       fetchMyProfile().then(setMe).catch(() => {}),
+      fetchRevenueLedger().then(setLedger).catch(() => {}),
+      fetchRecurringContracts().then(setContracts).catch(() => {}),
     ]).finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -71,24 +78,22 @@ export default function DashboardPage() {
     { label: '採択実績',     value: `${accepted.length}件`, sub: acceptRate != null ? `採択率 ${acceptRate}%` : '結果待ち', iconBg: 'bg-rose-500' },
   ]
 
-  // 売上（管理者のみ）: 基本料金 + 成功報酬%×採択額（未入力なら申請額で代用）
-  const revenueProjects = projects.filter(p => p.status === 'accepted' || p.status === 'completed')
-  const baseFeeRevenue = revenueProjects.reduce((s, p) => s + (p.base_fee ?? 0), 0)
-  const successFeeRevenue = revenueProjects.reduce(
-    (s, p) => s + ((p.success_fee_rate ?? 0) / 100) * (p.subsidy_amount ?? p.applied_amount ?? 0),
-    0,
+  // 売上（管理者のみ）: /revenue（売上台帳・月次実績）と同じ導出関数を使って今年分を集計する。
+  // ここだけ別の計算式を使うと画面ごとに数字がズレるため、必ず lib/revenueRows.ts 経由にする。
+  const currentYear = now.getFullYear()
+  const allRevenueRows = [
+    ...buildLedgerRows(ledger, projects),
+    ...derivePipelineForecastRows(projects, ledger),
+    ...deriveFutureContractForecastRows(contracts, currentYear),
+  ]
+  const thisYearRevenueRows = allRevenueRows.filter(
+    r => r.entry_date && new Date(r.entry_date).getFullYear() === currentYear
   )
-  const totalRevenue = baseFeeRevenue + successFeeRevenue
-
-  // 進行中案件の見込み: 契約前（見込み）と契約後（申請準備中〜申請済み＝受注）で分けて集計
-  const prospectProjects = active.filter(p => p.status === 'planning')
-  const wonProjects       = active.filter(p => p.status === 'in_progress' || p.status === 'submitted')
-  const feeSum = (list: DbProject[]) => ({
-    base:    list.reduce((s, p) => s + (p.base_fee ?? 0), 0),
-    success: list.reduce((s, p) => s + ((p.success_fee_rate ?? 0) / 100) * (p.subsidy_amount ?? p.applied_amount ?? 0), 0),
-  })
-  const prospectFee = feeSum(prospectProjects)
-  const wonFee       = feeSum(wonProjects)
+  const confirmedRevenueThisYear = thisYearRevenueRows
+    .filter(r => r.status === 'confirmed')
+    .reduce((s, r) => s + r.amount_excl_tax, 0)
+  const confirmedCountThisYear = thisYearRevenueRows.filter(r => r.status === 'confirmed').length
+  const withForecastRevenueThisYear = thisYearRevenueRows.reduce((s, r) => s + r.amount_excl_tax, 0)
 
   const alerts = active
     .filter(p => p.deadline && daysUntil(p.deadline, today) >= 0 && daysUntil(p.deadline, today) <= 14)
@@ -195,55 +200,53 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* 売上管理（管理者のみ） */}
+      {/* 売上管理（管理者のみ）: /revenue と同じ計算元(lib/revenueRows.ts)を使い、数字が一致するようにしている */}
       {!loading && isAdmin && (
         <div className="card border border-amber-200 bg-amber-50/40 p-5">
           <div className="mb-4 flex items-center gap-2">
             <h3 className="font-semibold text-slate-900">売上管理</h3>
             <span className="badge bg-amber-100 text-xs text-amber-700">管理者のみ表示</span>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {[
-              {
-                label: '見込み', sub: '契約前・見込み案件', cls: 'text-slate-700',
-                total: prospectFee.base + prospectFee.success, base: prospectFee.base, success: prospectFee.success,
-                count: prospectProjects.length,
-              },
-              {
-                label: '受注済み', sub: '契約後・申請準備中〜申請済み', cls: 'text-indigo-600',
-                total: wonFee.base + wonFee.success, base: wonFee.base, success: wonFee.success,
-                count: wonProjects.length,
-              },
-              {
-                label: '採択', sub: '採択・完了案件（確定売上）', cls: 'text-emerald-600',
-                total: totalRevenue, base: baseFeeRevenue, success: successFeeRevenue,
-                count: revenueProjects.length,
-              },
-            ].map(s => (
-              <div key={s.label} className="rounded-xl bg-white/60 p-4">
-                <p className="text-xs text-slate-500">{s.label}（{s.count}件）</p>
-                <p className={`mt-1 text-2xl font-bold ${s.cls}`}>{formatAmount(s.total)}</p>
-                <p className="mt-1 text-xs text-slate-400">
-                  基本料金 {formatAmount(s.base)} ／ 成功報酬 {formatAmount(s.success)}
-                </p>
-                <p className="mt-0.5 text-[11px] text-slate-400">{s.sub}</p>
-              </div>
-            ))}
-          </div>
-          <a
-            href="https://claude.ai/code/artifact/136bb715-388d-46c8-9e9a-3a69a75f34bd"
-            target="_blank" rel="noopener noreferrer"
-            className="mt-4 flex items-center justify-between rounded-xl bg-white/60 p-4 transition-colors hover:bg-white"
-          >
-            <div>
-              <p className="text-sm font-medium text-slate-800">営業・経営分析レポート</p>
-              <p className="mt-0.5 text-xs text-slate-400">実データから自動集計・毎週月曜更新</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-xl bg-white/60 p-4">
+              <p className="text-xs text-slate-500">確定売上（{currentYear}年・{confirmedCountThisYear}件）</p>
+              <p className="mt-1 text-2xl font-bold text-emerald-600">{formatAmount(confirmedRevenueThisYear)}</p>
+              <p className="mt-0.5 text-[11px] text-slate-400">入金済み・採択済みなど実額が確定した分</p>
             </div>
-            <svg className="h-4 w-4 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
+            <div className="rounded-xl bg-white/60 p-4">
+              <p className="text-xs text-slate-500">確定＋見込み（{currentYear}年）</p>
+              <p className="mt-1 text-2xl font-bold text-amber-600">{formatAmount(withForecastRevenueThisYear)}</p>
+              <p className="mt-0.5 text-[11px] text-slate-400">申請中・パイプライン案件を採択率で加重した見込みを含む</p>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Link
+              href="/revenue"
+              className="flex items-center justify-between rounded-xl bg-white/60 p-4 transition-colors hover:bg-white"
+            >
+              <div>
+                <p className="text-sm font-medium text-slate-800">売上管理（詳細）</p>
+                <p className="mt-0.5 text-xs text-slate-400">売上台帳・月別推移・目標達成率</p>
+              </div>
+              <svg className="h-4 w-4 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+            <a
+              href="https://claude.ai/code/artifact/136bb715-388d-46c8-9e9a-3a69a75f34bd"
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-between rounded-xl bg-white/60 p-4 transition-colors hover:bg-white"
+            >
+              <div>
+                <p className="text-sm font-medium text-slate-800">営業・経営分析レポート</p>
+                <p className="mt-0.5 text-xs text-slate-400">実データから自動集計・毎週月曜更新</p>
+              </div>
+              <svg className="h-4 w-4 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          </div>
         </div>
       )}
 
