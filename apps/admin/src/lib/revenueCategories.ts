@@ -1,3 +1,5 @@
+import type { DbProject, DbRevenueEntry } from '@/lib/db'
+
 // 商品カテゴリ別の年間目標（Excel「目標管理シート」入力_前提シート相当のデフォルト値）。
 // 年ごとの実際の目標値は revenue_category_targets テーブルで上書き可能（/revenue の目標設定タブ）。
 // 件数×単価＝目標売上（isMonthly のカテゴリは ×12 した月額換算）、原価率から目標粗利を算出する。
@@ -53,4 +55,69 @@ export function matchRevenueCategoryFromSubsidyName(subsidyName: string): Revenu
     if (subsidyName.includes(pattern)) return findRevenueCategory(category)
   }
   return null
+}
+
+export type CategoryAcceptanceStat = {
+  acceptedFromProjects: number
+  acceptedFromLedger: number
+  accepted: number
+  rejected: number
+  pending: number
+  decided: number
+  actualRate: number | null // 0-1
+}
+
+// 採択率(実績)をパイプライン予測に使い始めるための最低決定件数（採択+不採択）。
+// これ未満のうちは実績が不安定なので REVENUE_CATEGORIES の固定値を使い続ける。
+export const MIN_DECIDED_FOR_ACTUAL_ACCEPTANCE_RATE = 3
+
+// カテゴリ別に「案件管理のステータス」＋「売上台帳の確定済み過去実績」を突き合わせて
+// 採択/不採択/審査中の件数を集計する。/subsidies のカテゴリ別実績タブと
+// /revenue のパイプライン予測（採択率での加重）の両方から使う共通ロジック。
+export function buildCategoryAcceptanceStats(
+  projects: DbProject[],
+  ledger: DbRevenueEntry[]
+): Map<string, CategoryAcceptanceStat> {
+  const map = new Map<string, CategoryAcceptanceStat>()
+  const stat = (name: string) => {
+    let s = map.get(name)
+    if (!s) {
+      s = { acceptedFromProjects: 0, acceptedFromLedger: 0, accepted: 0, rejected: 0, pending: 0, decided: 0, actualRate: null }
+      map.set(name, s)
+    }
+    return s
+  }
+
+  for (const p of projects) {
+    if (p.project_type === 'web') continue
+    const cat = matchRevenueCategoryFromSubsidyName(p.subsidy_name ?? '')
+    const name = cat?.name ?? 'その他・未分類'
+    const s = stat(name)
+    if (p.status === 'accepted' || p.status === 'completed') s.acceptedFromProjects++
+    else if (p.status === 'rejected') s.rejected++
+    else if (p.status === 'submitted') s.pending++
+  }
+
+  for (const entry of ledger) {
+    if (entry.status !== 'confirmed') continue
+    if (!map.has(entry.category)) continue // 案件管理に一件も無いカテゴリは対象外
+    stat(entry.category).acceptedFromLedger++
+  }
+
+  for (const s of map.values()) {
+    s.accepted = s.acceptedFromProjects + s.acceptedFromLedger
+    s.decided = s.accepted + s.rejected
+    s.actualRate = s.decided > 0 ? s.accepted / s.decided : null
+  }
+
+  return map
+}
+
+// パイプライン予測の加重に使う採択率を決める。実績の決定件数が十分に貯まっていれば
+// 実績値を、そうでなければカテゴリの固定値（業界目安）を使う。
+export function resolveAcceptanceRate(defaultRate: number | undefined, stat: CategoryAcceptanceStat | undefined): number | undefined {
+  if (stat && stat.decided >= MIN_DECIDED_FOR_ACTUAL_ACCEPTANCE_RATE && stat.actualRate != null) {
+    return stat.actualRate
+  }
+  return defaultRate
 }

@@ -15,7 +15,10 @@ import {
   type DbRecurringContract, type RecurringContractInput,
   type DbRevenueSettings, type DbRevenueCategoryTarget,
 } from '@/lib/db'
-import { REVENUE_CATEGORIES, REVENUE_CATEGORY_NAMES, matchRevenueCategoryFromSubsidyName, annualTargetAmount, type RevenueCategory } from '@/lib/revenueCategories'
+import {
+  REVENUE_CATEGORIES, REVENUE_CATEGORY_NAMES, matchRevenueCategoryFromSubsidyName, annualTargetAmount,
+  buildCategoryAcceptanceStats, resolveAcceptanceRate, type RevenueCategory,
+} from '@/lib/revenueCategories'
 
 // Excel「入力_前提」シートの全体KGI相当のデフォルト値。revenue_settings に上書きが無い年はこれを使う。
 const DEFAULT_SETTINGS = {
@@ -141,18 +144,27 @@ function deriveProjectRows(projects: DbProject[]): Row[] {
 // Saludの売上ではない。Saludの売上は「基本料金＋採択額×成功報酬率」
 // (採択済み案件と同じ式)。採択前は採択額が未確定なので申請額を代用し、
 // 成功報酬部分だけを採択率で加重する(基本料金は契約時に確定済みとみなし加重しない)。
-function derivePipelineForecastRows(projects: DbProject[]): Row[] {
+//
+// 加重に使う採択率は、/subsidies のカテゴリ別実績と同じ buildCategoryAcceptanceStats で
+// 決定件数(採択+不採択)を数え、一定数貯まったカテゴリは実績値を、そうでなければ
+// REVENUE_CATEGORIES の固定値(業界目安)を使う(resolveAcceptanceRate)。
+// つまり案件の不採択が記録されるほど、そのカテゴリの見込み売上は実態に近づく。
+function derivePipelineForecastRows(projects: DbProject[], ledger: DbRevenueEntry[]): Row[] {
+  const acceptanceStats = buildCategoryAcceptanceStats(projects, ledger)
   const rows: Row[] = []
   for (const p of projects) {
     if (p.project_type !== 'subsidy') continue
     if (!['planning', 'in_progress'].includes(p.status)) continue
     const cat = matchRevenueCategoryFromSubsidyName(p.subsidy_name ?? '')
-    if (!cat?.acceptanceRate) continue
+    if (!cat) continue
+    const rate = resolveAcceptanceRate(cat.acceptanceRate, acceptanceStats.get(cat.name))
+    if (!rate) continue
     const expectedSubsidyAmount = p.subsidy_amount ?? p.applied_amount ?? 0
     const successFeePortion = expectedSubsidyAmount * ((p.success_fee_rate ?? 0) / 100)
-    const amount = Math.round((p.base_fee ?? 0) + successFeePortion * cat.acceptanceRate)
+    const amount = Math.round((p.base_fee ?? 0) + successFeePortion * rate)
     const date = p.deadline
     if (amount <= 0 || !date) continue
+    const isActual = rate !== cat.acceptanceRate
     rows.push({
       id: `pipeline-${p.id}`,
       entry_date: date,
@@ -162,7 +174,7 @@ function derivePipelineForecastRows(projects: DbProject[]): Row[] {
       status: 'forecast',
       payment_due_date: null,
       payment_received_date: null,
-      memo: `パイプライン見込み（採択率${Math.round(cat.acceptanceRate * 100)}%で加重）`,
+      memo: `パイプライン見込み（採択率${Math.round(rate * 100)}%${isActual ? '・実績値' : ''}で加重）`,
       source: 'project',
       projectId: p.id,
     })
@@ -451,7 +463,7 @@ export default function RevenuePage() {
     for (const cat of categories) {
       table.set(cat.name, { confirmed: Array(12).fill(0), withForecast: Array(12).fill(0) })
     }
-    for (const r of [...rows, ...derivePipelineForecastRows(projects), ...deriveFutureContractForecastRows(contracts, year)]) {
+    for (const r of [...rows, ...derivePipelineForecastRows(projects, manual), ...deriveFutureContractForecastRows(contracts, year)]) {
       const d = r.entry_date ? new Date(r.entry_date) : null
       if (!d || d.getFullYear() !== year) continue
       const mi = d.getMonth()
@@ -472,7 +484,7 @@ export default function RevenuePage() {
 
   const [breakdownFilter, setBreakdownFilter] = useState<'confirmed' | 'all' | null>(null)
   const yearRows = useMemo(() => {
-    return [...rows, ...derivePipelineForecastRows(projects), ...deriveFutureContractForecastRows(contracts, year)]
+    return [...rows, ...derivePipelineForecastRows(projects, manual), ...deriveFutureContractForecastRows(contracts, year)]
       .filter(r => r.entry_date && new Date(r.entry_date).getFullYear() === year)
       .sort((a, b) => (a.entry_date < b.entry_date ? 1 : -1))
   }, [rows, projects, contracts, year])
