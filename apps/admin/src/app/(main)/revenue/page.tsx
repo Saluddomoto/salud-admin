@@ -101,14 +101,35 @@ function deriveProjectRows(projects: DbProject[]): Row[] {
         source: 'project',
         projectId: p.id,
       })
+    } else if (p.status === 'submitted') {
+      // 申請済み案件は「採択されたらもらえる満額」を見込み（下書き）として台帳に出す。
+      // 採択率での加重はしない（それは月次集計側の別枠 = derivePipelineForecastRows が担う）。
+      const amount = (p.base_fee ?? 0) + (p.subsidy_amount ?? p.applied_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100)
+      const date = p.deadline
+      if (amount <= 0 || !date) continue
+      rows.push({
+        id: `project-${p.id}`,
+        entry_date: date,
+        payer_name: payer,
+        category: matchRevenueCategoryFromSubsidyName(p.subsidy_name ?? '')?.name ?? 'その他',
+        amount_excl_tax: amount,
+        status: 'forecast',
+        payment_due_date: null,
+        payment_received_date: null,
+        memo: '申請中の見込み（下書き）',
+        source: 'project',
+        projectId: p.id,
+      })
     }
   }
   return rows
 }
 
-// 補助金パイプライン(見込み〜申請済み、まだ採択されていない案件)を
+// 補助金パイプライン(見込み〜申請準備中、まだ申請していない案件)を
 // カテゴリの採択率で加重し、売上予測(見込み)にのみ計上する。
 // 実際の入金が発生したわけではないため売上台帳の一覧には出さない。
+// 申請済み(submitted)はここでは扱わない — deriveProjectRows が満額の下書き行として
+// 売上台帳に直接出すため、ここに含めると月次集計が二重計上になる。
 //
 // 申請額(applied_amount)はクライアントが国に申請する補助金額であり
 // Saludの売上ではない。Saludの売上は「基本料金＋採択額×成功報酬率」
@@ -118,7 +139,7 @@ function derivePipelineForecastRows(projects: DbProject[]): Row[] {
   const rows: Row[] = []
   for (const p of projects) {
     if (p.project_type !== 'subsidy') continue
-    if (!['planning', 'in_progress', 'submitted'].includes(p.status)) continue
+    if (!['planning', 'in_progress'].includes(p.status)) continue
     const cat = matchRevenueCategoryFromSubsidyName(p.subsidy_name ?? '')
     if (!cat?.acceptanceRate) continue
     const expectedSubsidyAmount = p.subsidy_amount ?? p.applied_amount ?? 0
@@ -597,7 +618,7 @@ export default function RevenuePage() {
             { key: 'confirmed' as const,    title: '月次実績（確定分のみ）', note: null },
             {
               key: 'withForecast' as const, title: '売上予測（確定＋見込み）',
-              note: '補助金の見込み〜申請済み案件は、カテゴリの採択率で加重して含めています（案件詳細ページの申請額×採択率）',
+              note: '補助金の見込み〜準備中案件はカテゴリの採択率で加重、申請済み案件は採択時の満額をそのまま含めています',
             },
           ].map(block => (
             <div key={block.key} className="card overflow-x-auto p-0">
