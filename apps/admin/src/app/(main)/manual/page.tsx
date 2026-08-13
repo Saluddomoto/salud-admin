@@ -4,6 +4,18 @@ import { useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { useAuth } from '@/hooks/useAuth'
 
+/* ─── 更新履歴（新しい順）───────────────────────────── */
+// 機能追加・修正のたびにここへ1行追加する運用。日付は実施日(YYYY-MM-DD)。
+const CHANGELOG: { date: string; summary: string }[] = [
+  { date: '2026-08-13', summary: 'マニュアルに「更新履歴」を追加しました。今後の機能追加・修正はここに記録していきます。' },
+  { date: '2026-08-12', summary: 'ダッシュボードの「売上管理」カードの金額が売上管理ページ（売上台帳）と一致しない不具合を修正しました。' },
+  { date: '2026-08-12', summary: '補助金の採択率（実績）を売上予測の計算にも反映するようにしました。不採択の記録が増えるほど、見込み売上が実態に近づきます。' },
+  { date: '2026-08-11', summary: '売上目標の設定画面を追加しました（会社全体の目標、カテゴリ別の目標件数・単価を編集できます）。' },
+  { date: '2026-08-11', summary: '一般メンバーも全顧客・全案件を閲覧できるようにしました（これまでは自分の担当分のみでした）。' },
+  { date: '2026-08-10', summary: '売上管理ページを新設しました（売上台帳・月次実績・売上予測・月額契約）。' },
+  { date: '2026-08-10', summary: 'WEB制作の案件も売上管理に反映されるようにしました。' },
+]
+
 /* ─── 権限（ロール）の概要 ─────────────────────────── */
 const ROLES = [
   {
@@ -175,6 +187,22 @@ export default function ManualPage() {
           <li>・ ID は<b>メールアドレス</b>、パスワードは管理者から配布された仮パスワードです（大文字・小文字は区別されます）。</li>
           <li>・ スマホでも同じURL・同じIDで入れます。ログイン状態は保持されます。</li>
           <li>・ パスワードを忘れたら、ログイン画面の「パスワードをお忘れの方はこちら」から再設定できます。</li>
+        </ul>
+      </section>
+
+      {/* 更新履歴 */}
+      <section className="card p-5">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-bold text-slate-800">更新履歴</h2>
+          <span className="badge bg-emerald-100 text-xs text-emerald-700">随時更新</span>
+        </div>
+        <ul className="mt-3 space-y-2.5 text-sm text-slate-600">
+          {CHANGELOG.map((c, i) => (
+            <li key={i} className="flex gap-3">
+              <span className="mt-0.5 flex-shrink-0 font-mono text-xs text-slate-400">{c.date}</span>
+              <span>{c.summary}</span>
+            </li>
+          ))}
         </ul>
       </section>
 
