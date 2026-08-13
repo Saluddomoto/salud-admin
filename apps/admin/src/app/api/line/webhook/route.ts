@@ -1,7 +1,33 @@
 import { NextResponse } from 'next/server'
-import { getLineProfile, lineReply, verifyLineSignature, type LineWebhookBody } from '@salud/line'
+import {
+  getLineGroupMemberProfile,
+  getLineGroupSummary,
+  getLineProfile,
+  lineReply,
+  verifyLineSignature,
+  type LineWebhookBody,
+} from '@salud/line'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { parseEventMessage } from '@/lib/line-event-parser'
+
+type AdminClient = ReturnType<typeof createAdminClient>
+
+// グループ/複数人トークを初回検知時に line_groups へ登録する（既存なら何もしない）
+async function ensureLineGroup(admin: AdminClient, groupId: string, accessToken: string) {
+  const { data: existing } = await admin
+    .from('line_groups')
+    .select('id')
+    .eq('line_group_id', groupId)
+    .maybeSingle()
+  if (existing) return
+
+  const summary = await getLineGroupSummary(groupId, accessToken)
+  const { error } = await admin.from('line_groups').insert({
+    line_group_id: groupId,
+    group_name: summary?.groupName ?? null,
+  })
+  if (error) console.error('LINE webhook: line_groups insert failed', error)
+}
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -40,12 +66,19 @@ export async function POST(req: Request) {
       ? (event.message.text ?? '')
       : `（${event.message.type} メッセージを受信しました。LINE アプリで確認してください）`
 
-    const userId = event.source?.userId ?? null
+    const userId     = event.source?.userId ?? null
+    const sourceType = event.source?.type ?? 'user'
+    const isGroup    = sourceType === 'group' || sourceType === 'room'
+    const groupId    = sourceType === 'group' ? event.source?.groupId ?? null
+                      : sourceType === 'room'  ? event.source?.roomId ?? null
+                      : null
     let senderName = 'LINE ユーザー'
     let companyName: string | null = null
 
-    // 社内メンバーからのメッセージ → 予定登録コマンドとして処理（受信トレイには入れない）
-    if (userId) {
+    // 社内メンバーが「個人トーク」で送った場合のみ、予定登録コマンドとして処理する
+    // （グループ/複数人トークで同じ扱いをすると、クライアントの目の前で
+    //   「予定として登録できませんでした」と誤返信してしまうため対象外にする）
+    if (!isGroup && userId) {
       const { data: staff } = await admin
         .from('profiles')
         .select('id, full_name')
@@ -80,6 +113,29 @@ export async function POST(req: Request) {
       }
     }
 
+    if (isGroup && groupId) {
+      if (sourceType === 'group') await ensureLineGroup(admin, groupId, accessToken)
+
+      if (userId) {
+        const { data: staff } = await admin
+          .from('profiles')
+          .select('id')
+          .eq('line_user_id', userId)
+          .maybeSingle()
+
+        if (staff) {
+          // 社内メンバーがグループ内で発言した = そのグループの未返信は対応済みとみなす
+          // （個々のメッセージ単位で「誰への返信か」までは判定しない、ざっくりした解消判定）
+          const { error } = await admin.from('messages')
+            .update({ needs_reply: false })
+            .eq('line_group_id', groupId)
+            .eq('needs_reply', true)
+          if (error) console.error('LINE webhook: group reply-clear failed', error)
+          continue
+        }
+      }
+    }
+
     if (userId) {
       // 顧客マスタに line_user_id が登録されていれば社名・担当者名を紐づける
       const { data: customer } = await admin
@@ -95,19 +151,32 @@ export async function POST(req: Request) {
       }
 
       if (senderName === 'LINE ユーザー') {
-        const profile = await getLineProfile(userId, accessToken)
+        const profile = sourceType === 'group'
+          ? await getLineGroupMemberProfile(groupId!, userId, accessToken)
+          : await getLineProfile(userId, accessToken)
         if (profile) senderName = profile.displayName
       }
     }
 
+    if (isGroup && groupId && !companyName) {
+      const { data: group } = await admin
+        .from('line_groups')
+        .select('group_name')
+        .eq('line_group_id', groupId)
+        .maybeSingle()
+      companyName = group?.group_name ?? null
+    }
+
     const { error } = await admin.from('messages').insert({
-      channel:      'line',
-      sender_name:  senderName,
-      company_name: companyName,
-      body:         text,
-      line_user_id: userId,
-      needs_reply:  true,
-      received_at:  event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString(),
+      channel:       'line',
+      sender_name:   senderName,
+      company_name:  companyName,
+      body:          text,
+      line_user_id:  userId,
+      source_type:   sourceType,
+      line_group_id: groupId,
+      needs_reply:   true,
+      received_at:   event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString(),
     })
     if (error) console.error('LINE webhook: insert failed', error)
   }

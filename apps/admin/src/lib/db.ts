@@ -121,6 +121,8 @@ export type DbMessage = {
   is_read: boolean
   needs_reply: boolean
   converted_to: 'project' | 'task' | 'event' | null
+  source_type: 'user' | 'group' | 'room'
+  line_group_id: string | null
 }
 
 const db = () => createClient()

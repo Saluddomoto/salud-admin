@@ -14,7 +14,7 @@ export type LineTextMessage = { type: 'text'; text: string }
 export type LineWebhookEvent = {
   type: string
   replyToken?: string
-  source?: { type: 'user' | 'group' | 'room'; userId?: string }
+  source?: { type: 'user' | 'group' | 'room'; userId?: string; groupId?: string; roomId?: string }
   message?: { id: string; type: string; text?: string }
   timestamp?: number
 }
@@ -81,6 +81,33 @@ export async function getLineProfile(
 ): Promise<{ displayName: string; pictureUrl?: string } | null> {
   try {
     const res = await callLineApi(`/profile/${userId}`, accessToken)
+    return (await res.json()) as { displayName: string; pictureUrl?: string }
+  } catch {
+    return null
+  }
+}
+
+/** グループ/複数人トークの名称を取得する。bot が未参加などの場合は null */
+export async function getLineGroupSummary(
+  groupId: string,
+  accessToken: string,
+): Promise<{ groupName: string; pictureUrl?: string } | null> {
+  try {
+    const res = await callLineApi(`/group/${groupId}/summary`, accessToken)
+    return (await res.json()) as { groupName: string; pictureUrl?: string }
+  } catch {
+    return null
+  }
+}
+
+/** グループ/複数人トーク内のメンバーのプロフィールを取得する（1:1の友だち登録は不要） */
+export async function getLineGroupMemberProfile(
+  groupId: string,
+  userId: string,
+  accessToken: string,
+): Promise<{ displayName: string; pictureUrl?: string } | null> {
+  try {
+    const res = await callLineApi(`/group/${groupId}/member/${userId}`, accessToken)
     return (await res.json()) as { displayName: string; pictureUrl?: string }
   } catch {
     return null
