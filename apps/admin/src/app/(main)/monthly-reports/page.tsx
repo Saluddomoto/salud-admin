@@ -76,7 +76,6 @@ function jstNow() {
 export default function MonthlyReportsPage() {
   const { role, isLoading: authLoading } = useAuth()
   const [{ y, m }, setYm] = useState(jstNow)
-  const [tab, setTab] = useState<'monthly' | 'prep'>('monthly')
 
   const [me,        setMe]        = useState<DbProfile | null>(null)
   const [meLoading, setMeLoading] = useState(true)
@@ -179,7 +178,7 @@ export default function MonthlyReportsPage() {
       .finally(() => setPrepLoading(false))
   }, [])
 
-  useEffect(() => { if (tab === 'prep') loadPrep() }, [tab, loadPrep])
+  useEffect(loadPrep, [loadPrep])
 
   const myPrepSheet = useMemo(
     () => (me ? prepSheets.find(s => s.user_id === me.id) ?? null : null),
@@ -233,50 +232,33 @@ export default function MonthlyReportsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
-      <PageHeader title="役員月報" description="役員メンバーの月次活動報告・役員会議の事前シート（相互閲覧）">
-        {tab === 'monthly' && (
-          <div className="flex items-center gap-1 rounded-xl border border-slate-200 p-1">
-            <button
-              onClick={() => shiftMonth(-1)}
-              className="rounded-lg px-2 py-1 text-slate-500 transition-colors hover:bg-slate-100"
-              aria-label="前の月"
-            >
-              ‹
-            </button>
-            <span className="min-w-[6rem] text-center text-sm font-semibold text-slate-800">
-              {y}年{m}月
-            </span>
-            <button
-              onClick={() => shiftMonth(1)}
-              disabled={isCurrentMonth}
-              className="rounded-lg px-2 py-1 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-30"
-              aria-label="次の月"
-            >
-              ›
-            </button>
-          </div>
-        )}
-      </PageHeader>
+      <PageHeader title="役員月報" description="役員メンバーの月次活動報告・役員会議の事前シート（相互閲覧）" />
 
-      <div className="flex gap-1 border-b border-slate-200">
-        {[
-          { key: 'monthly' as const, label: '月報' },
-          { key: 'prep' as const,    label: '役員会議 事前シート' },
-        ].map(t => (
+      {/* 月報セクション */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold text-slate-800">月報</h2>
+        <div className="flex items-center gap-1 rounded-xl border border-slate-200 p-1">
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === t.key ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
+            onClick={() => shiftMonth(-1)}
+            className="rounded-lg px-2 py-1 text-slate-500 transition-colors hover:bg-slate-100"
+            aria-label="前の月"
           >
-            {t.label}
+            ‹
           </button>
-        ))}
+          <span className="min-w-[6rem] text-center text-sm font-semibold text-slate-800">
+            {y}年{m}月
+          </span>
+          <button
+            onClick={() => shiftMonth(1)}
+            disabled={isCurrentMonth}
+            className="rounded-lg px-2 py-1 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-30"
+            aria-label="次の月"
+          >
+            ›
+          </button>
+        </div>
       </div>
 
-      {tab === 'monthly' && (
-      <>
       {/* 自分の月報 */}
       {isExecutive && me && (
         <div className="card p-5">
@@ -388,11 +370,10 @@ export default function MonthlyReportsPage() {
           )}
         </div>
       )}
-      </>
-      )}
 
-      {tab === 'prep' && (
-      <>
+      {/* 役員会議 事前シートセクション */}
+      <h2 className="mt-2 text-sm font-bold text-slate-800">役員会議 事前シート</h2>
+
       {/* 自分の事前シート */}
       {isExecutive && me && (
         <div className="card p-5">
@@ -490,8 +471,6 @@ export default function MonthlyReportsPage() {
             <p className="p-12 text-center text-sm text-slate-400">役員メンバーがいません</p>
           )}
         </div>
-      )}
-      </>
       )}
     </div>
   )
