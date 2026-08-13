@@ -71,6 +71,8 @@ export type DbTask = {
   priority: 'low' | 'medium' | 'high'
   due_date: string | null
   project_id: string | null
+  assigned_user_id: string | null
+  updated_at: string
   projects: { title: string } | null
   profiles: { full_name: string } | null
 }
@@ -671,6 +673,7 @@ export type DbMonthlyReport = {
   period: string // 'YYYY-MM-01'
   actions: string | null      // 行動
   sales: string | null        // 営業
+  tasks: string | null        // タスク（完了タスクの箇条書きを反映できる）
   initiatives: string | null  // 取り組んだこと
   updated_at: string
   profiles: { full_name: string } | null
@@ -679,6 +682,7 @@ export type DbMonthlyReport = {
 export type MonthlyReportInput = {
   actions: string
   sales: string
+  tasks: string
   initiatives: string
 }
 
@@ -686,7 +690,7 @@ export type MonthlyReportInput = {
 export async function fetchMonthlyReports(period: string): Promise<DbMonthlyReport[]> {
   const { data, error } = await db()
     .from('monthly_reports')
-    .select('id, user_id, period, actions, sales, initiatives, updated_at, profiles(full_name)')
+    .select('id, user_id, period, actions, sales, tasks, initiatives, updated_at, profiles(full_name)')
     .eq('period', period)
   if (error) throw error
   return (data ?? []) as unknown as DbMonthlyReport[]

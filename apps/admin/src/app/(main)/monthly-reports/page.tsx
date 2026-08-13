@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { useAuth } from '@/hooks/useAuth'
 import {
-  fetchMyProfile, fetchExecutiveProfiles, fetchMonthlyReports, upsertMonthlyReport,
-  type DbProfile, type DbMonthlyReport, type MonthlyReportInput,
+  fetchMyProfile, fetchExecutiveProfiles, fetchMonthlyReports, upsertMonthlyReport, fetchTasks,
+  type DbProfile, type DbMonthlyReport, type MonthlyReportInput, type DbTask,
 } from '@/lib/db'
 
 const FIELDS: { key: keyof MonthlyReportInput; label: string; hint: string; example: string }[] = [
@@ -22,6 +22,12 @@ const FIELDS: { key: keyof MonthlyReportInput; label: string; hint: string; exam
     example: '例）B社と初回商談、ものづくり補助金を提案／税理士C氏からの紹介案件を2件フォロー／セミナーで名刺交換した5社に個別フォロー',
   },
   {
+    key: 'tasks',
+    label: 'タスク',
+    hint: 'この月に完了したタスク（下のボタンでタスク管理から箇条書きを読み込めます）',
+    example: '例）・A社 持続化補助金の申請書を提出\n・B社 見積書を送付\n・月次の請求書取りまとめ',
+  },
+  {
     key: 'initiatives',
     label: '取り組んだこと',
     hint: '新しく始めた取り組み・改善・学び',
@@ -29,7 +35,7 @@ const FIELDS: { key: keyof MonthlyReportInput; label: string; hint: string; exam
   },
 ]
 
-const EMPTY_INPUT: MonthlyReportInput = { actions: '', sales: '', initiatives: '' }
+const EMPTY_INPUT: MonthlyReportInput = { actions: '', sales: '', tasks: '', initiatives: '' }
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -46,16 +52,31 @@ export default function MonthlyReportsPage() {
   const [meLoading, setMeLoading] = useState(true)
   const [execs,     setExecs]     = useState<DbProfile[]>([])
   const [reports,   setReports]   = useState<DbMonthlyReport[]>([])
+  const [myTasks,   setMyTasks]   = useState<DbTask[]>([])
   const [loading,   setLoading]   = useState(true)
   const [editing,   setEditing]   = useState(false)
   const [form,      setForm]      = useState<MonthlyReportInput>(EMPTY_INPUT)
   const [saving,    setSaving]    = useState(false)
 
   const period = useMemo(() => `${y}-${pad(m)}-01`, [y, m])
+  const periodEnd = useMemo(() => {
+    const total = y * 12 + (m - 1) + 1
+    return `${Math.floor(total / 12)}-${pad((total % 12) + 1)}-01`
+  }, [y, m])
 
   useEffect(() => {
     fetchMyProfile().then(setMe).finally(() => setMeLoading(false))
+    fetchTasks().then(setMyTasks).catch(() => {})
   }, [])
+
+  // この月に完了(done)したタスクを箇条書きにして「タスク」欄に読み込むためのボタン用
+  const completedTaskBullets = useMemo(() => {
+    if (!me) return []
+    return myTasks
+      .filter(t => t.status === 'done' && t.assigned_user_id === me.id)
+      .filter(t => t.updated_at >= period && t.updated_at < periodEnd)
+      .map(t => `・${t.title}`)
+  }, [myTasks, me, period, periodEnd])
 
   const load = useCallback(() => {
     setLoading(true)
@@ -80,6 +101,7 @@ export default function MonthlyReportsPage() {
       ? {
           actions: myReport.actions ?? '',
           sales: myReport.sales ?? '',
+          tasks: myReport.tasks ?? '',
           initiatives: myReport.initiatives ?? '',
         }
       : EMPTY_INPUT)
@@ -184,7 +206,24 @@ export default function MonthlyReportsPage() {
             <div className="space-y-4">
               {FIELDS.map(f => (
                 <div key={f.key}>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">{f.label}</label>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <label className="block text-sm font-medium text-slate-700">{f.label}</label>
+                    {f.key === 'tasks' && (
+                      <button
+                        type="button"
+                        disabled={completedTaskBullets.length === 0}
+                        className="text-xs font-medium text-brand-600 hover:underline disabled:cursor-not-allowed disabled:text-slate-300 disabled:no-underline"
+                        onClick={() => {
+                          const bullets = completedTaskBullets.join('\n')
+                          setForm(prev => ({ ...prev, tasks: prev.tasks ? `${prev.tasks}\n${bullets}` : bullets }))
+                        }}
+                      >
+                        {completedTaskBullets.length > 0
+                          ? `完了タスクを読み込む（${completedTaskBullets.length}件）`
+                          : 'この月に完了したタスクはありません'}
+                      </button>
+                    )}
+                  </div>
                   <p className="mb-1.5 text-xs text-slate-400">{f.example}</p>
                   <textarea
                     className="input min-h-[80px] resize-y"
@@ -199,7 +238,7 @@ export default function MonthlyReportsPage() {
                   type="button"
                   className="btn-secondary text-sm"
                   onClick={() => { setEditing(false); setForm(myReport
-                    ? { actions: myReport.actions ?? '', sales: myReport.sales ?? '', initiatives: myReport.initiatives ?? '' }
+                    ? { actions: myReport.actions ?? '', sales: myReport.sales ?? '', tasks: myReport.tasks ?? '', initiatives: myReport.initiatives ?? '' }
                     : EMPTY_INPUT) }}
                 >
                   キャンセル
