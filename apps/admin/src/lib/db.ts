@@ -710,6 +710,48 @@ export async function upsertMonthlyReport(period: string, input: MonthlyReportIn
   if (error) throw error
 }
 
+/* ─── 役員会議 事前シート（相互閲覧可能・月次ではない随時ドキュメント）─── */
+export type DbBoardPrepSheet = {
+  id: string
+  user_id: string
+  ideal_future: string | null           // ① 2年後のSaludの理想像
+  why_involved: string | null           // ② なぜSaludと関わるのか
+  this_year_contribution: string | null // ③ 今年、自分がSaludにもたらしたいこと
+  year_end_reflection: string | null    // 最後に（年末の理想状態）
+  updated_at: string
+  profiles: { full_name: string } | null
+}
+
+export type BoardPrepSheetInput = {
+  ideal_future: string
+  why_involved: string
+  this_year_contribution: string
+  year_end_reflection: string
+}
+
+/** 役員会議 事前シートを全件返す。RLS で役員本人・管理者のみ取得可 */
+export async function fetchBoardPrepSheets(): Promise<DbBoardPrepSheet[]> {
+  const { data, error } = await db()
+    .from('board_prep_sheets')
+    .select('id, user_id, ideal_future, why_involved, this_year_contribution, year_end_reflection, updated_at, profiles(full_name)')
+  if (error) throw error
+  return (data ?? []) as unknown as DbBoardPrepSheet[]
+}
+
+/** 自分の事前シートを作成・更新（1人1件）。RLS で役員本人のみ許可 */
+export async function upsertBoardPrepSheet(input: BoardPrepSheetInput) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  if (!user) throw new Error('not signed in')
+  const { error } = await client
+    .from('board_prep_sheets')
+    .upsert(
+      { user_id: user.id, ...input, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    )
+  if (error) throw error
+}
+
 /* ─── 売上台帳（堂本さんのみ・RLSでも制限）─────────────────── */
 export type DbRevenueEntry = {
   id: string
