@@ -372,6 +372,18 @@ export async function updateTaskStatus(id: string, status: string) {
   if (error) throw error
 }
 
+export async function updateTask(id: string, input: {
+  title: string
+  description?: string | null
+  priority: string
+  due_date: string | null
+  project_id: string | null
+  assigned_user_id?: string
+}) {
+  const { error } = await db().from('tasks').update(input).eq('id', id)
+  if (error) throw error
+}
+
 export async function deleteTask(id: string) {
   const { error } = await db().from('tasks').delete().eq('id', id)
   if (error) throw error

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import {
-  fetchTasks, fetchProjects, fetchProfiles, fetchMyProfile, insertTask, updateTaskStatus, deleteTask,
+  fetchTasks, fetchProjects, fetchProfiles, fetchMyProfile, insertTask, updateTask, updateTaskStatus, deleteTask,
   formatDate, type DbTask, type DbProject, type DbProfile,
 } from '@/lib/db'
 
@@ -28,11 +28,19 @@ export default function TasksPage() {
   const [assignee,  setAssignee]  = useState('') // '' = 全員
   const [loading,   setLoading]   = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
+  const [editingTask, setEditingTask] = useState<DbTask | null>(null)
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
   const [notice,    setNotice]    = useState('')
 
   const canAssignOthers = me?.role === 'admin' || me?.role === 'manager'
+
+  const openCreate = () => { setEditingTask(null); setModalOpen(true) }
+  const openEdit = (t: DbTask) => { setEditingTask(t); setModalOpen(true) }
+  const closeModal = () => { setModalOpen(false); setEditingTask(null) }
+
+  const canEditTask = (t: DbTask) => canAssignOthers || t.assigned_user_id === me?.id
+  const canDeleteTask = (t: DbTask) => canAssignOthers || (t.status === 'done' && (t.assigned_user_id === me?.id))
 
   const load = () => {
     Promise.all([fetchTasks(), fetchProjects(), fetchMyProfile()])
@@ -62,18 +70,25 @@ export default function TasksPage() {
     const title        = f.get('title') as string
     const due_date      = (f.get('due_date') as string) || null
     const assignedTo   = canAssignOthers ? (f.get('assigned_user_id') as string) : undefined
-    const shouldNotify = canAssignOthers && f.get('notify') === 'on' && assignedTo && assignedTo !== me?.id
+    // 再通知が煩雑にならないよう、LINE通知は新規作成時のみ
+    const shouldNotify = !editingTask && canAssignOthers && f.get('notify') === 'on' && assignedTo && assignedTo !== me?.id
+
+    const payload = {
+      title,
+      description: (f.get('description') as string)?.trim() || null,
+      priority:   f.get('priority') as string,
+      due_date,
+      project_id: (f.get('project_id') as string) || null,
+      assigned_user_id: assignedTo || undefined,
+    }
 
     try {
-      await insertTask({
-        title,
-        description: (f.get('description') as string)?.trim() || null,
-        priority:   f.get('priority') as string,
-        due_date,
-        project_id: (f.get('project_id') as string) || null,
-        assigned_user_id: assignedTo || undefined,
-      })
-      setModalOpen(false)
+      if (editingTask) {
+        await updateTask(editingTask.id, payload)
+      } else {
+        await insertTask(payload)
+      }
+      closeModal()
       load()
 
       if (shouldNotify) {
@@ -110,6 +125,7 @@ export default function TasksPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('このタスクを削除しますか？')) return
     setTasks(prev => prev.filter(t => t.id !== id))
+    closeModal()
     try {
       await deleteTask(id)
     } catch {
@@ -127,7 +143,7 @@ export default function TasksPage() {
             {assigneeOptions.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
         )}
-        <button className="btn-primary text-sm" onClick={() => setModalOpen(true)}>+ タスクを追加</button>
+        <button className="btn-primary text-sm" onClick={openCreate}>+ タスクを追加</button>
       </PageHeader>
 
       {error && (
@@ -150,8 +166,14 @@ export default function TasksPage() {
               <div className="flex flex-col gap-2.5">
                 {items.map(t => {
                   const pr = PRIORITY_META[t.priority]
+                  const editable = canEditTask(t)
                   return (
-                    <div key={t.id} className="card p-3.5 transition-shadow hover:shadow-md">
+                    <div
+                      key={t.id}
+                      onClick={() => editable && openEdit(t)}
+                      className={`card p-3.5 transition-shadow hover:shadow-md ${editable ? 'cursor-pointer' : ''}`}
+                      title={editable ? 'クリックして編集' : undefined}
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <p className={`text-sm font-medium leading-snug ${t.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
                           {t.title}
@@ -166,7 +188,7 @@ export default function TasksPage() {
                         <span className="text-xs text-slate-500">
                           {t.profiles?.full_name ?? '—'} · 〆 {formatDate(t.due_date)}
                         </span>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                           {colIdx > 0 && (
                             <button
                               onClick={() => moveStatus(t.id, COLUMNS[colIdx - 1]!.key)}
@@ -181,7 +203,7 @@ export default function TasksPage() {
                               className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-50"
                             >→</button>
                           )}
-                          {t.status === 'done' && (
+                          {canDeleteTask(t) && (
                             <button
                               onClick={() => handleDelete(t.id)}
                               title="削除"
@@ -202,11 +224,11 @@ export default function TasksPage() {
         })}
       </div>
 
-      <Modal title="タスクを追加" open={modalOpen} onClose={() => setModalOpen(false)}>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <Modal title={editingTask ? 'タスクを編集' : 'タスクを追加'} open={modalOpen} onClose={closeModal}>
+        <form key={editingTask?.id ?? 'new'} onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">タスク名 *</label>
-            <input name="title" required className="input" placeholder="申請書類の確認" />
+            <input name="title" required className="input" placeholder="申請書類の確認" defaultValue={editingTask?.title ?? ''} />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">内容・メモ</label>
@@ -215,26 +237,29 @@ export default function TasksPage() {
               rows={3}
               className="input resize-y"
               placeholder="作業の詳細や手順、チェック項目など（任意）"
+              defaultValue={editingTask?.description ?? ''}
             />
           </div>
           {canAssignOthers && (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">担当者</label>
-              <select name="assigned_user_id" className="input" defaultValue={me?.id}>
+              <select name="assigned_user_id" className="input" defaultValue={editingTask?.assigned_user_id ?? me?.id}>
                 {members.map(m => (
                   <option key={m.id} value={m.id}>{m.full_name}{m.id === me?.id ? '（自分）' : ''}</option>
                 ))}
               </select>
-              <label className="mt-2 flex cursor-pointer items-center gap-1.5 text-xs text-slate-500">
-                <input type="checkbox" name="notify" defaultChecked className="h-3.5 w-3.5 rounded border-slate-300 text-brand-600" />
-                本人にLINEで通知する（自分宛の場合は送信されません）
-              </label>
+              {!editingTask && (
+                <label className="mt-2 flex cursor-pointer items-center gap-1.5 text-xs text-slate-500">
+                  <input type="checkbox" name="notify" defaultChecked className="h-3.5 w-3.5 rounded border-slate-300 text-brand-600" />
+                  本人にLINEで通知する（自分宛の場合は送信されません）
+                </label>
+              )}
             </div>
           )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">優先度</label>
-              <select name="priority" className="input" defaultValue="medium">
+              <select name="priority" className="input" defaultValue={editingTask?.priority ?? 'medium'}>
                 <option value="high">高</option>
                 <option value="medium">中</option>
                 <option value="low">低</option>
@@ -242,21 +267,28 @@ export default function TasksPage() {
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">期限</label>
-              <input name="due_date" type="date" className="input" />
+              <input name="due_date" type="date" className="input" defaultValue={editingTask?.due_date ?? ''} />
             </div>
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">関連案件</label>
-            <select name="project_id" className="input">
+            <select name="project_id" className="input" defaultValue={editingTask?.project_id ?? ''}>
               <option value="">なし</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
             </select>
           </div>
-          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-            <button type="button" className="btn-secondary text-sm" onClick={() => setModalOpen(false)}>キャンセル</button>
-            <button type="submit" disabled={saving} className="btn-primary text-sm">
-              {saving ? '保存中...' : '保存'}
-            </button>
+          <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-4">
+            {editingTask && canDeleteTask(editingTask) ? (
+              <button type="button" className="text-sm font-medium text-rose-600 hover:underline" onClick={() => handleDelete(editingTask.id)}>
+                このタスクを削除
+              </button>
+            ) : <span />}
+            <div className="flex gap-2">
+              <button type="button" className="btn-secondary text-sm" onClick={closeModal}>キャンセル</button>
+              <button type="submit" disabled={saving} className="btn-primary text-sm">
+                {saving ? '保存中...' : '保存'}
+              </button>
+            </div>
           </div>
         </form>
       </Modal>
