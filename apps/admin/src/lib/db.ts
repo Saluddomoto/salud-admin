@@ -73,6 +73,8 @@ export type DbTask = {
   project_id: string | null
   assigned_user_id: string | null
   updated_at: string
+  source: 'manual' | 'ai_line'
+  reviewed_at: string | null
   projects: { title: string } | null
   profiles: { full_name: string } | null
 }
@@ -344,9 +346,47 @@ export async function fetchTasks(): Promise<DbTask[]> {
   const { data, error } = await db()
     .from('tasks')
     .select('*, projects(title), profiles!tasks_assigned_user_id_fkey(full_name)')
+    .or('source.eq.manual,reviewed_at.not.is.null')
     .order('due_date', { ascending: true, nullsFirst: false })
   if (error) throw error
   return data as DbTask[]
+}
+
+// LINEグループの発言からAIが検出したタスク候補（承認待ち）
+export async function fetchDraftTasks(): Promise<DbTask[]> {
+  const { data, error } = await db()
+    .from('tasks')
+    .select('*, projects(title), profiles!tasks_assigned_user_id_fkey(full_name)')
+    .eq('source', 'ai_line')
+    .is('reviewed_at', null)
+    .order('due_date', { ascending: true, nullsFirst: false })
+  if (error) throw error
+  return data as DbTask[]
+}
+
+// 下書きタスクを内容確認のうえ承認する（通常タスクとして扱われるようになる）
+export async function approveDraftTask(id: string, input: {
+  title: string
+  description?: string | null
+  priority: string
+  due_date: string | null
+  project_id: string | null
+  assigned_user_id?: string
+}) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { assigned_user_id, ...rest } = input
+  const { error } = await client.from('tasks').update({
+    ...rest,
+    assigned_user_id: assigned_user_id ?? user?.id ?? null,
+    reviewed_at: new Date().toISOString(),
+  }).eq('id', id)
+  if (error) throw error
+}
+
+export async function dismissDraftTask(id: string) {
+  const { error } = await db().from('tasks').delete().eq('id', id)
+  if (error) throw error
 }
 
 export async function insertTask(input: {

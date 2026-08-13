@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import {
-  fetchTasks, fetchProjects, fetchProfiles, fetchMyProfile, insertTask, updateTask, updateTaskStatus, deleteTask,
+  fetchTasks, fetchDraftTasks, fetchProjects, fetchProfiles, fetchMyProfile,
+  insertTask, updateTask, approveDraftTask, dismissDraftTask, updateTaskStatus, deleteTask,
   formatDate, type DbTask, type DbProject, type DbProfile,
 } from '@/lib/db'
 
@@ -21,30 +22,33 @@ const PRIORITY_META = {
 } as const
 
 export default function TasksPage() {
-  const [tasks,     setTasks]     = useState<DbTask[]>([])
-  const [projects,  setProjects]  = useState<DbProject[]>([])
-  const [me,        setMe]        = useState<DbProfile | null>(null)
-  const [members,   setMembers]   = useState<DbProfile[]>([])
-  const [assignee,  setAssignee]  = useState('') // '' = 全員
-  const [loading,   setLoading]   = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
+  const [tasks,      setTasks]      = useState<DbTask[]>([])
+  const [drafts,     setDrafts]     = useState<DbTask[]>([])
+  const [projects,   setProjects]   = useState<DbProject[]>([])
+  const [me,         setMe]         = useState<DbProfile | null>(null)
+  const [members,    setMembers]    = useState<DbProfile[]>([])
+  const [assignee,   setAssignee]   = useState('') // '' = 全員
+  const [loading,    setLoading]    = useState(true)
+  const [modalOpen,  setModalOpen]  = useState(false)
   const [editingTask, setEditingTask] = useState<DbTask | null>(null)
-  const [saving,    setSaving]    = useState(false)
-  const [error,     setError]     = useState('')
-  const [notice,    setNotice]    = useState('')
+  const [saving,     setSaving]     = useState(false)
+  const [error,      setError]      = useState('')
+  const [notice,     setNotice]     = useState('')
 
   const canAssignOthers = me?.role === 'admin' || me?.role === 'manager'
+  const isDraft = (t: DbTask) => t.source === 'ai_line' && !t.reviewed_at
 
   const openCreate = () => { setEditingTask(null); setModalOpen(true) }
   const openEdit = (t: DbTask) => { setEditingTask(t); setModalOpen(true) }
   const closeModal = () => { setModalOpen(false); setEditingTask(null) }
 
-  const canEditTask = (t: DbTask) => canAssignOthers || t.assigned_user_id === me?.id
+  // 下書き(承認待ち)は誰でも内容確認のうえ承認できる。それ以外は担当者本人か管理者/マネージャーのみ編集可
+  const canEditTask = (t: DbTask) => isDraft(t) || canAssignOthers || t.assigned_user_id === me?.id
   const canDeleteTask = (t: DbTask) => canAssignOthers || (t.status === 'done' && (t.assigned_user_id === me?.id))
 
   const load = () => {
-    Promise.all([fetchTasks(), fetchProjects(), fetchMyProfile()])
-      .then(([t, p, mine]) => { setTasks(t); setProjects(p); setMe(mine) })
+    Promise.all([fetchTasks(), fetchDraftTasks(), fetchProjects(), fetchMyProfile()])
+      .then(([t, d, p, mine]) => { setTasks(t); setDrafts(d); setProjects(p); setMe(mine) })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
   }
@@ -83,7 +87,9 @@ export default function TasksPage() {
     }
 
     try {
-      if (editingTask) {
+      if (editingTask && isDraft(editingTask)) {
+        await approveDraftTask(editingTask.id, payload)
+      } else if (editingTask) {
         await updateTask(editingTask.id, payload)
       } else {
         await insertTask(payload)
@@ -134,6 +140,18 @@ export default function TasksPage() {
     }
   }
 
+  const handleDismissDraft = async (id: string) => {
+    if (!confirm('このタスク候補を却下しますか？')) return
+    setDrafts(prev => prev.filter(t => t.id !== id))
+    closeModal()
+    try {
+      await dismissDraftTask(id)
+    } catch {
+      setError('却下に失敗しました')
+      load()
+    }
+  }
+
   return (
     <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="タスク管理" description={`${doneCount}/${visibleTasks.length} 件完了`}>
@@ -151,6 +169,32 @@ export default function TasksPage() {
       )}
       {notice && (
         <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">{notice}</div>
+      )}
+
+      {drafts.length > 0 && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-800">
+            🤖 LINEグループから検出したタスク候補（{drafts.length}件・要確認）
+          </h3>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            {drafts.map(t => (
+              <div key={t.id} className="card p-3.5">
+                <p className="text-sm font-medium leading-snug text-slate-900">{t.title}</p>
+                {t.description && (
+                  <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-slate-500">{t.description}</p>
+                )}
+                {t.due_date && <p className="mt-1.5 text-xs text-slate-400">〆 {formatDate(t.due_date)}</p>}
+                <div className="mt-3 flex gap-2 border-t border-slate-50 pt-2.5">
+                  <button className="btn-primary flex-1 text-xs" onClick={() => openEdit(t)}>内容を確認して承認</button>
+                  <button
+                    className="rounded-md border border-slate-200 px-2 py-1 text-xs text-rose-500 hover:bg-rose-50"
+                    onClick={() => handleDismissDraft(t.id)}
+                  >却下</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
@@ -224,7 +268,11 @@ export default function TasksPage() {
         })}
       </div>
 
-      <Modal title={editingTask ? 'タスクを編集' : 'タスクを追加'} open={modalOpen} onClose={closeModal}>
+      <Modal
+        title={editingTask ? (isDraft(editingTask) ? 'タスク候補を確認' : 'タスクを編集') : 'タスクを追加'}
+        open={modalOpen}
+        onClose={closeModal}
+      >
         <form key={editingTask?.id ?? 'new'} onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">タスク名 *</label>
@@ -278,7 +326,11 @@ export default function TasksPage() {
             </select>
           </div>
           <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-4">
-            {editingTask && canDeleteTask(editingTask) ? (
+            {editingTask && isDraft(editingTask) ? (
+              <button type="button" className="text-sm font-medium text-rose-600 hover:underline" onClick={() => handleDismissDraft(editingTask.id)}>
+                このタスク候補を却下
+              </button>
+            ) : editingTask && canDeleteTask(editingTask) ? (
               <button type="button" className="text-sm font-medium text-rose-600 hover:underline" onClick={() => handleDelete(editingTask.id)}>
                 このタスクを削除
               </button>
@@ -286,7 +338,7 @@ export default function TasksPage() {
             <div className="flex gap-2">
               <button type="button" className="btn-secondary text-sm" onClick={closeModal}>キャンセル</button>
               <button type="submit" disabled={saving} className="btn-primary text-sm">
-                {saving ? '保存中...' : '保存'}
+                {saving ? '保存中...' : (editingTask && isDraft(editingTask) ? '承認してタスク化' : '保存')}
               </button>
             </div>
           </div>

@@ -9,6 +9,7 @@ import {
 } from '@salud/line'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { parseEventMessage } from '@/lib/line-event-parser'
+import { classifyLineMessageForTask } from '@salud/ai'
 
 type AdminClient = ReturnType<typeof createAdminClient>
 
@@ -27,6 +28,38 @@ async function ensureLineGroup(admin: AdminClient, groupId: string, accessToken:
     group_name: summary?.groupName ?? null,
   })
   if (error) console.error('LINE webhook: line_groups insert failed', error)
+}
+
+// グループ内の発言をAI(Haiku)で判定し、タスク候補なら下書きとしてtasksに挿入する
+// （承認待ち = source='ai_line' AND reviewed_at IS NULL、タスク管理画面でレビューする）
+async function maybeCreateTaskDraft(
+  admin: AdminClient,
+  params: { groupName: string | null; senderName: string; text: string; sourceMessageId: string | null },
+) {
+  try {
+    const today = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
+    const candidate = await classifyLineMessageForTask(params.text, {
+      senderName: params.senderName,
+      groupName: params.groupName,
+      today,
+    })
+    if (!candidate.isTask || !candidate.title) return
+
+    const { error } = await admin.from('tasks').insert({
+      title:              candidate.title,
+      description:        `LINEグループ「${params.groupName ?? '不明'}」の発言（${params.senderName}）: 「${params.text}」`,
+      status:              'todo',
+      priority:            'medium',
+      due_date:            candidate.dueDate,
+      project_id:          null,
+      assigned_user_id:    null,
+      source:              'ai_line',
+      source_message_id:   params.sourceMessageId,
+    })
+    if (error) console.error('LINE webhook: task draft insert failed', error)
+  } catch (e) {
+    console.error('LINE webhook: task classification failed', e)
+  }
 }
 
 export const runtime = 'nodejs'
@@ -113,13 +146,21 @@ export async function POST(req: Request) {
       }
     }
 
+    let groupName: string | null = null
     if (isGroup && groupId) {
       if (sourceType === 'group') await ensureLineGroup(admin, groupId, accessToken)
+
+      const { data: group } = await admin
+        .from('line_groups')
+        .select('group_name')
+        .eq('line_group_id', groupId)
+        .maybeSingle()
+      groupName = group?.group_name ?? null
 
       if (userId) {
         const { data: staff } = await admin
           .from('profiles')
-          .select('id')
+          .select('id, full_name')
           .eq('line_user_id', userId)
           .maybeSingle()
 
@@ -131,6 +172,12 @@ export async function POST(req: Request) {
             .eq('line_group_id', groupId)
             .eq('needs_reply', true)
           if (error) console.error('LINE webhook: group reply-clear failed', error)
+
+          if (event.message.type === 'text') {
+            await maybeCreateTaskDraft(admin, {
+              groupName, senderName: staff.full_name, text, sourceMessageId: null,
+            })
+          }
           continue
         }
       }
@@ -158,16 +205,9 @@ export async function POST(req: Request) {
       }
     }
 
-    if (isGroup && groupId && !companyName) {
-      const { data: group } = await admin
-        .from('line_groups')
-        .select('group_name')
-        .eq('line_group_id', groupId)
-        .maybeSingle()
-      companyName = group?.group_name ?? null
-    }
+    if (isGroup && groupId && !companyName) companyName = groupName
 
-    const { error } = await admin.from('messages').insert({
+    const { data: inserted, error } = await admin.from('messages').insert({
       channel:       'line',
       sender_name:   senderName,
       company_name:  companyName,
@@ -177,8 +217,14 @@ export async function POST(req: Request) {
       line_group_id: groupId,
       needs_reply:   true,
       received_at:   event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString(),
-    })
+    }).select('id').single()
     if (error) console.error('LINE webhook: insert failed', error)
+
+    if (isGroup && groupId && event.message.type === 'text') {
+      await maybeCreateTaskDraft(admin, {
+        groupName, senderName, text, sourceMessageId: inserted?.id ?? null,
+      })
+    }
   }
 
   return NextResponse.json({ ok: true })

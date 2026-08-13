@@ -15,3 +15,4 @@
  */
 
 export { analyzeMeetingMinutes, type MeetingAnalysis } from './minutes'
+export { classifyLineMessageForTask, type LineTaskCandidate } from './line-task'
