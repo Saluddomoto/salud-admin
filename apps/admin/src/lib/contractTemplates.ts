@@ -29,13 +29,6 @@ export function toReiwa(dateStr: string): string {
   return `令和${yearLabel}年${d.getMonth() + 1}月${d.getDate()}日`
 }
 
-// コピー貼り付け用のプレーンテキストでタイトルを見た目上センターに寄せる
-// （全角40文字幅の行を想定し、前方に全角スペースを詰める簡易センタリング）
-export function centerForPlainText(text: string, lineWidth = 40): string {
-  const pad = Math.max(0, Math.floor((lineWidth - text.length) / 2))
-  return '　'.repeat(pad) + text
-}
-
 function partnerAgreement(input: ContractInput): string {
   const dateLabel = toReiwa(input.contractDate)
   return `${input.partnerName}（以下「御社」といいます。）は、${SALUD_NAME}（以下「弊社」といいます。）に下記に掲げる条件をもって、お客様を紹介し、弊社はこれに承諾します。

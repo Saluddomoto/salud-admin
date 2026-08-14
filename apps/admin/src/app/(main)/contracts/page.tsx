@@ -5,26 +5,45 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { useAuth } from '@/hooks/useAuth'
 import { fetchContracts, insertContract, deleteContract, type DbContract } from '@/lib/db'
-import { CONTRACT_TEMPLATES, getContractTemplate, toReiwa, centerForPlainText } from '@/lib/contractTemplates'
+import { CONTRACT_TEMPLATES, getContractTemplate, toReiwa } from '@/lib/contractTemplates'
 
 function todayIso(): string {
   return new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
 }
 
-// コピー用: プレーンテキストではCSSでの中央寄せができないため、全角スペースで見た目を合わせる
-function toClipboardText(title: string, body: string): string {
-  return `${centerForPlainText(title)}\n\n\n${body}`
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-function openPrintWindow(title: string, body: string) {
+// Wordなどリッチテキスト対応先にはHTML(text-align:centerでタイトルを実際に中央寄せ)、
+// 非対応の貼り付け先にはプレーンテキストをフォールバックとして両方書き込む
+async function copyDocument(title: string, body: string) {
+  const html = `<div style="text-align:center;font-weight:bold;font-size:16px;font-family:'Yu Mincho','MS Mincho',serif;margin-bottom:24px;">${escapeHtml(title)}</div><div style="white-space:pre-wrap;font-family:'Yu Mincho','MS Mincho',serif;font-size:12px;line-height:1.6;">${escapeHtml(body)}</div>`
+  const text = `${title}\n\n\n${body}`
+  try {
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+      }),
+    ])
+  } catch {
+    await navigator.clipboard.writeText(text)
+  }
+}
+
+// autoPrint=false: プレビューとして表示のみ／true: 印刷ダイアログまで自動で開く
+function openDocumentWindow(title: string, body: string, autoPrint: boolean) {
   const w = window.open('', '_blank')
   if (!w) return
   w.document.title = title
   const style = w.document.createElement('style')
   style.textContent = `
-    body { font-family: "Yu Mincho", "MS Mincho", serif; line-height: 1.6; padding: 2.5rem; max-width: 720px; margin: 0 auto; }
-    h1 { text-align: center; font-size: 18px; font-weight: 700; margin: 0 0 2.5rem; }
-    pre { white-space: pre-wrap; font-family: inherit; font-size: 14px; }
+    @page { size: A4; margin: 18mm 20mm; }
+    html, body { width: 100%; }
+    body { font-family: "Yu Mincho", "MS Mincho", serif; line-height: 1.5; width: 720px; max-width: 100%; margin: 0 auto; padding: 2rem 0; }
+    h1 { text-align: center; font-size: 16px; font-weight: 700; margin: 0 0 1.75rem; }
+    pre { white-space: pre-wrap; font-family: inherit; font-size: 12px; }
     @media print { body { padding: 0; } }
   `
   const h1 = w.document.createElement('h1')
@@ -35,7 +54,7 @@ function openPrintWindow(title: string, body: string) {
   w.document.body.appendChild(h1)
   w.document.body.appendChild(pre)
   w.focus()
-  setTimeout(() => w.print(), 300)
+  if (autoPrint) setTimeout(() => w.print(), 300)
 }
 
 export default function ContractsPage() {
@@ -136,13 +155,19 @@ export default function ContractsPage() {
                 <div className="flex gap-2">
                   <button
                     className="btn-secondary text-sm"
-                    onClick={() => navigator.clipboard.writeText(toClipboardText(docTitle, detail.body))}
+                    onClick={() => copyDocument(docTitle, detail.body)}
                   >
                     コピー
                   </button>
                   <button
+                    className="btn-secondary text-sm"
+                    onClick={() => openDocumentWindow(docTitle, detail.body, false)}
+                  >
+                    プレビュー
+                  </button>
+                  <button
                     className="btn-primary text-sm"
-                    onClick={() => openPrintWindow(docTitle, detail.body)}
+                    onClick={() => openDocumentWindow(docTitle, detail.body, true)}
                   >
                     印刷 / PDF化
                   </button>
@@ -232,7 +257,16 @@ function AddModal({ onClose, onSaved }: {
 
         {preview && (
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">プレビュー</label>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="block text-sm font-medium text-slate-700">プレビュー</label>
+              <button
+                type="button"
+                className="text-xs font-medium text-brand-600 hover:underline"
+                onClick={() => openDocumentWindow(template.title, preview, false)}
+              >
+                実際の見た目で開く
+              </button>
+            </div>
             <p className="mb-1.5 text-center text-sm font-bold text-slate-900">{template.title}</p>
             <textarea readOnly value={preview} rows={10} className="input resize-y whitespace-pre-wrap font-serif text-xs leading-normal" />
           </div>
