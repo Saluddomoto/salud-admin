@@ -780,10 +780,7 @@ export async function deleteKnowhowNote(id: string) {
 export type DbContract = {
   id: string
   template_key: string
-  partner_name: string
-  partner_address: string
-  representative_name: string
-  contract_date: string
+  values: Record<string, string>
   body: string
   created_by: string | null
   created_at: string
@@ -793,7 +790,7 @@ export type DbContract = {
 export async function fetchContracts(): Promise<DbContract[]> {
   const { data, error } = await db()
     .from('contracts')
-    .select('*, author:profiles!contracts_created_by_fkey(full_name)')
+    .select('id, template_key, values, body, created_by, created_at, author:profiles!contracts_created_by_fkey(full_name)')
     .order('created_at', { ascending: false })
   if (error) throw error
   return (data ?? []) as unknown as DbContract[]
@@ -801,17 +798,14 @@ export async function fetchContracts(): Promise<DbContract[]> {
 
 export async function insertContract(input: {
   template_key: string
-  partner_name: string
-  partner_address: string
-  representative_name: string
-  contract_date: string
+  values: Record<string, string>
   body: string
 }): Promise<DbContract> {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
   const { data, error } = await client.from('contracts')
     .insert({ ...input, created_by: user?.id ?? null })
-    .select('*, author:profiles!contracts_created_by_fkey(full_name)')
+    .select('id, template_key, values, body, created_by, created_at, author:profiles!contracts_created_by_fkey(full_name)')
     .single()
   if (error) throw error
   return data as unknown as DbContract
@@ -829,6 +823,7 @@ export type DbContractTemplate = {
   description: string | null
   title: string
   body_template: string
+  fields: { token: string; label: string; type: 'text' | 'date' }[]
   updated_by: string | null
   created_at: string
   updated_at: string

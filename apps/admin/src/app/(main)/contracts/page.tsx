@@ -9,7 +9,7 @@ import {
   fetchContractTemplates, updateContractTemplate,
   type DbContract, type DbContractTemplate,
 } from '@/lib/db'
-import { renderContractBody, toReiwa, CONTRACT_PLACEHOLDERS } from '@/lib/contractTemplates'
+import { renderContractBody, toReiwa } from '@/lib/contractTemplates'
 
 function todayIso(): string {
   return new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
@@ -17,6 +17,17 @@ function todayIso(): string {
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+// 一覧・詳細に表示する見出し用の値（最初のtext項目）と契約日（date項目）を取り出す
+function headline(tpl: DbContractTemplate | undefined, values: Record<string, string>): string {
+  const field = tpl?.fields.find(f => f.type === 'text')
+  return (field ? values[field.token] : '') || '(無題)'
+}
+function dateLabel(tpl: DbContractTemplate | undefined, values: Record<string, string>): string {
+  const field = tpl?.fields.find(f => f.type === 'date')
+  const raw = field ? values[field.token] : ''
+  return raw ? toReiwa(raw) : ''
 }
 
 // Wordなどリッチテキスト対応先にはHTML(text-align:centerでタイトルを実際に中央寄せ)、
@@ -74,6 +85,7 @@ export default function ContractsPage() {
   const [addOpen,      setAddOpen]      = useState(false)
   const [detail,       setDetail]       = useState<DbContract | null>(null)
   const [editTemplate, setEditTemplate] = useState<DbContractTemplate | null>(null)
+  const [manageOpen,   setManageOpen]   = useState(false)
 
   const getTemplate = (key: string) => templates.find(t => t.key === key)
 
@@ -90,7 +102,7 @@ export default function ContractsPage() {
       <PageHeader title="契約書作成" description="テンプレートに相手先の情報を差し込んで契約書を作成します">
         <div className="flex gap-2">
           {canEditTemplate && templates.length > 0 && (
-            <button className="btn-secondary text-sm" onClick={() => setEditTemplate(templates[0]!)}>ひな形を編集</button>
+            <button className="btn-secondary text-sm" onClick={() => setManageOpen(true)}>ひな形を編集</button>
           )}
           <button className="btn-primary text-sm" onClick={() => setAddOpen(true)}>+ 契約書を作成</button>
         </div>
@@ -114,10 +126,10 @@ export default function ContractsPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="badge bg-brand-50 text-xs text-brand-700">{tpl?.label ?? c.template_key}</span>
-                  <p className="text-sm font-semibold text-slate-900">{c.partner_name}</p>
+                  <p className="text-sm font-semibold text-slate-900">{headline(tpl, c.values)}</p>
                 </div>
                 <p className="mt-1 text-xs text-slate-400">
-                  契約日 {toReiwa(c.contract_date)}
+                  {dateLabel(tpl, c.values) && `契約日 ${dateLabel(tpl, c.values)}`}
                   {c.author ? ` · 作成: ${c.author.full_name}` : ''}
                 </p>
               </div>
@@ -193,6 +205,23 @@ export default function ContractsPage() {
         )
       })()}
 
+      {manageOpen && (
+        <Modal title="契約書ひな形を編集" open onClose={() => setManageOpen(false)}>
+          <div className="space-y-2">
+            {templates.map(t => (
+              <button
+                key={t.id}
+                onClick={() => { setManageOpen(false); setEditTemplate(t) }}
+                className="card flex w-full items-center justify-between p-3 text-left text-sm hover:shadow-md"
+              >
+                <span className="font-medium text-slate-900">{t.label}</span>
+                <span className="text-xs text-slate-400">編集 →</span>
+              </button>
+            ))}
+          </div>
+        </Modal>
+      )}
+
       {editTemplate && (
         <TemplateEditModal
           template={editTemplate}
@@ -209,22 +238,21 @@ function AddModal({ templates, onClose, onSaved }: {
   onClose: () => void
   onSaved: (c: DbContract) => void
 }) {
-  const [templateKey, setTemplateKey]   = useState(templates[0]?.key ?? '')
-  const [partnerName, setPartnerName]   = useState('')
-  const [partnerAddress, setPartnerAddress] = useState('')
-  const [repName, setRepName]           = useState('')
-  const [contractDate, setContractDate] = useState(todayIso())
-  const [saving, setSaving]             = useState(false)
-  const [err, setErr]                   = useState('')
+  const [templateKey, setTemplateKey] = useState(templates[0]?.key ?? '')
+  const [values, setValues]           = useState<Record<string, string>>({})
+  const [saving, setSaving]           = useState(false)
+  const [err, setErr]                 = useState('')
 
   const template = useMemo(() => templates.find(t => t.key === templateKey), [templates, templateKey])
 
+  const setField = (token: string, v: string) => setValues(prev => ({ ...prev, [token]: v }))
+
+  const allFilled = template ? template.fields.every(f => (values[f.token] ?? '').trim() !== '') : false
+
   const preview = useMemo(() => {
-    if (!template || !partnerName || !partnerAddress || !repName) return ''
-    return renderContractBody(template.body_template, {
-      partnerName, partnerAddress, representativeName: repName, contractDate,
-    })
-  }, [template, partnerName, partnerAddress, repName, contractDate])
+    if (!template || !allFilled) return ''
+    return renderContractBody(template.body_template, template.fields, values)
+  }, [template, allFilled, values])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -232,17 +260,8 @@ function AddModal({ templates, onClose, onSaved }: {
     setSaving(true)
     setErr('')
     try {
-      const body = renderContractBody(template.body_template, {
-        partnerName, partnerAddress, representativeName: repName, contractDate,
-      })
-      const saved = await insertContract({
-        template_key: templateKey,
-        partner_name: partnerName,
-        partner_address: partnerAddress,
-        representative_name: repName,
-        contract_date: contractDate,
-        body,
-      })
+      const body = renderContractBody(template.body_template, template.fields, values)
+      const saved = await insertContract({ template_key: templateKey, values, body })
       onSaved(saved)
     } catch {
       setErr('保存に失敗しました')
@@ -264,29 +283,28 @@ function AddModal({ templates, onClose, onSaved }: {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-700">テンプレート</label>
-          <select value={templateKey} onChange={e => setTemplateKey(e.target.value)} className="input">
+          <select
+            value={templateKey}
+            onChange={e => { setTemplateKey(e.target.value); setValues({}) }}
+            className="input"
+          >
             {templates.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
           </select>
           <p className="mt-1 text-xs text-slate-400">{template.description}</p>
         </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">相手先会社名 *</label>
-          <input value={partnerName} onChange={e => setPartnerName(e.target.value)} required className="input" placeholder="株式会社〇〇" />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">相手先住所 *</label>
-          <input value={partnerAddress} onChange={e => setPartnerAddress(e.target.value)} required className="input" placeholder="東京都〇〇区..." />
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">代表者名 *</label>
-            <input value={repName} onChange={e => setRepName(e.target.value)} required className="input" placeholder="山田 太郎" />
+
+        {template.fields.map(f => (
+          <div key={f.token}>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">{f.label} *</label>
+            <input
+              type={f.type === 'date' ? 'date' : 'text'}
+              value={values[f.token] ?? (f.type === 'date' ? todayIso() : '')}
+              onChange={e => setField(f.token, e.target.value)}
+              required
+              className="input"
+            />
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">契約日 *</label>
-            <input type="date" value={contractDate} onChange={e => setContractDate(e.target.value)} required className="input" />
-          </div>
-        </div>
+        ))}
 
         {preview && (
           <div>
@@ -364,9 +382,7 @@ function TemplateEditModal({ template, onClose, onSaved }: {
           <input value={title} onChange={e => setTitle(e.target.value)} className="input" />
         </div>
         <div>
-          <div className="mb-1.5 flex items-center justify-between">
-            <label className="block text-sm font-medium text-slate-700">本文</label>
-          </div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">本文</label>
           <textarea
             value={body}
             onChange={e => setBody(e.target.value)}
@@ -374,19 +390,19 @@ function TemplateEditModal({ template, onClose, onSaved }: {
             className="input resize-y whitespace-pre-wrap font-mono text-xs leading-normal"
           />
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {CONTRACT_PLACEHOLDERS.map(p => (
+            {template.fields.map(f => (
               <button
-                key={p.token}
+                key={f.token}
                 type="button"
-                title={p.label}
-                onClick={() => setBody(b => b + p.token)}
+                title={f.label}
+                onClick={() => setBody(b => b + f.token)}
                 className="badge bg-brand-50 text-xs text-brand-700 hover:bg-brand-100"
               >
-                {p.token}
+                {f.token}
               </button>
             ))}
           </div>
-          <p className="mt-1 text-xs text-slate-400">クリックで本文末尾に挿入。作成フォームの入力値に自動置換されます。</p>
+          <p className="mt-1 text-xs text-slate-400">クリックで本文末尾に挿入。作成フォームの入力値に自動置換されます。差し込み項目自体の追加・変更はSQLでの対応が必要です。</p>
         </div>
 
         {err && <p className="text-sm text-rose-600">{err}</p>}
