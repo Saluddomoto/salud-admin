@@ -822,6 +822,41 @@ export async function deleteContract(id: string) {
   if (error) throw error
 }
 
+export type DbContractTemplate = {
+  id: string
+  key: string
+  label: string
+  description: string | null
+  title: string
+  body_template: string
+  updated_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export async function fetchContractTemplates(): Promise<DbContractTemplate[]> {
+  const { data, error } = await db()
+    .from('contract_templates')
+    .select('*')
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as DbContractTemplate[]
+}
+
+export async function updateContractTemplate(id: string, patch: {
+  label: string
+  description: string | null
+  title: string
+  body_template: string
+}) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client.from('contract_templates')
+    .update({ ...patch, updated_by: user?.id ?? null, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
 /* ─── 役員月報（相互閲覧可能な月次活動報告）───────────── */
 export type DbMonthlyReport = {
   id: string

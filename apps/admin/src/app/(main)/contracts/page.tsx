@@ -4,8 +4,12 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { useAuth } from '@/hooks/useAuth'
-import { fetchContracts, insertContract, deleteContract, type DbContract } from '@/lib/db'
-import { CONTRACT_TEMPLATES, getContractTemplate, toReiwa } from '@/lib/contractTemplates'
+import {
+  fetchContracts, insertContract, deleteContract,
+  fetchContractTemplates, updateContractTemplate,
+  type DbContract, type DbContractTemplate,
+} from '@/lib/db'
+import { renderContractBody, toReiwa, CONTRACT_PLACEHOLDERS } from '@/lib/contractTemplates'
 
 function todayIso(): string {
   return new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
@@ -60,18 +64,23 @@ function openDocumentWindow(title: string, body: string, autoPrint: boolean) {
 export default function ContractsPage() {
   const { role } = useAuth()
   const canDelete = role === 'admin' || role === 'manager'
+  const canEditTemplate = role === 'admin' || role === 'manager'
 
   const [contracts, setContracts] = useState<DbContract[]>([])
+  const [templates, setTemplates] = useState<DbContractTemplate[]>([])
   const [loading,   setLoading]   = useState(true)
   const [error,     setError]     = useState('')
 
-  const [addOpen, setAddOpen] = useState(false)
-  const [detail,  setDetail]  = useState<DbContract | null>(null)
+  const [addOpen,      setAddOpen]      = useState(false)
+  const [detail,       setDetail]       = useState<DbContract | null>(null)
+  const [editTemplate, setEditTemplate] = useState<DbContractTemplate | null>(null)
+
+  const getTemplate = (key: string) => templates.find(t => t.key === key)
 
   const load = () => {
-    fetchContracts()
-      .then(setContracts)
-      .catch(() => setError('契約書の取得に失敗しました'))
+    Promise.all([fetchContracts(), fetchContractTemplates()])
+      .then(([c, t]) => { setContracts(c); setTemplates(t) })
+      .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
   }
   useEffect(load, [])
@@ -79,7 +88,12 @@ export default function ContractsPage() {
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="契約書作成" description="テンプレートに相手先の情報を差し込んで契約書を作成します">
-        <button className="btn-primary text-sm" onClick={() => setAddOpen(true)}>+ 契約書を作成</button>
+        <div className="flex gap-2">
+          {canEditTemplate && templates.length > 0 && (
+            <button className="btn-secondary text-sm" onClick={() => setEditTemplate(templates[0]!)}>ひな形を編集</button>
+          )}
+          <button className="btn-primary text-sm" onClick={() => setAddOpen(true)}>+ 契約書を作成</button>
+        </div>
       </PageHeader>
 
       {error && (
@@ -90,7 +104,7 @@ export default function ContractsPage() {
         {loading && <p className="p-12 text-center text-sm text-slate-400">読み込み中...</p>}
 
         {!loading && contracts.map(c => {
-          const tpl = getContractTemplate(c.template_key)
+          const tpl = getTemplate(c.template_key)
           return (
             <button
               key={c.id}
@@ -120,13 +134,14 @@ export default function ContractsPage() {
 
       {addOpen && (
         <AddModal
+          templates={templates}
           onClose={() => setAddOpen(false)}
           onSaved={(c) => { setAddOpen(false); load(); setDetail(c) }}
         />
       )}
 
       {detail && (() => {
-        const tpl = getContractTemplate(detail.template_key)
+        const tpl = getTemplate(detail.template_key)
         const docTitle = tpl?.title ?? '契約書'
         return (
           <Modal title={tpl?.label ?? '契約書'} open onClose={() => setDetail(null)}>
@@ -177,15 +192,24 @@ export default function ContractsPage() {
           </Modal>
         )
       })()}
+
+      {editTemplate && (
+        <TemplateEditModal
+          template={editTemplate}
+          onClose={() => setEditTemplate(null)}
+          onSaved={() => { setEditTemplate(null); load() }}
+        />
+      )}
     </div>
   )
 }
 
-function AddModal({ onClose, onSaved }: {
+function AddModal({ templates, onClose, onSaved }: {
+  templates: DbContractTemplate[]
   onClose: () => void
   onSaved: (c: DbContract) => void
 }) {
-  const [templateKey, setTemplateKey]   = useState(CONTRACT_TEMPLATES[0]!.key)
+  const [templateKey, setTemplateKey]   = useState(templates[0]?.key ?? '')
   const [partnerName, setPartnerName]   = useState('')
   const [partnerAddress, setPartnerAddress] = useState('')
   const [repName, setRepName]           = useState('')
@@ -193,21 +217,22 @@ function AddModal({ onClose, onSaved }: {
   const [saving, setSaving]             = useState(false)
   const [err, setErr]                   = useState('')
 
-  const template = useMemo(() => getContractTemplate(templateKey)!, [templateKey])
+  const template = useMemo(() => templates.find(t => t.key === templateKey), [templates, templateKey])
 
   const preview = useMemo(() => {
-    if (!partnerName || !partnerAddress || !repName) return ''
-    return template.render({
+    if (!template || !partnerName || !partnerAddress || !repName) return ''
+    return renderContractBody(template.body_template, {
       partnerName, partnerAddress, representativeName: repName, contractDate,
     })
   }, [template, partnerName, partnerAddress, repName, contractDate])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!template) return
     setSaving(true)
     setErr('')
     try {
-      const body = template.render({
+      const body = renderContractBody(template.body_template, {
         partnerName, partnerAddress, representativeName: repName, contractDate,
       })
       const saved = await insertContract({
@@ -226,13 +251,21 @@ function AddModal({ onClose, onSaved }: {
     }
   }
 
+  if (!template) {
+    return (
+      <Modal title="契約書を作成" open onClose={onClose}>
+        <p className="text-sm text-slate-500">利用できるテンプレートがありません。</p>
+      </Modal>
+    )
+  }
+
   return (
     <Modal title="契約書を作成" open onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-700">テンプレート</label>
           <select value={templateKey} onChange={e => setTemplateKey(e.target.value)} className="input">
-            {CONTRACT_TEMPLATES.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+            {templates.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
           </select>
           <p className="mt-1 text-xs text-slate-400">{template.description}</p>
         </div>
@@ -279,6 +312,90 @@ function AddModal({ onClose, onSaved }: {
           <button type="submit" disabled={saving} className="btn-primary text-sm">{saving ? '保存中...' : '作成する'}</button>
         </div>
       </form>
+    </Modal>
+  )
+}
+
+function TemplateEditModal({ template, onClose, onSaved }: {
+  template: DbContractTemplate
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [label, setLabel]             = useState(template.label)
+  const [description, setDescription] = useState(template.description ?? '')
+  const [title, setTitle]             = useState(template.title)
+  const [body, setBody]               = useState(template.body_template)
+  const [saving, setSaving]           = useState(false)
+  const [err, setErr]                 = useState('')
+
+  const save = async () => {
+    setSaving(true)
+    setErr('')
+    try {
+      await updateContractTemplate(template.id, {
+        label: label.trim(),
+        description: description.trim() || null,
+        title: title.trim(),
+        body_template: body,
+      })
+      onSaved()
+    } catch {
+      setErr('保存に失敗しました')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal title="契約書ひな形を編集" open onClose={onClose}>
+      <div className="space-y-4">
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          ここで編集した内容は、今後この画面から作成するすべての契約書に反映されます。既に作成済みの契約書は変わりません。
+        </p>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">テンプレート名（一覧・選択に表示）</label>
+          <input value={label} onChange={e => setLabel(e.target.value)} className="input" />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">説明</label>
+          <input value={description} onChange={e => setDescription(e.target.value)} className="input" />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">文書タイトル（画面・印刷で中央寄せ表示）</label>
+          <input value={title} onChange={e => setTitle(e.target.value)} className="input" />
+        </div>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className="block text-sm font-medium text-slate-700">本文</label>
+          </div>
+          <textarea
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            rows={16}
+            className="input resize-y whitespace-pre-wrap font-mono text-xs leading-normal"
+          />
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {CONTRACT_PLACEHOLDERS.map(p => (
+              <button
+                key={p.token}
+                type="button"
+                title={p.label}
+                onClick={() => setBody(b => b + p.token)}
+                className="badge bg-brand-50 text-xs text-brand-700 hover:bg-brand-100"
+              >
+                {p.token}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-slate-400">クリックで本文末尾に挿入。作成フォームの入力値に自動置換されます。</p>
+        </div>
+
+        {err && <p className="text-sm text-rose-600">{err}</p>}
+
+        <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+          <button type="button" className="btn-secondary text-sm" onClick={onClose}>キャンセル</button>
+          <button type="button" disabled={saving} onClick={save} className="btn-primary text-sm">{saving ? '保存中...' : '保存'}</button>
+        </div>
+      </div>
     </Modal>
   )
 }
