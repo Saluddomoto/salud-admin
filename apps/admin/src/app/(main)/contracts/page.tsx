@@ -22,7 +22,7 @@ function openPrintWindow(title: string, body: string) {
   w.document.title = title
   const style = w.document.createElement('style')
   style.textContent = `
-    body { font-family: "Yu Mincho", "MS Mincho", serif; line-height: 1.9; padding: 2.5rem; max-width: 720px; margin: 0 auto; }
+    body { font-family: "Yu Mincho", "MS Mincho", serif; line-height: 1.6; padding: 2.5rem; max-width: 720px; margin: 0 auto; }
     h1 { text-align: center; font-size: 18px; font-weight: 700; margin: 0 0 2.5rem; }
     pre { white-space: pre-wrap; font-family: inherit; font-size: 14px; }
     @media print { body { padding: 0; } }
@@ -117,7 +117,7 @@ export default function ContractsPage() {
                 readOnly
                 value={detail.body}
                 rows={14}
-                className="input resize-y whitespace-pre-wrap font-serif text-sm leading-relaxed"
+                className="input resize-y whitespace-pre-wrap font-serif text-sm leading-normal"
               />
               <div className="flex items-center justify-between border-t border-slate-100 pt-4">
                 {canDelete ? (
@@ -234,7 +234,7 @@ function AddModal({ onClose, onSaved }: {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">プレビュー</label>
             <p className="mb-1.5 text-center text-sm font-bold text-slate-900">{template.title}</p>
-            <textarea readOnly value={preview} rows={10} className="input resize-y whitespace-pre-wrap font-serif text-xs leading-relaxed" />
+            <textarea readOnly value={preview} rows={10} className="input resize-y whitespace-pre-wrap font-serif text-xs leading-normal" />
           </div>
         )}
 
