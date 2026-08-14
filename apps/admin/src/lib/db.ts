@@ -776,6 +776,52 @@ export async function deleteKnowhowNote(id: string) {
   if (error) throw error
 }
 
+/* ─── 契約書作成（テンプレート差し込み）───────────── */
+export type DbContract = {
+  id: string
+  template_key: string
+  partner_name: string
+  partner_address: string
+  representative_name: string
+  contract_date: string
+  body: string
+  created_by: string | null
+  created_at: string
+  author: { full_name: string } | null
+}
+
+export async function fetchContracts(): Promise<DbContract[]> {
+  const { data, error } = await db()
+    .from('contracts')
+    .select('*, author:profiles!contracts_created_by_fkey(full_name)')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as unknown as DbContract[]
+}
+
+export async function insertContract(input: {
+  template_key: string
+  partner_name: string
+  partner_address: string
+  representative_name: string
+  contract_date: string
+  body: string
+}): Promise<DbContract> {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { data, error } = await client.from('contracts')
+    .insert({ ...input, created_by: user?.id ?? null })
+    .select('*, author:profiles!contracts_created_by_fkey(full_name)')
+    .single()
+  if (error) throw error
+  return data as unknown as DbContract
+}
+
+export async function deleteContract(id: string) {
+  const { error } = await db().from('contracts').delete().eq('id', id)
+  if (error) throw error
+}
+
 /* ─── 役員月報（相互閲覧可能な月次活動報告）───────────── */
 export type DbMonthlyReport = {
   id: string
