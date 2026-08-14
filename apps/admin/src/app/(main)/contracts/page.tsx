@@ -5,10 +5,15 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { useAuth } from '@/hooks/useAuth'
 import { fetchContracts, insertContract, deleteContract, type DbContract } from '@/lib/db'
-import { CONTRACT_TEMPLATES, getContractTemplate, toReiwa } from '@/lib/contractTemplates'
+import { CONTRACT_TEMPLATES, getContractTemplate, toReiwa, centerForPlainText } from '@/lib/contractTemplates'
 
 function todayIso(): string {
   return new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
+}
+
+// コピー用: プレーンテキストではCSSでの中央寄せができないため、全角スペースで見た目を合わせる
+function toClipboardText(title: string, body: string): string {
+  return `${centerForPlainText(title)}\n\n\n${body}`
 }
 
 function openPrintWindow(title: string, body: string) {
@@ -18,12 +23,16 @@ function openPrintWindow(title: string, body: string) {
   const style = w.document.createElement('style')
   style.textContent = `
     body { font-family: "Yu Mincho", "MS Mincho", serif; line-height: 1.9; padding: 2.5rem; max-width: 720px; margin: 0 auto; }
+    h1 { text-align: center; font-size: 18px; font-weight: 700; margin: 0 0 2.5rem; }
     pre { white-space: pre-wrap; font-family: inherit; font-size: 14px; }
     @media print { body { padding: 0; } }
   `
+  const h1 = w.document.createElement('h1')
+  h1.textContent = title
   const pre = w.document.createElement('pre')
   pre.textContent = body
   w.document.head.appendChild(style)
+  w.document.body.appendChild(h1)
   w.document.body.appendChild(pre)
   w.focus()
   setTimeout(() => w.print(), 300)
@@ -97,47 +106,52 @@ export default function ContractsPage() {
         />
       )}
 
-      {detail && (
-        <Modal title={getContractTemplate(detail.template_key)?.label ?? '契約書'} open onClose={() => setDetail(null)}>
-          <div className="space-y-4">
-            <textarea
-              readOnly
-              value={detail.body}
-              rows={14}
-              className="input resize-y whitespace-pre-wrap font-serif text-sm leading-relaxed"
-            />
-            <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-              {canDelete ? (
-                <button
-                  onClick={async () => {
-                    if (!confirm('この契約書を削除しますか？')) return
-                    await deleteContract(detail.id)
-                    setDetail(null)
-                    load()
-                  }}
-                  className="text-sm text-rose-500 hover:text-rose-600"
-                >
-                  削除
-                </button>
-              ) : <span />}
-              <div className="flex gap-2">
-                <button
-                  className="btn-secondary text-sm"
-                  onClick={() => navigator.clipboard.writeText(detail.body)}
-                >
-                  コピー
-                </button>
-                <button
-                  className="btn-primary text-sm"
-                  onClick={() => openPrintWindow(getContractTemplate(detail.template_key)?.label ?? '契約書', detail.body)}
-                >
-                  印刷 / PDF化
-                </button>
+      {detail && (() => {
+        const tpl = getContractTemplate(detail.template_key)
+        const docTitle = tpl?.title ?? '契約書'
+        return (
+          <Modal title={tpl?.label ?? '契約書'} open onClose={() => setDetail(null)}>
+            <div className="space-y-4">
+              <p className="text-center text-base font-bold text-slate-900">{docTitle}</p>
+              <textarea
+                readOnly
+                value={detail.body}
+                rows={14}
+                className="input resize-y whitespace-pre-wrap font-serif text-sm leading-relaxed"
+              />
+              <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+                {canDelete ? (
+                  <button
+                    onClick={async () => {
+                      if (!confirm('この契約書を削除しますか？')) return
+                      await deleteContract(detail.id)
+                      setDetail(null)
+                      load()
+                    }}
+                    className="text-sm text-rose-500 hover:text-rose-600"
+                  >
+                    削除
+                  </button>
+                ) : <span />}
+                <div className="flex gap-2">
+                  <button
+                    className="btn-secondary text-sm"
+                    onClick={() => navigator.clipboard.writeText(toClipboardText(docTitle, detail.body))}
+                  >
+                    コピー
+                  </button>
+                  <button
+                    className="btn-primary text-sm"
+                    onClick={() => openPrintWindow(docTitle, detail.body)}
+                  >
+                    印刷 / PDF化
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </Modal>
-      )}
+          </Modal>
+        )
+      })()}
     </div>
   )
 }
@@ -160,7 +174,7 @@ function AddModal({ onClose, onSaved }: {
     if (!partnerName || !partnerAddress || !repName) return ''
     return template.render({
       partnerName, partnerAddress, representativeName: repName, contractDate,
-    }).body
+    })
   }, [template, partnerName, partnerAddress, repName, contractDate])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -168,7 +182,7 @@ function AddModal({ onClose, onSaved }: {
     setSaving(true)
     setErr('')
     try {
-      const { title, body } = template.render({
+      const body = template.render({
         partnerName, partnerAddress, representativeName: repName, contractDate,
       })
       const saved = await insertContract({
@@ -179,7 +193,6 @@ function AddModal({ onClose, onSaved }: {
         contract_date: contractDate,
         body,
       })
-      void title
       onSaved(saved)
     } catch {
       setErr('保存に失敗しました')
@@ -220,6 +233,7 @@ function AddModal({ onClose, onSaved }: {
         {preview && (
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">プレビュー</label>
+            <p className="mb-1.5 text-center text-sm font-bold text-slate-900">{template.title}</p>
             <textarea readOnly value={preview} rows={10} className="input resize-y whitespace-pre-wrap font-serif text-xs leading-relaxed" />
           </div>
         )}
