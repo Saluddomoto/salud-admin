@@ -720,6 +720,62 @@ export async function deleteMeetingNote(id: string) {
   if (error) throw error
 }
 
+/* ─── ノウハウノート（事務手引きなど、全員が読み書き自由な社内Wiki）─── */
+export type DbKnowhowNote = {
+  id: string
+  title: string
+  category: string | null
+  body: string
+  created_by: string | null
+  updated_by: string | null
+  created_at: string
+  updated_at: string
+  author: { full_name: string } | null
+  editor: { full_name: string } | null
+}
+
+export async function fetchKnowhowNotes(): Promise<DbKnowhowNote[]> {
+  const { data, error } = await db()
+    .from('knowhow_notes')
+    .select('*, author:profiles!knowhow_notes_created_by_fkey(full_name), editor:profiles!knowhow_notes_updated_by_fkey(full_name)')
+    .order('updated_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as unknown as DbKnowhowNote[]
+}
+
+export async function insertKnowhowNote(input: {
+  title: string
+  category: string | null
+  body: string
+}) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client.from('knowhow_notes').insert({
+    ...input,
+    created_by: user?.id ?? null,
+    updated_by: user?.id ?? null,
+  })
+  if (error) throw error
+}
+
+export async function updateKnowhowNote(id: string, patch: {
+  title: string
+  category: string | null
+  body: string
+}) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client.from('knowhow_notes')
+    .update({ ...patch, updated_by: user?.id ?? null, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteKnowhowNote(id: string) {
+  const { error } = await db().from('knowhow_notes').delete().eq('id', id)
+  if (error) throw error
+}
+
 /* ─── 役員月報（相互閲覧可能な月次活動報告）───────────── */
 export type DbMonthlyReport = {
   id: string
