@@ -124,6 +124,14 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
+    href: '/agencies',
+    label: '代理店管理',
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 11h.01M15 11h.01M9 7h.01M15 7h.01" />
+    ),
+  },
+  {
     href: '/manual',
     label: 'マニュアル',
     icon: (

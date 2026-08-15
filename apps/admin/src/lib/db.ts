@@ -1160,3 +1160,88 @@ export async function syncRecurringContracts(): Promise<number> {
   }
   return generated
 }
+
+/* ─── 代理店登録管理表（募集フォーム自動取込＋手動追加、全員が読み書き自由）─── */
+export type DbPartnerAgency = {
+  id: string
+  source: 'form' | 'manual' | 'legacy_sheet'
+  form_timestamp: string | null
+  company_name: string
+  contact_person: string | null
+  email: string | null
+  phone: string | null
+  hp_url: string | null
+  address: string | null
+  business_description: string | null
+  customer_count: string | null
+  sales_staff_count: string | null
+  customer_industries: string | null
+  customer_regions: string | null
+  desired_collaboration: string | null
+  desired_support: string | null
+  seminar_cooperation: string | null
+  seminar_reachable_count: string | null
+  annual_referral_estimate: string | null
+  has_current_prospects: string | null
+  target_customer_profile: string | null
+  meeting_notes: string | null
+  info_delivery_method: string | null
+  note: string | null
+  created_by: string | null
+  updated_by: string | null
+  created_at: string
+  updated_at: string
+  author: { full_name: string } | null
+  editor: { full_name: string } | null
+}
+
+export async function fetchPartnerAgencies(): Promise<DbPartnerAgency[]> {
+  const { data, error } = await db()
+    .from('partner_agencies')
+    .select('*, author:profiles!partner_agencies_created_by_fkey(full_name), editor:profiles!partner_agencies_updated_by_fkey(full_name)')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as unknown as DbPartnerAgency[]
+}
+
+export async function insertPartnerAgency(input: {
+  company_name: string
+  contact_person: string | null
+  email: string | null
+  phone: string | null
+  hp_url: string | null
+  address: string | null
+  note: string | null
+}) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client.from('partner_agencies').insert({
+    ...input,
+    source: 'manual',
+    created_by: user?.id ?? null,
+    updated_by: user?.id ?? null,
+  })
+  if (error) throw error
+}
+
+export async function updatePartnerAgency(id: string, patch: {
+  company_name: string
+  contact_person: string | null
+  email: string | null
+  phone: string | null
+  hp_url: string | null
+  address: string | null
+  note: string | null
+}) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client.from('partner_agencies')
+    .update({ ...patch, updated_by: user?.id ?? null, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function deletePartnerAgency(id: string) {
+  const { error } = await db().from('partner_agencies').delete().eq('id', id)
+  if (error) throw error
+}
