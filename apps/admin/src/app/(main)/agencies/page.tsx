@@ -120,27 +120,44 @@ export default function AgenciesPage() {
       <div className="flex flex-col gap-2.5">
         {loading && <p className="p-12 text-center text-sm text-slate-400">読み込み中...</p>}
 
-        {!loading && filtered.map(a => (
-          <button
-            key={a.id}
-            onClick={() => setDetail(a)}
-            className="card flex items-start gap-4 p-4 text-left transition-shadow hover:shadow-md"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={`badge text-xs ${SOURCE_BADGE[a.source]}`}>{SOURCE_LABEL[a.source]}</span>
-                <p className="text-sm font-semibold text-slate-900">{a.company_name}</p>
-                {a.contact_person && <span className="text-xs text-slate-500">{a.contact_person}</span>}
+        {!loading && filtered.map(a => {
+          const glance = LIST_GLANCE_FIELDS
+            .map(([key, label]) => [label, a[key] as string | null] as const)
+            .filter(([, value]) => !!value)
+          return (
+            <button
+              key={a.id}
+              onClick={() => setDetail(a)}
+              className="card flex flex-col items-start gap-3 p-4 text-left transition-shadow hover:shadow-md"
+            >
+              <div className="w-full">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`badge text-xs ${SOURCE_BADGE[a.source]}`}>{SOURCE_LABEL[a.source]}</span>
+                  <p className="text-sm font-semibold text-slate-900">{a.company_name}</p>
+                  {a.contact_person && <span className="text-xs text-slate-500">{a.contact_person}</span>}
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  {[a.email, a.phone, a.hp_url].filter(Boolean).join(' ・ ') || '連絡先未登録'}
+                </p>
               </div>
-              <p className="mt-1.5 text-xs text-slate-500">
-                {[a.email, a.phone, a.hp_url].filter(Boolean).join(' ・ ') || '連絡先未登録'}
-              </p>
-              <p className="mt-1.5 text-xs text-slate-400">
+
+              {glance.length > 0 && (
+                <div className="grid w-full grid-cols-2 gap-x-4 gap-y-2 rounded-lg bg-slate-50 p-3 sm:grid-cols-3">
+                  {glance.map(([label, value]) => (
+                    <div key={label} className="min-w-0">
+                      <p className="text-[11px] font-medium text-slate-400">{label}</p>
+                      <p className="truncate text-xs text-slate-700">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <p className="text-xs text-slate-400">
                 {formatDate(a.updated_at)} 更新{a.editor ? ` · ${a.editor.full_name}` : ''}
               </p>
-            </div>
-          </button>
-        ))}
+            </button>
+          )
+        })}
 
         {!loading && filtered.length === 0 && (
           <div className="card p-12 text-center text-sm text-slate-400">
@@ -202,6 +219,16 @@ export default function AgenciesPage() {
     </div>
   )
 }
+
+// 一覧でクリックせずに一目で分かるよう表示する主要項目（残りは詳細モーダルで確認）
+const LIST_GLANCE_FIELDS: Array<[keyof DbPartnerAgency, string]> = [
+  ['customer_count', '顧客数'],
+  ['customer_industries', 'お客様の業界'],
+  ['customer_regions', 'お客様の主な所在地'],
+  ['annual_referral_estimate', '年間紹介見込み'],
+  ['has_current_prospects', '現在提案可能な顧客'],
+  ['desired_collaboration', '取り組みたい内容'],
+]
 
 // フォーム回答由来のデータを、ラベル付きで読みやすく表示する
 const FORM_DETAIL_FIELDS: Array<[keyof DbPartnerAgency, string]> = [
