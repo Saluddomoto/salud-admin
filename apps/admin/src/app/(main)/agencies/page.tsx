@@ -24,6 +24,22 @@ function formatDate(iso: string): string {
   return `${d.getMonth() + 1}/${d.getDate()}`
 }
 
+function formatDateFull(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
+}
+
+// 登録時期の表示ラベル。フォーム回答は本人が送信した日時、それ以外はシステムへの登録日を使う
+function registeredLabel(a: DbPartnerAgency): string {
+  if (a.source === 'form' && a.form_timestamp) {
+    return `回答: ${a.form_timestamp.split(' ')[0]}`
+  }
+  if (a.source === 'legacy_sheet') {
+    return `取込: ${formatDateFull(a.created_at)}`
+  }
+  return `登録: ${formatDateFull(a.created_at)}`
+}
+
 export default function AgenciesPage() {
   const [agencies, setAgencies] = useState<DbPartnerAgency[]>([])
   const [loading,  setLoading]  = useState(true)
@@ -125,19 +141,32 @@ export default function AgenciesPage() {
             .map(([key, label]) => [label, a[key] as string | null] as const)
             .filter(([, value]) => !!value)
           return (
-            <button
+            <div
               key={a.id}
               onClick={() => setDetail(a)}
-              className="card flex flex-col items-start gap-3 p-4 text-left transition-shadow hover:shadow-md"
+              className="card flex cursor-pointer flex-col items-start gap-3 p-4 text-left transition-shadow hover:shadow-md"
             >
               <div className="w-full">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`badge text-xs ${SOURCE_BADGE[a.source]}`}>{SOURCE_LABEL[a.source]}</span>
                   <p className="text-sm font-semibold text-slate-900">{a.company_name}</p>
                   {a.contact_person && <span className="text-xs text-slate-500">{a.contact_person}</span>}
+                  <span className="text-xs text-slate-400">{registeredLabel(a)}</span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">
-                  {[a.email, a.phone, a.hp_url].filter(Boolean).join(' ・ ') || '連絡先未登録'}
+                <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
+                  {[a.email, a.phone].filter(Boolean).join(' ・ ')}
+                  {a.hp_url && (
+                    <a
+                      href={a.hp_url.startsWith('http') ? a.hp_url : `https://${a.hp_url}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      className="text-brand-600 hover:underline"
+                    >
+                      {a.hp_url}
+                    </a>
+                  )}
+                  {!a.email && !a.phone && !a.hp_url && '連絡先未登録'}
                 </p>
               </div>
 
@@ -155,7 +184,7 @@ export default function AgenciesPage() {
               <p className="text-xs text-slate-400">
                 {formatDate(a.updated_at)} 更新{a.editor ? ` · ${a.editor.full_name}` : ''}
               </p>
-            </button>
+            </div>
           )
         })}
 
