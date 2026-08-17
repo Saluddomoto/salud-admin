@@ -129,9 +129,9 @@ CREATE POLICY "customers: staff update assigned"
   ON public.customers FOR UPDATE
   USING (assigned_user_id = auth.uid() AND public.get_my_role() = 'staff');
 
-CREATE POLICY "customers: manager+ delete"
+CREATE POLICY "customers: authenticated delete"
   ON public.customers FOR DELETE
-  USING (public.get_my_role() IN ('admin', 'manager'));
+  USING (auth.uid() IS NOT NULL);
 
 -- ----------------------------------------------------------------
 -- 7. customer_contacts テーブル
