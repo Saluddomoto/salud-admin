@@ -12,6 +12,7 @@ const STATUS_META: Record<DbProject['status'], { label: string; cls: string }> =
   submitted:   { label: '申請済み',   cls: 'bg-indigo-100 text-indigo-700' },
   accepted:    { label: '採択',       cls: 'bg-emerald-100 text-emerald-700' },
   rejected:    { label: '不採択',     cls: 'bg-rose-100 text-rose-700' },
+  lost:        { label: '失注',       cls: 'bg-zinc-200 text-zinc-600' },
   completed:   { label: '完了',       cls: 'bg-slate-100 text-slate-500' },
 }
 
@@ -100,7 +101,7 @@ export default function SubsidiesPage() {
   const filtered = filter ? projects.filter(p => p.status === filter) : projects
   const accepted = projects.filter(p => p.status === 'accepted')
   const inFlight = projects.filter(p => p.status === 'submitted')
-  const active   = projects.filter(p => !['accepted', 'rejected', 'completed'].includes(p.status))
+  const active   = projects.filter(p => !['accepted', 'rejected', 'lost', 'completed'].includes(p.status))
   const total    = inFlight.reduce((sum, p) => sum + (p.applied_amount ?? 0), 0)
   const pipeline = projects
     .filter(p => p.status === 'planning' || p.status === 'in_progress')

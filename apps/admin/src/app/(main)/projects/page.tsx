@@ -95,7 +95,7 @@ export default function ProjectsPage() {
 
   return (
     <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
-      <PageHeader title="案件管理" description={`進行中 ${projects.filter(p => p.status !== 'completed' && p.status !== 'rejected').length} 件`}>
+      <PageHeader title="案件管理" description={`進行中 ${projects.filter(p => p.status !== 'completed' && p.status !== 'rejected' && p.status !== 'lost').length} 件`}>
         <button className="btn-primary text-sm" onClick={() => setModalOpen(true)}>+ 新規案件</button>
       </PageHeader>
 
@@ -141,6 +141,7 @@ export default function ProjectsPage() {
                       >
                         {COLUMNS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
                         <option value="rejected">不採択</option>
+                        <option value="lost">失注</option>
                         <option value="completed">完了</option>
                       </select>
                     </div>

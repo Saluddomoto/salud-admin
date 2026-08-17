@@ -19,6 +19,7 @@ const STATUSES: { key: DbProject['status']; label: string; cls: string }[] = [
   { key: 'submitted',   label: '申請済み',   cls: 'bg-indigo-100 text-indigo-700' },
   { key: 'accepted',    label: '採択',       cls: 'bg-emerald-100 text-emerald-700' },
   { key: 'rejected',    label: '不採択',     cls: 'bg-rose-100 text-rose-700' },
+  { key: 'lost',        label: '失注',       cls: 'bg-zinc-200 text-zinc-600' },
   { key: 'completed',   label: '完了',       cls: 'bg-slate-100 text-slate-500' },
 ]
 

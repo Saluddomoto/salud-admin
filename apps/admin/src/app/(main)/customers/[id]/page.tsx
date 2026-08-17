@@ -24,6 +24,7 @@ const PROJECT_STATUS: Record<DbProject['status'], { label: string; cls: string }
   submitted:   { label: '申請済み',   cls: 'bg-indigo-100 text-indigo-700' },
   accepted:    { label: '採択',       cls: 'bg-emerald-100 text-emerald-700' },
   rejected:    { label: '不採択',     cls: 'bg-rose-100 text-rose-700' },
+  lost:        { label: '失注',       cls: 'bg-zinc-200 text-zinc-600' },
   completed:   { label: '完了',       cls: 'bg-slate-100 text-slate-500' },
 }
 

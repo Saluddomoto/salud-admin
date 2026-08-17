@@ -8,7 +8,7 @@
 -- ----------------------------------------------------------------
 CREATE TYPE user_role AS ENUM ('admin', 'manager', 'staff', 'customer');
 CREATE TYPE customer_status AS ENUM ('active', 'inactive', 'prospect');
-CREATE TYPE project_status AS ENUM ('planning', 'in_progress', 'submitted', 'accepted', 'rejected', 'completed');
+CREATE TYPE project_status AS ENUM ('planning', 'in_progress', 'submitted', 'accepted', 'rejected', 'lost', 'completed');
 CREATE TYPE task_status AS ENUM ('todo', 'in_progress', 'done');
 CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high');
 

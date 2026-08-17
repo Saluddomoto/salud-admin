@@ -43,7 +43,7 @@ export type DbProject = {
   title: string
   subsidy_name: string | null
   project_type: 'subsidy' | 'web'
-  status: 'planning' | 'in_progress' | 'submitted' | 'accepted' | 'rejected' | 'completed'
+  status: 'planning' | 'in_progress' | 'submitted' | 'accepted' | 'rejected' | 'lost' | 'completed'
   applied_amount: number | null
   subsidy_amount: number | null
   base_fee: number | null
