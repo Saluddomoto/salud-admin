@@ -7,9 +7,10 @@ import { fetchMessages, markMessageRead, markMessageReplied, dismissMessage, typ
 const SWIPE_DISMISS_THRESHOLD = 80
 
 const CHANNEL_META: Record<DbMessage['channel'], { label: string; cls: string }> = {
-  line:  { label: 'LINE',   cls: 'bg-emerald-100 text-emerald-700' },
-  email: { label: 'メール', cls: 'bg-blue-100 text-blue-700' },
-  web:   { label: 'Web',    cls: 'bg-purple-100 text-purple-700' },
+  line:     { label: 'LINE',     cls: 'bg-emerald-100 text-emerald-700' },
+  email:    { label: 'メール',   cls: 'bg-blue-100 text-blue-700' },
+  web:      { label: 'Web',      cls: 'bg-purple-100 text-purple-700' },
+  chatwork: { label: 'Chatwork', cls: 'bg-sky-100 text-sky-700' },
 }
 
 const CONVERTED_META = {
@@ -120,6 +121,7 @@ export default function InboxPage() {
         <select className="input w-36 text-sm" value={channel} onChange={e => setChannel(e.target.value)}>
           <option value="">全チャネル</option>
           <option value="line">LINE</option>
+          <option value="chatwork">Chatwork</option>
           <option value="email">メール</option>
           <option value="web">Webフォーム</option>
         </select>

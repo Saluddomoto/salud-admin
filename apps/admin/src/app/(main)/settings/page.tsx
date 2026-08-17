@@ -6,7 +6,7 @@ import { Modal } from '@/components/Modal'
 import { useAuth } from '@/hooks/useAuth'
 import {
   fetchMyProfile, fetchProfiles, updateMyProfile, updateMyNotificationPrefs, updateMyPassword,
-  updateMemberTasksSharing, updateMemberActive, updateMemberDigest, updateMemberExecutive,
+  updateMemberTasksSharing, updateMemberActive, updateMemberDigest, updateMemberExecutive, updateMemberChatworkId,
   type DbProfile, type NotificationPrefs,
 } from '@/lib/db'
 
@@ -217,6 +217,17 @@ export default function SettingsPage() {
     }
   }
 
+  const handleUpdateChatworkId = async (id: string, chatworkAccountId: string) => {
+    const value = chatworkAccountId.trim() || null
+    setMembers(prev => prev.map(m => m.id === id ? { ...m, chatwork_account_id: value } : m))
+    try {
+      await updateMemberChatworkId(id, value)
+    } catch (e) {
+      alert(`更新に失敗しました: ${e instanceof Error ? e.message : e}`)
+      fetchProfiles().then(setMembers).catch(() => {})
+    }
+  }
+
   const handleToggleActive = async (m: DbProfile) => {
     const next = !m.is_active
     const msg = next
@@ -384,6 +395,20 @@ export default function SettingsPage() {
                               LINE未連携
                             </span>
                           )}
+                          <label className="flex items-center gap-1.5 text-xs text-slate-500" title="Chatwork連携用のアカウントID。本人のChatworkプロフィール画面のURL末尾（aid=の数字）で確認できます。">
+                            Chatwork ID
+                            <input
+                              type="text"
+                              defaultValue={m.chatwork_account_id ?? ''}
+                              onBlur={e => {
+                                if (e.target.value.trim() !== (m.chatwork_account_id ?? '')) {
+                                  handleUpdateChatworkId(m.id, e.target.value)
+                                }
+                              }}
+                              placeholder="未設定"
+                              className="w-24 rounded-lg border border-slate-200 px-1.5 py-1 text-xs text-slate-600"
+                            />
+                          </label>
                           <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500">
                             <input
                               type="checkbox"

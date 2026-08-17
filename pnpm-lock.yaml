@@ -26,6 +26,9 @@ importers:
       '@salud/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@salud/chatwork':
+        specifier: workspace:*
+        version: link:../../packages/chatwork
       '@salud/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -113,6 +116,15 @@ importers:
       react:
         specifier: ^18.0.0
         version: 18.3.1
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+
+  packages/chatwork:
+    devDependencies:
+      '@salud/typescript-config':
+        specifier: workspace:*
+        version: link:../config/typescript
       typescript:
         specifier: ^5.6.0
         version: 5.9.3

@@ -33,6 +33,7 @@ export type DbCustomer = {
   address: string | null
   website: string | null
   notes: string | null
+  chatwork_room_id: string | null
   created_at: string
   profiles: { full_name: string } | null
   customer_contacts: DbContact[]
@@ -97,6 +98,7 @@ export type DbProfile = {
   tasks_shared_with_team: boolean
   digest_enabled: boolean
   line_user_id: string | null
+  chatwork_account_id: string | null
   is_executive: boolean
   annual_target_amount: number | null
 }
@@ -115,7 +117,7 @@ export type DbEvent = {
 
 export type DbMessage = {
   id: string
-  channel: 'line' | 'email' | 'web'
+  channel: 'line' | 'email' | 'web' | 'chatwork'
   sender_name: string
   company_name: string | null
   body: string
@@ -125,6 +127,7 @@ export type DbMessage = {
   converted_to: 'project' | 'task' | 'event' | null
   source_type: 'user' | 'group' | 'room'
   line_group_id: string | null
+  chatwork_room_id: string | null
 }
 
 const db = () => createClient()
@@ -160,6 +163,7 @@ export async function updateCustomer(id: string, input: {
   website: string | null
   notes: string | null
   assigned_user_id?: string | null
+  chatwork_room_id?: string | null
 }) {
   const { error } = await db().from('customers').update(input).eq('id', id)
   if (error) throw error
@@ -516,7 +520,7 @@ export async function fetchNeedsReplyCount(): Promise<number> {
 export async function fetchProfiles(): Promise<DbProfile[]> {
   const { data, error } = await db()
     .from('profiles')
-    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, is_executive, annual_target_amount')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount')
     .order('created_at')
   if (error) throw error
   return data as DbProfile[]
@@ -526,7 +530,7 @@ export async function fetchProfiles(): Promise<DbProfile[]> {
 export async function fetchExecutiveProfiles(): Promise<DbProfile[]> {
   const { data, error } = await db()
     .from('profiles')
-    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, is_executive, annual_target_amount')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount')
     .eq('is_executive', true)
     .eq('is_active', true)
     .order('created_at')
@@ -540,7 +544,7 @@ export async function fetchMyProfile(): Promise<DbProfile | null> {
   if (!user) return null
   const { data, error } = await client
     .from('profiles')
-    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, is_executive, annual_target_amount')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount')
     .eq('id', user.id)
     .single()
   if (error) throw error
@@ -590,6 +594,13 @@ export async function updateMemberDigest(id: string, enabled: boolean) {
 // 役員フラグの付与／解除（admin のみ RLS で許可）。役員月報の対象・相互閲覧範囲を決める
 export async function updateMemberExecutive(id: string, isExecutive: boolean) {
   const { error } = await db().from('profiles').update({ is_executive: isExecutive }).eq('id', id)
+  if (error) throw error
+}
+
+// Chatwork連携: このメンバー自身のChatworkアカウントIDを登録する（admin のみ RLS で許可）。
+// Webhookでルーム内の発言者がここに登録済みのIDと一致する場合、スタッフ本人の発言として扱う。
+export async function updateMemberChatworkId(id: string, chatworkAccountId: string | null) {
+  const { error } = await db().from('profiles').update({ chatwork_account_id: chatworkAccountId }).eq('id', id)
   if (error) throw error
 }
 

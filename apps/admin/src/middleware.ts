@@ -2,9 +2,9 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { AUTH_COOKIE_OPTIONS } from '@/lib/supabase-cookies'
 
-// /api/line は LINE プラットフォームから、/api/cron は Vercel Cron から呼ばれる
+// /api/line・/api/chatwork は外部プラットフォームから、/api/cron は Vercel Cron から呼ばれる
 // （それぞれ署名検証・シークレットで保護）
-const PUBLIC_PATHS = ['/login', '/forgot-password', '/api/auth', '/api/line', '/api/cron', '/api/zoom']
+const PUBLIC_PATHS = ['/login', '/forgot-password', '/api/auth', '/api/line', '/api/cron', '/api/zoom', '/api/chatwork']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl

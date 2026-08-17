@@ -72,6 +72,7 @@ export default function CustomerDetailPage() {
         website:        (f.get('website') as string) || null,
         notes:          (f.get('notes') as string) || null,
         assigned_user_id: (f.get('assigned_user_id') as string) || null,
+        chatwork_room_id: (f.get('chatwork_room_id') as string)?.trim() || null,
       })
       setEditOpen(false)
       load()
@@ -177,6 +178,7 @@ export default function CustomerDetailPage() {
               { label: '住所',     value: customer.address ?? '—' },
               { label: 'Web',      value: customer.website ?? '—' },
               { label: '社内担当', value: customer.profiles?.full_name ?? '—' },
+              { label: 'Chatwork', value: customer.chatwork_room_id ? `連携中（ルームID: ${customer.chatwork_room_id}）` : '未連携' },
               { label: '登録日',   value: customer.created_at.slice(0, 10) },
             ].map(row => (
               <div key={row.label} className="flex gap-3">
@@ -312,6 +314,11 @@ export default function CustomerDetailPage() {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Webサイト</label>
             <input name="website" className="input" defaultValue={customer.website ?? ''} placeholder="https://" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Chatwork ルームID</label>
+            <input name="chatwork_room_id" className="input" defaultValue={customer.chatwork_room_id ?? ''} placeholder="例: 123456789" />
+            <p className="mt-1 text-xs text-slate-400">設定すると、このルームでのクライアントの発言が受信トレイに自動で取り込まれます。ルームURL末尾の数字がルームIDです。</p>
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">メモ</label>
