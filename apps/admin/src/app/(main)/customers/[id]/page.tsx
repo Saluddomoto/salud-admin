@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { DocumentsCard } from '@/components/DocumentsCard'
+import { useAuth } from '@/hooks/useAuth'
 import {
   deleteContact, deleteCustomer, fetchCustomer, fetchProjectsByCustomer, fetchProfiles,
   insertContact, updateCustomer, formatAmount,
@@ -31,6 +32,8 @@ const PROJECT_STATUS: Record<DbProject['status'], { label: string; cls: string }
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { role } = useAuth()
+  const canDelete = role === 'admin' || role === 'manager'
   const [customer, setCustomer] = useState<DbCustomer | null>(null)
   const [projects, setProjects] = useState<DbProject[]>([])
   const [members,  setMembers]  = useState<DbProfile[]>([])
@@ -150,12 +153,14 @@ export default function CustomerDetailPage() {
           >
             <span className={`badge ${st.cls}`}>{st.label}</span>
             <button className="btn-secondary text-sm" onClick={() => setEditOpen(true)}>編集</button>
-            <button
-              className="rounded-xl border border-rose-200 px-3.5 py-2 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50"
-              onClick={handleDelete}
-            >
-              削除
-            </button>
+            {canDelete && (
+              <button
+                className="rounded-xl border border-rose-200 px-3.5 py-2 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50"
+                onClick={handleDelete}
+              >
+                削除
+              </button>
+            )}
           </PageHeader>
         </div>
       </div>

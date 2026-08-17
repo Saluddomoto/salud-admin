@@ -26,7 +26,12 @@ export async function GET(req: Request) {
   }
 
   // サーバーは UTC で動くため JST の「今の時刻」を明示的に計算する
-  const jstHour = Number(new Date(Date.now() + 9 * 3600_000).toISOString().slice(11, 13))
+  const jstNow  = new Date(Date.now() + 9 * 3600_000)
+  const jstHour = jstNow.getUTCHours()
+  const jstDay  = jstNow.getUTCDay() // 0=日, 6=土
+  if (jstDay === 0 || jstDay === 6) {
+    return NextResponse.json({ ok: true, skipped: 'weekend' })
+  }
   if (jstHour < BUSINESS_HOUR_START || jstHour >= BUSINESS_HOUR_END) {
     return NextResponse.json({ ok: true, skipped: 'outside business hours' })
   }

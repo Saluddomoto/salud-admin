@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { DocumentsCard } from '@/components/DocumentsCard'
 import { TaxAmountInput } from '@/components/TaxAmountInput'
+import { useAuth } from '@/hooks/useAuth'
 import {
   deleteProject, fetchProject, fetchTasksByProject, fetchCustomers, fetchProfiles, insertTask,
   updateProject, updateProjectStatus, updateTaskStatus,
@@ -44,6 +45,8 @@ const PRIORITY_META: Record<DbTask['priority'], { label: string; cls: string }> 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { role } = useAuth()
+  const canDelete = role === 'admin' || role === 'manager'
   const [project,  setProject]  = useState<DbProject | null>(null)
   const [tasks,    setTasks]    = useState<DbTask[]>([])
   const [customers, setCustomers] = useState<DbCustomer[]>([])
@@ -200,12 +203,14 @@ export default function ProjectDetailPage() {
                 setEditOpen(true)
               }}
             >編集</button>
-            <button
-              className="rounded-xl border border-rose-200 px-3.5 py-2 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50"
-              onClick={handleDelete}
-            >
-              削除
-            </button>
+            {canDelete && (
+              <button
+                className="rounded-xl border border-rose-200 px-3.5 py-2 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50"
+                onClick={handleDelete}
+              >
+                削除
+              </button>
+            )}
           </PageHeader>
         </div>
       </div>
