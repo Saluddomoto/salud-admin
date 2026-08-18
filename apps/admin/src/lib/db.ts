@@ -414,7 +414,56 @@ export async function insertTask(input: {
 }
 
 export async function updateTaskStatus(id: string, status: string) {
-  const { error } = await db().from('tasks').update({ status }).eq('id', id)
+  const client = db()
+  const { error } = await client.from('tasks').update({ status }).eq('id', id)
+  if (error) throw error
+  if (status === 'done') {
+    await reflectCompletedTaskInMonthlyReport(client, id).catch(() => {})
+  }
+}
+
+// タスクを完了にした瞬間、担当者本人がその場で完了させた場合に限り、
+// その月の役員月報「タスク」欄へ自動で箇条書きを追記する。
+// monthly_reports への insert は RLS で本人（かつ役員）のみ許可されているため、
+// 他人がタスクを代理完了した場合や非役員の場合は静かにスキップする
+// （手動の「完了タスクを読み込む」ボタンは従来どおり別途利用可能）。
+async function reflectCompletedTaskInMonthlyReport(client: ReturnType<typeof createClient>, taskId: string) {
+  const { data: { user } } = await client.auth.getUser()
+  if (!user) return
+
+  const { data: task } = await client
+    .from('tasks')
+    .select('title, assigned_user_id')
+    .eq('id', taskId)
+    .maybeSingle()
+  if (!task?.title || task.assigned_user_id !== user.id) return
+
+  const jst = new Date(Date.now() + 9 * 3600_000)
+  const period = `${jst.getUTCFullYear()}-${String(jst.getUTCMonth() + 1).padStart(2, '0')}-01`
+
+  const { data: existing } = await client
+    .from('monthly_reports')
+    .select('actions, sales, tasks, initiatives')
+    .eq('user_id', user.id)
+    .eq('period', period)
+    .maybeSingle()
+
+  const bullet = `・${task.title}`
+  const currentTasks = existing?.tasks ?? ''
+  if (currentTasks.split('\n').includes(bullet)) return
+
+  const { error } = await client.from('monthly_reports').upsert(
+    {
+      user_id: user.id,
+      period,
+      actions: existing?.actions ?? '',
+      sales: existing?.sales ?? '',
+      initiatives: existing?.initiatives ?? '',
+      tasks: currentTasks ? `${currentTasks}\n${bullet}` : bullet,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id,period' }
+  )
   if (error) throw error
 }
 

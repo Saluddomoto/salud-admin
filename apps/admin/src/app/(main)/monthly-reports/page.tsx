@@ -234,8 +234,110 @@ export default function MonthlyReportsPage() {
     <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="役員月報" description="役員メンバーの月次活動報告・役員会議の事前シート（相互閲覧）" />
 
+      {/* 役員会議 事前シートセクション */}
+      <h2 className="text-sm font-bold text-slate-800">役員会議 事前シート</h2>
+
+      {/* 自分の事前シート */}
+      {isExecutive && me && (
+        <div className="card p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
+                {me.full_name?.[0] ?? '?'}
+              </span>
+              <div>
+                <p className="font-semibold text-slate-900">{me.full_name}（あなた）</p>
+                {myPrepSheet && !prepEditing && (
+                  <p className="text-xs text-slate-400">
+                    最終更新: {new Date(myPrepSheet.updated_at).toLocaleString('ja-JP')}
+                  </p>
+                )}
+              </div>
+            </div>
+            {!prepEditing && (
+              <button className="btn-secondary text-sm" onClick={() => setPrepEditing(true)}>
+                {myPrepSheet ? '編集' : '事前シートを書く'}
+              </button>
+            )}
+          </div>
+
+          {prepEditing ? (
+            <div className="space-y-4">
+              {PREP_FIELDS.map(f => (
+                <div key={f.key}>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{f.label}</label>
+                  <p className="mb-1.5 text-xs text-slate-400">{f.hint}</p>
+                  <textarea
+                    className="input min-h-[120px] resize-y"
+                    value={prepForm[f.key]}
+                    onChange={e => setPrepForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                  />
+                </div>
+              ))}
+              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+                <button
+                  type="button"
+                  className="btn-secondary text-sm"
+                  onClick={() => { setPrepEditing(false); setPrepForm(myPrepSheet
+                    ? {
+                        ideal_future: myPrepSheet.ideal_future ?? '',
+                        why_involved: myPrepSheet.why_involved ?? '',
+                        this_year_contribution: myPrepSheet.this_year_contribution ?? '',
+                        year_end_reflection: myPrepSheet.year_end_reflection ?? '',
+                      }
+                    : EMPTY_PREP_INPUT) }}
+                >
+                  キャンセル
+                </button>
+                <button className="btn-primary text-sm" onClick={handleSavePrep} disabled={prepSaving}>
+                  {prepSaving ? '保存中...' : '保存'}
+                </button>
+              </div>
+            </div>
+          ) : myPrepSheet ? (
+            <PrepBody sheet={myPrepSheet} />
+          ) : (
+            <p className="text-sm text-slate-400">まだ事前シートが書かれていません。</p>
+          )}
+        </div>
+      )}
+
+      {/* 他の役員の事前シート */}
+      {prepLoading ? (
+        <p className="p-12 text-center text-sm text-slate-400">読み込み中...</p>
+      ) : (
+        <div className="space-y-4">
+          {others.map(ex => {
+            const s = prepSheets.find(sh => sh.user_id === ex.id) ?? null
+            return (
+              <div key={ex.id} className="card p-5">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">
+                      {ex.full_name?.[0] ?? '?'}
+                    </span>
+                    <p className="font-semibold text-slate-900">{ex.full_name}</p>
+                  </div>
+                  {s && (
+                    <p className="text-xs text-slate-400">
+                      更新: {new Date(s.updated_at).toLocaleDateString('ja-JP')}
+                    </p>
+                  )}
+                </div>
+                {s ? <PrepBody sheet={s} /> : (
+                  <p className="text-sm text-slate-400">まだ事前シートが書かれていません。</p>
+                )}
+              </div>
+            )
+          })}
+          {others.length === 0 && !isExecutive && (
+            <p className="p-12 text-center text-sm text-slate-400">役員メンバーがいません</p>
+          )}
+        </div>
+      )}
+
       {/* 月報セクション */}
-      <div className="flex items-center justify-between">
+      <div className="mt-2 flex items-center justify-between">
         <h2 className="text-sm font-bold text-slate-800">月報</h2>
         <div className="flex items-center gap-1 rounded-xl border border-slate-200 p-1">
           <button
@@ -361,108 +463,6 @@ export default function MonthlyReportsPage() {
                 </div>
                 {r ? <ReportBody report={r} /> : (
                   <p className="text-sm text-slate-400">この月の報告はまだありません。</p>
-                )}
-              </div>
-            )
-          })}
-          {others.length === 0 && !isExecutive && (
-            <p className="p-12 text-center text-sm text-slate-400">役員メンバーがいません</p>
-          )}
-        </div>
-      )}
-
-      {/* 役員会議 事前シートセクション */}
-      <h2 className="mt-2 text-sm font-bold text-slate-800">役員会議 事前シート</h2>
-
-      {/* 自分の事前シート */}
-      {isExecutive && me && (
-        <div className="card p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
-                {me.full_name?.[0] ?? '?'}
-              </span>
-              <div>
-                <p className="font-semibold text-slate-900">{me.full_name}（あなた）</p>
-                {myPrepSheet && !prepEditing && (
-                  <p className="text-xs text-slate-400">
-                    最終更新: {new Date(myPrepSheet.updated_at).toLocaleString('ja-JP')}
-                  </p>
-                )}
-              </div>
-            </div>
-            {!prepEditing && (
-              <button className="btn-secondary text-sm" onClick={() => setPrepEditing(true)}>
-                {myPrepSheet ? '編集' : '事前シートを書く'}
-              </button>
-            )}
-          </div>
-
-          {prepEditing ? (
-            <div className="space-y-4">
-              {PREP_FIELDS.map(f => (
-                <div key={f.key}>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">{f.label}</label>
-                  <p className="mb-1.5 text-xs text-slate-400">{f.hint}</p>
-                  <textarea
-                    className="input min-h-[120px] resize-y"
-                    value={prepForm[f.key]}
-                    onChange={e => setPrepForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                  />
-                </div>
-              ))}
-              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                <button
-                  type="button"
-                  className="btn-secondary text-sm"
-                  onClick={() => { setPrepEditing(false); setPrepForm(myPrepSheet
-                    ? {
-                        ideal_future: myPrepSheet.ideal_future ?? '',
-                        why_involved: myPrepSheet.why_involved ?? '',
-                        this_year_contribution: myPrepSheet.this_year_contribution ?? '',
-                        year_end_reflection: myPrepSheet.year_end_reflection ?? '',
-                      }
-                    : EMPTY_PREP_INPUT) }}
-                >
-                  キャンセル
-                </button>
-                <button className="btn-primary text-sm" onClick={handleSavePrep} disabled={prepSaving}>
-                  {prepSaving ? '保存中...' : '保存'}
-                </button>
-              </div>
-            </div>
-          ) : myPrepSheet ? (
-            <PrepBody sheet={myPrepSheet} />
-          ) : (
-            <p className="text-sm text-slate-400">まだ事前シートが書かれていません。</p>
-          )}
-        </div>
-      )}
-
-      {/* 他の役員の事前シート */}
-      {prepLoading ? (
-        <p className="p-12 text-center text-sm text-slate-400">読み込み中...</p>
-      ) : (
-        <div className="space-y-4">
-          {others.map(ex => {
-            const s = prepSheets.find(sh => sh.user_id === ex.id) ?? null
-            return (
-              <div key={ex.id} className="card p-5">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">
-                      {ex.full_name?.[0] ?? '?'}
-                    </span>
-                    <p className="font-semibold text-slate-900">{ex.full_name}</p>
-                  </div>
-                  {s && (
-                    <p className="text-xs text-slate-400">
-                      更新: {new Date(s.updated_at).toLocaleDateString('ja-JP')}
-                    </p>
-                  )}
-                </div>
-                {s ? <PrepBody sheet={s} /> : (
-                  <p className="text-sm text-slate-400">まだ事前シートが書かれていません。</p>
                 )}
               </div>
             )
