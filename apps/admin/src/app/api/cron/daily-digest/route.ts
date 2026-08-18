@@ -63,7 +63,11 @@ export async function GET(req: Request) {
       : '・期限のタスクはありません')
 
     // チーム全体の予定（自分以外の分も共有）
-    const teamEvents = (events ?? []).filter(e => e.assigned_user_id !== m.id)
+    // 神前さんへの通知には堂本さんの予定を含めない（本人希望）
+    const teamEvents = (events ?? []).filter(e =>
+      e.assigned_user_id !== m.id &&
+      !(m.full_name === '神前元紀' && nameOf.get(e.assigned_user_id) === '堂本')
+    )
     if (teamEvents.length) {
       lines.push('', '👥 チームの予定')
       lines.push(teamEvents
