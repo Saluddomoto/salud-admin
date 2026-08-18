@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { fetchMyProfile } from '@/lib/db'
+import { fetchMyProfile, fetchMessages } from '@/lib/db'
 
 type NavItem = { href: string; label: string; icon: ReactNode; badge?: number; adminOnly?: boolean; executiveOnly?: boolean; external?: boolean }
 
@@ -42,7 +42,6 @@ const NAV_ITEMS: NavItem[] = [
   {
     href: '/subsidies',
     label: '補助金管理',
-    badge: 3,
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -59,7 +58,6 @@ const NAV_ITEMS: NavItem[] = [
   {
     href: '/inbox',
     label: '受信トレイ',
-    badge: 3,
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -182,9 +180,14 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
   const pathname = usePathname()
   const { user, role, signOut } = useAuth()
   const [isExecutive, setIsExecutive] = useState(false)
+  const [inboxBadge, setInboxBadge] = useState(0)
 
   useEffect(() => {
     fetchMyProfile().then(p => setIsExecutive(p?.is_executive === true)).catch(() => setIsExecutive(false))
+    // 受信トレイの「要返信」件数（未対応と同じ集計方法を /inbox と共有）
+    fetchMessages()
+      .then(msgs => setInboxBadge(msgs.filter(m => m.needs_reply).length))
+      .catch(() => setInboxBadge(0))
   }, [])
 
   const isActive = (href: string) =>
@@ -224,6 +227,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
             (!item.adminOnly || role === 'admin') &&
             (!item.executiveOnly || isExecutive)
           ).map(item => {
+            const badge = item.href === '/inbox' ? inboxBadge : item.badge
             const className = `
               flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors
               ${!item.external && isActive(item.href)
@@ -242,9 +246,9 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
                       d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
                 )}
-                {item.badge && (
+                {!!badge && (
                   <span className="bg-rose-500 text-white text-xs px-1.5 py-0.5 rounded-full leading-none">
-                    {item.badge}
+                    {badge}
                   </span>
                 )}
               </>
