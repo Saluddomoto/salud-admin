@@ -322,6 +322,8 @@ export default function RevenuePage() {
   const yearTargetTotal = categories.reduce((s, c) => s + annualTargetAmount(c), 0)
 
   const [breakdownFilter, setBreakdownFilter] = useState<'confirmed' | 'all' | null>(null)
+  // 「売上予測」内訳モーダル内での区分タブ（確定実績のみのモーダルでは使わない）
+  const [breakdownStatusTab, setBreakdownStatusTab] = useState<'all' | 'confirmed' | 'forecast'>('all')
   const yearRows = useMemo(() => {
     return [...rows, ...derivePipelineForecastRows(projects, manual), ...deriveFutureContractForecastRows(contracts, year)]
       .filter(r => r.entry_date && new Date(r.entry_date).getFullYear() === year)
@@ -329,7 +331,9 @@ export default function RevenuePage() {
   }, [rows, projects, contracts, year])
   const breakdownRows = breakdownFilter === 'confirmed'
     ? yearRows.filter(r => r.status === 'confirmed')
-    : yearRows
+    : breakdownStatusTab === 'all'
+      ? yearRows
+      : yearRows.filter(r => r.status === breakdownStatusTab)
 
   if (!authLoading && !canAccess) {
     return (
@@ -459,12 +463,12 @@ export default function RevenuePage() {
               <p className="text-xs text-slate-400">年間目標売上</p>
               <p className="mt-1 text-xl font-bold text-slate-900">{formatAmount(yearTargetTotal)}</p>
             </div>
-            <button type="button" className="card p-4 text-left transition-shadow hover:shadow-md" onClick={() => setBreakdownFilter('confirmed')}>
+            <button type="button" className="card p-4 text-left transition-shadow hover:shadow-md" onClick={() => { setBreakdownStatusTab('all'); setBreakdownFilter('confirmed') }}>
               <p className="text-xs text-slate-400">確定実績（{year}年）</p>
               <p className="mt-1 text-xl font-bold text-emerald-600">{formatAmount(yearTotalConfirmed)}</p>
               <p className="text-xs text-slate-400">達成率 {yearTargetTotal ? Math.round((yearTotalConfirmed / yearTargetTotal) * 100) : 0}%（クリックで内訳）</p>
             </button>
-            <button type="button" className="card p-4 text-left transition-shadow hover:shadow-md" onClick={() => setBreakdownFilter('all')}>
+            <button type="button" className="card p-4 text-left transition-shadow hover:shadow-md" onClick={() => { setBreakdownStatusTab('all'); setBreakdownFilter('all') }}>
               <p className="text-xs text-slate-400">売上予測（確定＋見込み）</p>
               <p className="mt-1 text-xl font-bold text-amber-600">{formatAmount(yearTotalWithForecast)}</p>
               <p className="text-xs text-slate-400">達成率 {yearTargetTotal ? Math.round((yearTotalWithForecast / yearTargetTotal) * 100) : 0}%（クリックで内訳）</p>
@@ -835,6 +839,28 @@ export default function RevenuePage() {
         open={breakdownFilter !== null}
         onClose={() => setBreakdownFilter(null)}
       >
+        {breakdownFilter === 'all' && (
+          <div className="mb-3 flex items-center gap-1 rounded-xl border border-slate-200 p-1 text-xs">
+            {[
+              { key: 'all' as const,       label: 'すべて' },
+              { key: 'confirmed' as const, label: '確定' },
+              { key: 'forecast' as const,  label: '見込み' },
+            ].map(t => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setBreakdownStatusTab(t.key)}
+                className={`rounded-lg px-3 py-1.5 font-medium transition-colors ${
+                  breakdownStatusTab === t.key
+                    ? 'bg-brand-600 text-white'
+                    : 'text-slate-500 hover:bg-slate-100'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
           <table className="w-full min-w-[520px] text-xs">
             <thead>
