@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { TaxAmountInput } from '@/components/TaxAmountInput'
@@ -55,6 +56,7 @@ function SortableTh({
 
 
 export default function RevenuePage() {
+  const router = useRouter()
   const { role, isLoading: authLoading } = useAuth()
   const [manual,   setManual]   = useState<DbRevenueEntry[]>([])
   const [projects, setProjects] = useState<DbProject[]>([])
@@ -875,9 +877,17 @@ export default function RevenuePage() {
             </thead>
             <tbody>
               {breakdownRows.map(r => (
-                <tr key={r.id} className="border-b border-slate-50">
+                <tr
+                  key={r.id}
+                  className={`border-b border-slate-50 ${r.projectId ? 'cursor-pointer hover:bg-slate-50' : ''}`}
+                  onClick={r.projectId ? () => router.push(`/projects/${r.projectId}`) : undefined}
+                  title={r.projectId ? '案件詳細を開く' : undefined}
+                >
                   <td className="px-2 py-2 whitespace-nowrap">{r.entry_date}</td>
-                  <td className="px-2 py-2">{r.payer_name}</td>
+                  <td className="px-2 py-2">
+                    {r.payer_name}
+                    {r.projectId && <span className="ml-1 text-slate-300">›</span>}
+                  </td>
                   <td className="px-2 py-2">{r.category}</td>
                   <td className="px-2 py-2 text-right font-medium">{formatAmount(r.amount_excl_tax)}</td>
                   <td className="px-2 py-2">
