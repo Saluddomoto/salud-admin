@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { useAuth } from '@/hooks/useAuth'
 import {
-  fetchContracts, insertContract, deleteContract,
+  fetchContracts, insertContract, updateContract, deleteContract,
   fetchContractTemplates, updateContractTemplate,
   type DbContract, type DbContractTemplate,
 } from '@/lib/db'
@@ -17,6 +17,31 @@ function todayIso(): string {
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+// テンプレート本文の「_のみの行」は区切り線として扱い、表示・印刷・コピー時は幅いっぱいの<hr>に変換する
+// （プレーンな下線文字だと短く見えてしまうため）
+function bodyToHtmlBlocks(body: string): string {
+  const lines = body.split('\n')
+  const blocks: string[] = []
+  let buffer: string[] = []
+  const flush = () => {
+    while (buffer.length && buffer[0]!.trim() === '') buffer.shift()
+    while (buffer.length && buffer[buffer.length - 1]!.trim() === '') buffer.pop()
+    if (buffer.length === 0) return
+    blocks.push(`<pre style="margin:0;white-space:pre-wrap;font-family:inherit;">${escapeHtml(buffer.join('\n'))}</pre>`)
+    buffer = []
+  }
+  for (const line of lines) {
+    if (/^_{3,}$/.test(line.trim())) {
+      flush()
+      blocks.push('<hr style="border:none;border-top:1px solid #94a3b8;margin:1.25em 0;" />')
+    } else {
+      buffer.push(line)
+    }
+  }
+  flush()
+  return blocks.join('')
 }
 
 // 一覧・詳細に表示する見出し用の値（最初のtext項目）と契約日（date項目）を取り出す
@@ -33,7 +58,7 @@ function dateLabel(tpl: DbContractTemplate | undefined, values: Record<string, s
 // Wordなどリッチテキスト対応先にはHTML(text-align:centerでタイトルを実際に中央寄せ)、
 // 非対応の貼り付け先にはプレーンテキストをフォールバックとして両方書き込む
 async function copyDocument(title: string, body: string) {
-  const html = `<div style="text-align:center;font-weight:bold;font-size:16px;font-family:'Yu Mincho','MS Mincho',serif;margin-bottom:24px;">${escapeHtml(title)}</div><div style="white-space:pre-wrap;font-family:'Yu Mincho','MS Mincho',serif;font-size:12px;line-height:1.6;">${escapeHtml(body)}</div>`
+  const html = `<div style="text-align:center;font-weight:bold;font-size:16px;font-family:'Yu Mincho','MS Mincho',serif;margin-bottom:24px;">${escapeHtml(title)}</div><div style="font-family:'Yu Mincho','MS Mincho',serif;font-size:12px;line-height:1.6;">${bodyToHtmlBlocks(body)}</div>`
   const text = `${title}\n\n\n${body}`
   try {
     await navigator.clipboard.write([
@@ -61,13 +86,14 @@ function openDocumentWindow(title: string, body: string, autoPrint: boolean) {
     pre { white-space: pre-wrap; font-family: inherit; font-size: 12px; }
     @media print { body { padding: 0; } }
   `
+  w.document.head.appendChild(style)
   const h1 = w.document.createElement('h1')
   h1.textContent = title
-  const pre = w.document.createElement('pre')
-  pre.textContent = body
-  w.document.head.appendChild(style)
   w.document.body.appendChild(h1)
-  w.document.body.appendChild(pre)
+  const content = w.document.createElement('div')
+  content.innerHTML = bodyToHtmlBlocks(body)
+  content.querySelectorAll('pre').forEach(p => { p.style.fontSize = '12px' })
+  w.document.body.appendChild(content)
   w.focus()
   if (autoPrint) setTimeout(() => w.print(), 300)
 }
@@ -84,6 +110,7 @@ export default function ContractsPage() {
 
   const [addOpen,      setAddOpen]      = useState(false)
   const [detail,       setDetail]       = useState<DbContract | null>(null)
+  const [editValues,   setEditValues]   = useState<DbContract | null>(null)
   const [editTemplate, setEditTemplate] = useState<DbContractTemplate | null>(null)
   const [manageOpen,   setManageOpen]   = useState(false)
 
@@ -182,6 +209,12 @@ export default function ContractsPage() {
                 <div className="flex gap-2">
                   <button
                     className="btn-secondary text-sm"
+                    onClick={() => setEditValues(detail)}
+                  >
+                    入力内容を編集
+                  </button>
+                  <button
+                    className="btn-secondary text-sm"
                     onClick={() => copyDocument(docTitle, detail.body)}
                   >
                     コピー
@@ -229,6 +262,15 @@ export default function ContractsPage() {
           onSaved={() => { setEditTemplate(null); load() }}
         />
       )}
+
+      {editValues && (
+        <EditValuesModal
+          contract={editValues}
+          template={getTemplate(editValues.template_key)}
+          onClose={() => setEditValues(null)}
+          onSaved={(c) => { setEditValues(null); setDetail(c); load() }}
+        />
+      )}
     </div>
   )
 }
@@ -247,12 +289,10 @@ function AddModal({ templates, onClose, onSaved }: {
 
   const setField = (token: string, v: string) => setValues(prev => ({ ...prev, [token]: v }))
 
-  const allFilled = template ? template.fields.every(f => (values[f.token] ?? '').trim() !== '') : false
-
   const preview = useMemo(() => {
-    if (!template || !allFilled) return ''
+    if (!template) return ''
     return renderContractBody(template.body_template, template.fields, values)
-  }, [template, allFilled, values])
+  }, [template, values])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -295,16 +335,16 @@ function AddModal({ templates, onClose, onSaved }: {
 
         {template.fields.map(f => (
           <div key={f.token}>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">{f.label} *</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">{f.label}</label>
             <input
               type={f.type === 'date' ? 'date' : 'text'}
               value={values[f.token] ?? (f.type === 'date' ? todayIso() : '')}
               onChange={e => setField(f.token, e.target.value)}
-              required
               className="input"
             />
           </div>
         ))}
+        <p className="text-xs text-slate-400">未確定の項目は空欄のまま作成し、あとで「入力内容を編集」から埋められます。</p>
 
         {preview && (
           <div>
@@ -330,6 +370,79 @@ function AddModal({ templates, onClose, onSaved }: {
           <button type="submit" disabled={saving} className="btn-primary text-sm">{saving ? '保存中...' : '作成する'}</button>
         </div>
       </form>
+    </Modal>
+  )
+}
+
+function EditValuesModal({ contract, template, onClose, onSaved }: {
+  contract: DbContract
+  template: DbContractTemplate | undefined
+  onClose: () => void
+  onSaved: (c: DbContract) => void
+}) {
+  const [values, setValues] = useState<Record<string, string>>(contract.values)
+  const [saving, setSaving] = useState(false)
+  const [err, setErr]       = useState('')
+
+  const setField = (token: string, v: string) => setValues(prev => ({ ...prev, [token]: v }))
+
+  const preview = useMemo(() => {
+    if (!template) return ''
+    return renderContractBody(template.body_template, template.fields, values)
+  }, [template, values])
+
+  const save = async () => {
+    if (!template) return
+    setSaving(true)
+    setErr('')
+    try {
+      const body = renderContractBody(template.body_template, template.fields, values)
+      const saved = await updateContract(contract.id, { values, body })
+      onSaved(saved)
+    } catch {
+      setErr('保存に失敗しました')
+      setSaving(false)
+    }
+  }
+
+  if (!template) {
+    return (
+      <Modal title="入力内容を編集" open onClose={onClose}>
+        <p className="text-sm text-slate-500">ひな形が見つかりませんでした。</p>
+      </Modal>
+    )
+  }
+
+  return (
+    <Modal title="入力内容を編集" open onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-xs text-slate-400">{template.label}</p>
+
+        {template.fields.map(f => (
+          <div key={f.token}>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">{f.label}</label>
+            <input
+              type={f.type === 'date' ? 'date' : 'text'}
+              value={values[f.token] ?? ''}
+              onChange={e => setField(f.token, e.target.value)}
+              className="input"
+            />
+          </div>
+        ))}
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">プレビュー</label>
+          <p className="mb-1.5 text-center text-sm font-bold text-slate-900">{template.title}</p>
+          <textarea readOnly value={preview} rows={10} className="input resize-y whitespace-pre-wrap font-serif text-xs leading-normal" />
+        </div>
+
+        {err && <p className="text-sm text-rose-600">{err}</p>}
+
+        <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+          <button type="button" className="btn-secondary text-sm" onClick={onClose}>キャンセル</button>
+          <button type="button" disabled={saving} onClick={save} className="btn-primary text-sm">{saving ? '保存中...' : '保存'}</button>
+        </div>
+      </div>
     </Modal>
   )
 }

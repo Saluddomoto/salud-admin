@@ -876,6 +876,19 @@ export async function deleteContract(id: string) {
   if (error) throw error
 }
 
+export async function updateContract(id: string, patch: {
+  values: Record<string, string>
+  body: string
+}): Promise<DbContract> {
+  const { data, error } = await db().from('contracts')
+    .update(patch)
+    .eq('id', id)
+    .select('id, template_key, values, body, created_by, created_at, author:profiles!contracts_created_by_fkey(full_name)')
+    .single()
+  if (error) throw error
+  return data as unknown as DbContract
+}
+
 export type DbContractTemplate = {
   id: string
   key: string
