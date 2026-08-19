@@ -31,6 +31,15 @@ function formatDateFull(iso: string): string {
 
 // 年内（2026年）は月2件ペースを目標とする（案件開始間もないため、通期の固定目標ではなく経過月数に応じた按分target）
 const MONTHLY_PACE_TARGET = 2
+// 契約開始は2026年7月のため、2026年はそこを起点に経過月数を数える（翌年以降は通常どおり1月起点）
+const PACE_START_YEAR = 2026
+const PACE_START_MONTH = 7 // 1月=1
+
+function elapsedPaceMonths(year: number, month: number): number {
+  if (year === PACE_START_YEAR) return Math.max(1, month - PACE_START_MONTH + 1)
+  if (year > PACE_START_YEAR) return month
+  return 0
+}
 
 // 集計用の登録日。フォーム回答は本人の送信日時、それ以外はシステムへの登録日を使う（registeredLabel と同じ基準）
 function registeredDate(a: DbPartnerAgency): Date {
@@ -80,7 +89,7 @@ export default function AgenciesPage() {
 
   const now = new Date()
   const currentYear = now.getFullYear()
-  const elapsedMonths = now.getMonth() + 1 // 1月=1
+  const elapsedMonths = elapsedPaceMonths(currentYear, now.getMonth() + 1)
   const paceTarget = elapsedMonths * MONTHLY_PACE_TARGET
   const yearCount = useMemo(
     () => agencies.filter(a => registeredDate(a).getFullYear() === currentYear).length,
@@ -155,7 +164,7 @@ export default function AgenciesPage() {
               <p className="text-xs text-slate-400">{currentYear}年 登録件数（月{MONTHLY_PACE_TARGET}件ペース目標）</p>
               <p className="text-xs text-slate-400">{progressPct}%</p>
             </div>
-            <p className="mt-1 text-xl font-bold text-slate-900">{yearCount}<span className="text-sm font-normal text-slate-400">社 / 目標 {paceTarget}社（{elapsedMonths}ヶ月経過分）</span></p>
+            <p className="mt-1 text-xl font-bold text-slate-900">{yearCount}<span className="text-sm font-normal text-slate-400">社 / 目標 {paceTarget}社（{currentYear === PACE_START_YEAR ? `${PACE_START_MONTH}月起点` : '1月起点'}・{elapsedMonths}ヶ月経過分）</span></p>
             <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
               <div
                 className={`h-full rounded-full ${progressPct >= 100 ? 'bg-emerald-500' : 'bg-brand-500'}`}
