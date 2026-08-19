@@ -29,6 +29,14 @@ function formatDateFull(iso: string): string {
   return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
 }
 
+const ANNUAL_TARGET = 150
+
+// 集計用の登録日。フォーム回答は本人の送信日時、それ以外はシステムへの登録日を使う（registeredLabel と同じ基準）
+function registeredDate(a: DbPartnerAgency): Date {
+  if (a.source === 'form' && a.form_timestamp) return new Date(a.form_timestamp)
+  return new Date(a.created_at)
+}
+
 // 登録時期の表示ラベル。フォーム回答は本人が送信した日時、それ以外はシステムへの登録日を使う
 function registeredLabel(a: DbPartnerAgency): string {
   if (a.source === 'form' && a.form_timestamp) {
@@ -68,6 +76,12 @@ export default function AgenciesPage() {
       a.company_name.toLowerCase().includes(q) ||
       (a.contact_person ?? '').toLowerCase().includes(q))
   }, [agencies, query])
+
+  const currentYear = new Date().getFullYear()
+  const yearCount = useMemo(
+    () => agencies.filter(a => registeredDate(a).getFullYear() === currentYear).length,
+    [agencies, currentYear])
+  const progressPct = Math.min(100, Math.round((yearCount / ANNUAL_TARGET) * 100))
 
   const handleSync = async () => {
     setSyncing(true)
@@ -124,6 +138,28 @@ export default function AgenciesPage() {
       )}
       {syncMsg && (
         <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">{syncMsg}</div>
+      )}
+
+      {!loading && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="card p-4">
+            <p className="text-xs text-slate-400">代理店 総件数</p>
+            <p className="mt-1 text-xl font-bold text-slate-900">{agencies.length}社</p>
+          </div>
+          <div className="card p-4">
+            <div className="flex items-baseline justify-between">
+              <p className="text-xs text-slate-400">{currentYear}年 登録件数（目標 {ANNUAL_TARGET}社）</p>
+              <p className="text-xs text-slate-400">{progressPct}%</p>
+            </div>
+            <p className="mt-1 text-xl font-bold text-slate-900">{yearCount}<span className="text-sm font-normal text-slate-400">社</span></p>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+              <div
+                className={`h-full rounded-full ${progressPct >= 100 ? 'bg-emerald-500' : 'bg-brand-500'}`}
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       <input
