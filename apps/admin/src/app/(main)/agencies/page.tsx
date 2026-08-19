@@ -29,7 +29,8 @@ function formatDateFull(iso: string): string {
   return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
 }
 
-const ANNUAL_TARGET = 150
+// 年内（2026年）は月2件ペースを目標とする（案件開始間もないため、通期の固定目標ではなく経過月数に応じた按分target）
+const MONTHLY_PACE_TARGET = 2
 
 // 集計用の登録日。フォーム回答は本人の送信日時、それ以外はシステムへの登録日を使う（registeredLabel と同じ基準）
 function registeredDate(a: DbPartnerAgency): Date {
@@ -77,11 +78,14 @@ export default function AgenciesPage() {
       (a.contact_person ?? '').toLowerCase().includes(q))
   }, [agencies, query])
 
-  const currentYear = new Date().getFullYear()
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const elapsedMonths = now.getMonth() + 1 // 1月=1
+  const paceTarget = elapsedMonths * MONTHLY_PACE_TARGET
   const yearCount = useMemo(
     () => agencies.filter(a => registeredDate(a).getFullYear() === currentYear).length,
     [agencies, currentYear])
-  const progressPct = Math.min(100, Math.round((yearCount / ANNUAL_TARGET) * 100))
+  const progressPct = Math.min(100, Math.round((yearCount / paceTarget) * 100))
 
   const handleSync = async () => {
     setSyncing(true)
@@ -148,10 +152,10 @@ export default function AgenciesPage() {
           </div>
           <div className="card p-4">
             <div className="flex items-baseline justify-between">
-              <p className="text-xs text-slate-400">{currentYear}年 登録件数（目標 {ANNUAL_TARGET}社）</p>
+              <p className="text-xs text-slate-400">{currentYear}年 登録件数（月{MONTHLY_PACE_TARGET}件ペース目標）</p>
               <p className="text-xs text-slate-400">{progressPct}%</p>
             </div>
-            <p className="mt-1 text-xl font-bold text-slate-900">{yearCount}<span className="text-sm font-normal text-slate-400">社</span></p>
+            <p className="mt-1 text-xl font-bold text-slate-900">{yearCount}<span className="text-sm font-normal text-slate-400">社 / 目標 {paceTarget}社（{elapsedMonths}ヶ月経過分）</span></p>
             <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
               <div
                 className={`h-full rounded-full ${progressPct >= 100 ? 'bg-emerald-500' : 'bg-brand-500'}`}
