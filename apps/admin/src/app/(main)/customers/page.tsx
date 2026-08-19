@@ -54,6 +54,7 @@ export default function CustomersPage() {
         employee_count: f.get('employee_count') ? Number(f.get('employee_count')) : null,
         status:         f.get('status') as string,
         phone:          f.get('phone') as string,
+        address:        f.get('address') as string,
       })
       setModalOpen(false)
       load()
@@ -159,6 +160,10 @@ export default function CustomersPage() {
               <label className="mb-1.5 block text-sm font-medium text-slate-700">従業員数</label>
               <input name="employee_count" type="number" className="input" placeholder="30" />
             </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">住所</label>
+            <input name="address" className="input" placeholder="東京都渋谷区..." />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">ステータス</label>

@@ -7,9 +7,47 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   fetchContracts, insertContract, updateContract, deleteContract,
   fetchContractTemplates, updateContractTemplate,
-  type DbContract, type DbContractTemplate,
+  fetchCustomers,
+  type DbContract, type DbContractTemplate, type DbCustomer,
 } from '@/lib/db'
-import { renderContractBody, toReiwa } from '@/lib/contractTemplates'
+import { renderContractBody, toReiwa, type ContractField } from '@/lib/contractTemplates'
+
+// テンプレートの差し込み項目ラベルから、顧客登録情報の対応する値を推測する
+// （テンプレートごとにトークン名は違うが、ラベルの言葉で「住所」「代表者/契約者」「会社名/名称/氏名」を判定）
+function suggestFromCustomer(field: ContractField, customer: DbCustomer): string {
+  if (field.label.includes('住所')) return customer.address ?? ''
+  if (field.label.includes('契約者') || field.label.includes('代表者')) {
+    const primary = customer.customer_contacts.find(c => c.is_primary) ?? customer.customer_contacts[0]
+    if (!primary) return ''
+    return [primary.title, primary.name].filter(Boolean).join('　')
+  }
+  if (field.label.includes('会社名') || field.label.includes('名称') || field.label.includes('氏名')) return customer.company_name
+  return ''
+}
+
+function CustomerFillPicker({ customers, onPick }: {
+  customers: DbCustomer[]
+  onPick: (customer: DbCustomer) => void
+}) {
+  if (customers.length === 0) return null
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+      <label className="mb-1.5 block text-xs font-medium text-slate-500">顧客登録情報から入力（会社名・住所・代表者を自動で埋めます）</label>
+      <select
+        defaultValue=""
+        onChange={e => {
+          const c = customers.find(x => x.id === e.target.value)
+          if (c) onPick(c)
+          e.target.value = ''
+        }}
+        className="input text-sm"
+      >
+        <option value="" disabled>顧客を選択...</option>
+        {customers.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+      </select>
+    </div>
+  )
+}
 
 function todayIso(): string {
   return new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
@@ -105,6 +143,7 @@ export default function ContractsPage() {
 
   const [contracts, setContracts] = useState<DbContract[]>([])
   const [templates, setTemplates] = useState<DbContractTemplate[]>([])
+  const [customers, setCustomers] = useState<DbCustomer[]>([])
   const [loading,   setLoading]   = useState(true)
   const [error,     setError]     = useState('')
 
@@ -117,8 +156,8 @@ export default function ContractsPage() {
   const getTemplate = (key: string) => templates.find(t => t.key === key)
 
   const load = () => {
-    Promise.all([fetchContracts(), fetchContractTemplates()])
-      .then(([c, t]) => { setContracts(c); setTemplates(t) })
+    Promise.all([fetchContracts(), fetchContractTemplates(), fetchCustomers()])
+      .then(([c, t, cu]) => { setContracts(c); setTemplates(t); setCustomers(cu) })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
   }
@@ -174,6 +213,7 @@ export default function ContractsPage() {
       {addOpen && (
         <AddModal
           templates={templates}
+          customers={customers}
           onClose={() => setAddOpen(false)}
           onSaved={(c) => { setAddOpen(false); load(); setDetail(c) }}
         />
@@ -267,6 +307,7 @@ export default function ContractsPage() {
         <EditValuesModal
           contract={editValues}
           template={getTemplate(editValues.template_key)}
+          customers={customers}
           onClose={() => setEditValues(null)}
           onSaved={(c) => { setEditValues(null); setDetail(c); load() }}
         />
@@ -275,8 +316,9 @@ export default function ContractsPage() {
   )
 }
 
-function AddModal({ templates, onClose, onSaved }: {
+function AddModal({ templates, customers, onClose, onSaved }: {
   templates: DbContractTemplate[]
+  customers: DbCustomer[]
   onClose: () => void
   onSaved: (c: DbContract) => void
 }) {
@@ -288,6 +330,18 @@ function AddModal({ templates, onClose, onSaved }: {
   const template = useMemo(() => templates.find(t => t.key === templateKey), [templates, templateKey])
 
   const setField = (token: string, v: string) => setValues(prev => ({ ...prev, [token]: v }))
+
+  const fillFromCustomer = (customer: DbCustomer) => {
+    if (!template) return
+    setValues(prev => {
+      const next = { ...prev }
+      for (const f of template.fields) {
+        const suggestion = suggestFromCustomer(f, customer)
+        if (suggestion) next[f.token] = suggestion
+      }
+      return next
+    })
+  }
 
   const preview = useMemo(() => {
     if (!template) return ''
@@ -333,6 +387,8 @@ function AddModal({ templates, onClose, onSaved }: {
           <p className="mt-1 text-xs text-slate-400">{template.description}</p>
         </div>
 
+        <CustomerFillPicker customers={customers} onPick={fillFromCustomer} />
+
         {template.fields.map(f => (
           <div key={f.token}>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">{f.label}</label>
@@ -374,9 +430,10 @@ function AddModal({ templates, onClose, onSaved }: {
   )
 }
 
-function EditValuesModal({ contract, template, onClose, onSaved }: {
+function EditValuesModal({ contract, template, customers, onClose, onSaved }: {
   contract: DbContract
   template: DbContractTemplate | undefined
+  customers: DbCustomer[]
   onClose: () => void
   onSaved: (c: DbContract) => void
 }) {
@@ -385,6 +442,18 @@ function EditValuesModal({ contract, template, onClose, onSaved }: {
   const [err, setErr]       = useState('')
 
   const setField = (token: string, v: string) => setValues(prev => ({ ...prev, [token]: v }))
+
+  const fillFromCustomer = (customer: DbCustomer) => {
+    if (!template) return
+    setValues(prev => {
+      const next = { ...prev }
+      for (const f of template.fields) {
+        const suggestion = suggestFromCustomer(f, customer)
+        if (suggestion) next[f.token] = suggestion
+      }
+      return next
+    })
+  }
 
   const preview = useMemo(() => {
     if (!template) return ''
@@ -417,6 +486,8 @@ function EditValuesModal({ contract, template, onClose, onSaved }: {
     <Modal title="入力内容を編集" open onClose={onClose}>
       <div className="space-y-4">
         <p className="text-xs text-slate-400">{template.label}</p>
+
+        <CustomerFillPicker customers={customers} onPick={fillFromCustomer} />
 
         {template.fields.map(f => (
           <div key={f.token}>

@@ -227,6 +227,7 @@ export async function insertCustomer(input: {
   employee_count: number | null
   status: string
   phone: string
+  address: string
   contact_name: string
 }) {
   const client = db()
@@ -239,6 +240,7 @@ export async function insertCustomer(input: {
       employee_count: input.employee_count,
       status:         input.status,
       phone:          input.phone || null,
+      address:        input.address || null,
       assigned_user_id: user?.id ?? null,
     })
     .select('id')
