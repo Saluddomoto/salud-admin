@@ -19,6 +19,10 @@ export type Row = {
   memo: string | null
   source: 'manual' | 'project'
   projectId?: string
+  // 補助金案件由来の行のみ設定。基本料金／成功報酬の内訳を売上台帳で表示するために使う
+  // （金額未定のカテゴリ平均額で暫定計上した申請中案件は内訳が出せないため未設定のまま）。
+  baseFee?: number
+  successFee?: number
 }
 
 export function deriveProjectRows(projects: DbProject[]): Row[] {
@@ -43,7 +47,9 @@ export function deriveProjectRows(projects: DbProject[]): Row[] {
         projectId: p.id,
       })
     } else if (p.status === 'accepted') {
-      const amount = (p.base_fee ?? 0) + (p.subsidy_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100)
+      const baseFee = p.base_fee ?? 0
+      const successFee = (p.subsidy_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100)
+      const amount = baseFee + successFee
       const date = p.result_at ?? p.deadline
       if (amount <= 0 || !date) continue
       rows.push({
@@ -58,6 +64,8 @@ export function deriveProjectRows(projects: DbProject[]): Row[] {
         memo: null,
         source: 'project',
         projectId: p.id,
+        baseFee,
+        successFee,
       })
     } else if (p.status === 'submitted') {
       // 申請済み案件は「採択されたらもらえる満額」を見込み（下書き）として台帳に出す。
@@ -66,7 +74,9 @@ export function deriveProjectRows(projects: DbProject[]): Row[] {
       // その場合はカテゴリの平均単価（目標設定タブの単価）を暫定額として使う。
       // 後から成功報酬率を入力すれば、そちらの実額計算に自動で置き換わる。
       const cat = matchRevenueCategoryFromSubsidyName(p.subsidy_name ?? '')
-      const preciseAmount = (p.base_fee ?? 0) + (p.subsidy_amount ?? p.applied_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100)
+      const baseFee = p.base_fee ?? 0
+      const successFee = (p.subsidy_amount ?? p.applied_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100)
+      const preciseAmount = baseFee + successFee
       const isEstimate = preciseAmount <= 0
       const amount = isEstimate ? (cat?.unitPrice ?? 0) : preciseAmount
       // 採択発表日が入力されていればその月に、無ければ申請期限の月に暫定計上する。
@@ -84,6 +94,8 @@ export function deriveProjectRows(projects: DbProject[]): Row[] {
         memo: isEstimate ? '申請中の見込み（金額未定・カテゴリ平均額で暫定計算）' : '申請中の見込み（下書き）',
         source: 'project',
         projectId: p.id,
+        // 金額未定でカテゴリ平均額を暫定計上した行は基本料金/成功報酬の内訳を出せないため未設定のまま
+        ...(isEstimate ? {} : { baseFee, successFee }),
       })
     }
   }

@@ -76,8 +76,25 @@ export type DbTask = {
   updated_at: string
   source: 'manual' | 'ai_line'
   reviewed_at: string | null
+  // true: 期限を設定しない「毎日のルーティンタスク」。完了状態は status ではなく
+  // 日付ごとの task_completions で管理する（毎日リセットされる）。
+  is_routine: boolean
   projects: { title: string } | null
   profiles: { full_name: string } | null
+}
+
+// ルーティンタスクの「その日の完了」ログ。1タスク×1日で最大1件（UNIQUE(task_id, completed_on)）。
+export type DbTaskCompletion = {
+  id: string
+  task_id: string
+  completed_on: string
+  completed_by: string | null
+}
+
+export type DbDashboardSettings = {
+  id: number
+  zoom_url: string | null
+  updated_at: string
 }
 
 export type NotificationPrefs = {
@@ -379,6 +396,7 @@ export async function approveDraftTask(id: string, input: {
   due_date: string | null
   project_id: string | null
   assigned_user_id?: string
+  is_routine?: boolean
 }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
@@ -403,6 +421,7 @@ export async function insertTask(input: {
   due_date: string | null
   project_id: string | null
   assigned_user_id?: string
+  is_routine?: boolean
 }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
@@ -477,8 +496,57 @@ export async function updateTask(id: string, input: {
   due_date: string | null
   project_id: string | null
   assigned_user_id?: string
+  is_routine?: boolean
 }) {
   const { error } = await db().from('tasks').update(input).eq('id', id)
+  if (error) throw error
+}
+
+// ルーティンタスクの当日分の完了ログ一覧を取得する（本日のタスクの完了判定に使う）。
+export async function fetchTaskCompletions(date: string): Promise<DbTaskCompletion[]> {
+  const { data, error } = await db()
+    .from('task_completions')
+    .select('*')
+    .eq('completed_on', date)
+  if (error) throw error
+  return data as DbTaskCompletion[]
+}
+
+// ルーティンタスクの「その日の完了」をオン/オフする（task.status は変更しない）。
+export async function setTaskCompletion(taskId: string, date: string, completed: boolean) {
+  const client = db()
+  if (completed) {
+    const { data: { user } } = await client.auth.getUser()
+    const { error } = await client
+      .from('task_completions')
+      .upsert({ task_id: taskId, completed_on: date, completed_by: user?.id ?? null }, { onConflict: 'task_id,completed_on' })
+    if (error) throw error
+  } else {
+    const { error } = await client
+      .from('task_completions')
+      .delete()
+      .eq('task_id', taskId)
+      .eq('completed_on', date)
+    if (error) throw error
+  }
+}
+
+export async function fetchDashboardSettings(): Promise<DbDashboardSettings | null> {
+  const { data, error } = await db()
+    .from('dashboard_settings')
+    .select('*')
+    .eq('id', 1)
+    .maybeSingle()
+  if (error) throw error
+  return data as DbDashboardSettings | null
+}
+
+export async function updateDashboardZoomUrl(zoomUrl: string | null) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client
+    .from('dashboard_settings')
+    .upsert({ id: 1, zoom_url: zoomUrl, updated_at: new Date().toISOString(), updated_by: user?.id ?? null })
   if (error) throw error
 }
 

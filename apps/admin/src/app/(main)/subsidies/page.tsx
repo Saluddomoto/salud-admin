@@ -91,6 +91,7 @@ export default function SubsidiesPage() {
   const [filter,   setFilter]   = useState('')
   const [view,     setView]     = useState<'list' | 'category'>('list')
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [year,     setYear]     = useState<number | null>(new Date().getFullYear())
 
   useEffect(() => {
     Promise.all([fetchProjects(), fetchRevenueLedger()])
@@ -107,7 +108,15 @@ export default function SubsidiesPage() {
     .filter(p => p.status === 'planning' || p.status === 'in_progress')
     .reduce((sum, p) => sum + (p.applied_amount ?? 0), 0)
 
-  const categoryStats = buildCategoryStats(projects, ledger)
+  // カテゴリ別実績タブの年度フィルタ。「申請期限」の年で年度を判定する
+  // （submitted_at は未入力運用のため使わず、案件管理で必ず入る deadline を使う）。
+  const projectsForYear = year == null
+    ? projects
+    : projects.filter(p => p.deadline && new Date(p.deadline).getFullYear() === year)
+  const ledgerForYear = year == null
+    ? ledger
+    : ledger.filter(e => e.entry_date && new Date(e.entry_date).getFullYear() === year)
+  const categoryStats = buildCategoryStats(projectsForYear, ledgerForYear)
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
@@ -208,12 +217,25 @@ export default function SubsidiesPage() {
       )}
 
       {view === 'category' && (
-        <div className="card overflow-hidden">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-2">
+            <button className="btn-secondary text-sm" onClick={() => setYear(y => (y ?? new Date().getFullYear()) - 1)}>← {(year ?? new Date().getFullYear()) - 1}年</button>
+            <span className="text-sm font-semibold text-slate-700">{year == null ? '全期間' : `${year}年`}</span>
+            <button className="btn-secondary text-sm" onClick={() => setYear(y => (y ?? new Date().getFullYear()) + 1)}>{(year ?? new Date().getFullYear()) + 1}年 →</button>
+            <button
+              className={`ml-2 rounded-full px-3 py-1 text-xs font-medium transition-colors ${year == null ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+              onClick={() => setYear(y => y == null ? new Date().getFullYear() : null)}
+            >
+              全期間
+            </button>
+            <span className="text-xs text-slate-400">「申請期限」の年で集計（案件管理の期限欄）</span>
+          </div>
+          <div className="card overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs text-slate-500">
                 <th className="px-4 py-3 font-medium">カテゴリ</th>
-                <th className="px-4 py-3 font-medium text-right">累計申請数</th>
+                <th className="px-4 py-3 font-medium text-right">{year == null ? '累計申請数' : '申請数'}</th>
                 <th className="px-4 py-3 font-medium text-right">審査中</th>
                 <th className="px-4 py-3 font-medium text-right">採択</th>
                 <th className="px-4 py-3 font-medium text-right">不採択</th>
@@ -336,6 +358,7 @@ export default function SubsidiesPage() {
             {MIN_DECIDED_FOR_ACTUAL_ACCEPTANCE_RATE}件に達したカテゴリは、この採択率（実績）が予測にも自動で反映されます
             （それ未満のカテゴリは業界目安の固定値のまま）。つまり不採択の記録が増えるほど、そのカテゴリの売上予測は実態に近づきます。
           </p>
+          </div>
         </div>
       )}
     </div>

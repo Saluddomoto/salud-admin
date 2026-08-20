@@ -396,13 +396,14 @@ export default function RevenuePage() {
 
       {tab === 'ledger' && (
         <div className="card overflow-x-auto p-0">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[1050px] text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
                 <SortableTh label="日付" sortKey="entry_date" current={sortKey} dir={sortDir} onClick={toggleSort} />
                 <SortableTh label="顧客" sortKey="payer_name" current={sortKey} dir={sortDir} onClick={toggleSort} />
                 <SortableTh label="カテゴリ" sortKey="category" current={sortKey} dir={sortDir} onClick={toggleSort} />
                 <SortableTh label="金額（税抜）" sortKey="amount_excl_tax" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
+                <th className="px-3 py-2.5">内訳（基本／成功報酬）</th>
                 <SortableTh label="区分" sortKey="status" current={sortKey} dir={sortDir} onClick={toggleSort} />
                 <th className="px-3 py-2.5">入金予定日</th>
                 <th className="px-3 py-2.5">入金日</th>
@@ -417,6 +418,11 @@ export default function RevenuePage() {
                   <td className="px-3 py-2.5">{r.payer_name}</td>
                   <td className="px-3 py-2.5">{r.category}</td>
                   <td className="px-3 py-2.5 text-right font-medium">{formatAmount(r.amount_excl_tax)}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-xs text-slate-500">
+                    {r.baseFee != null && r.successFee != null
+                      ? `基本 ${formatAmount(r.baseFee)} + 成功報酬 ${formatAmount(r.successFee)}`
+                      : '—'}
+                  </td>
                   <td className="px-3 py-2.5">
                     {r.source === 'manual' ? (
                       <button
@@ -453,7 +459,7 @@ export default function RevenuePage() {
                 </tr>
               ))}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={9} className="py-10 text-center text-sm text-slate-300">売上明細はまだありません</td></tr>
+                <tr><td colSpan={10} className="py-10 text-center text-sm text-slate-300">売上明細はまだありません</td></tr>
               )}
             </tbody>
           </table>

@@ -6,8 +6,15 @@ import { Modal } from '@/components/Modal'
 import {
   fetchTasks, fetchDraftTasks, fetchProjects, fetchProfiles, fetchMyProfile,
   insertTask, updateTask, approveDraftTask, dismissDraftTask, updateTaskStatus, deleteTask,
-  formatDate, type DbTask, type DbProject, type DbProfile,
+  fetchTaskCompletions, setTaskCompletion,
+  formatDate, type DbTask, type DbProject, type DbProfile, type DbTaskCompletion,
 } from '@/lib/db'
+
+function toISODate(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
 
 const COLUMNS = [
   { key: 'todo',        label: '未着手', dot: 'bg-slate-400' },
@@ -34,12 +41,15 @@ export default function TasksPage() {
   const [saving,     setSaving]     = useState(false)
   const [error,      setError]      = useState('')
   const [notice,     setNotice]     = useState('')
+  const [isRoutineForm, setIsRoutineForm] = useState(false)
+  const [todayCompletions, setTodayCompletions] = useState<DbTaskCompletion[]>([])
+  const today = toISODate(new Date())
 
   const canAssignOthers = me?.role === 'admin' || me?.role === 'manager'
   const isDraft = (t: DbTask) => t.source === 'ai_line' && !t.reviewed_at
 
-  const openCreate = () => { setEditingTask(null); setModalOpen(true) }
-  const openEdit = (t: DbTask) => { setEditingTask(t); setModalOpen(true) }
+  const openCreate = () => { setEditingTask(null); setIsRoutineForm(false); setModalOpen(true) }
+  const openEdit = (t: DbTask) => { setEditingTask(t); setIsRoutineForm(t.is_routine); setModalOpen(true) }
   const closeModal = () => { setModalOpen(false); setEditingTask(null) }
 
   // 下書き(承認待ち)は誰でも内容確認のうえ承認できる。それ以外は担当者本人か管理者/マネージャーのみ編集可
@@ -47,8 +57,11 @@ export default function TasksPage() {
   const canDeleteTask = (t: DbTask) => canAssignOthers || (t.status === 'done' && (t.assigned_user_id === me?.id))
 
   const load = () => {
-    Promise.all([fetchTasks(), fetchDraftTasks(), fetchProjects(), fetchMyProfile()])
-      .then(([t, d, p, mine]) => { setTasks(t); setDrafts(d); setProjects(p); setMe(mine) })
+    Promise.all([
+      fetchTasks(), fetchDraftTasks(), fetchProjects(), fetchMyProfile(),
+      fetchTaskCompletions(today).catch(() => []), // task_completions 未マイグレーションでも壊れないように
+    ])
+      .then(([t, d, p, mine, c]) => { setTasks(t); setDrafts(d); setProjects(p); setMe(mine); setTodayCompletions(c) })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
   }
@@ -72,7 +85,8 @@ export default function TasksPage() {
     setNotice('')
     const f = new FormData(e.currentTarget)
     const title        = f.get('title') as string
-    const due_date      = (f.get('due_date') as string) || null
+    const is_routine    = f.get('is_routine') === 'on'
+    const due_date      = is_routine ? null : (f.get('due_date') as string) || null
     const assignedTo   = canAssignOthers ? (f.get('assigned_user_id') as string) : undefined
     // 再通知が煩雑にならないよう、LINE通知は新規作成時のみ
     const shouldNotify = !editingTask && canAssignOthers && f.get('notify') === 'on' && assignedTo && assignedTo !== me?.id
@@ -82,6 +96,7 @@ export default function TasksPage() {
       description: (f.get('description') as string)?.trim() || null,
       priority:   f.get('priority') as string,
       due_date,
+      is_routine,
       project_id: (f.get('project_id') as string) || null,
       assigned_user_id: assignedTo || undefined,
     }
@@ -126,7 +141,22 @@ export default function TasksPage() {
     }
   }
 
-  const doneCount = visibleTasks.filter(t => t.status === 'done').length
+  const routineTasks = visibleTasks.filter(t => t.is_routine)
+  const kanbanTasks = visibleTasks.filter(t => !t.is_routine)
+  const completedTodayIds = new Set(todayCompletions.map(c => c.task_id))
+  const routineDoneCount = routineTasks.filter(t => completedTodayIds.has(t.id)).length
+  const doneCount = kanbanTasks.filter(t => t.status === 'done').length + routineDoneCount
+
+  const toggleRoutineCompletion = async (taskId: string) => {
+    const wasDone = completedTodayIds.has(taskId)
+    setTodayCompletions(prev => wasDone ? prev.filter(c => c.task_id !== taskId) : [...prev, { id: `optimistic-${taskId}`, task_id: taskId, completed_on: today, completed_by: me?.id ?? null }])
+    try {
+      await setTaskCompletion(taskId, today, !wasDone)
+    } catch {
+      setError('完了状態の更新に失敗しました')
+      load()
+    }
+  }
 
   const handleDelete = async (id: string) => {
     if (!confirm('このタスクを削除しますか？')) return
@@ -154,7 +184,7 @@ export default function TasksPage() {
 
   return (
     <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
-      <PageHeader title="タスク管理" description={`${doneCount}/${visibleTasks.length} 件完了`}>
+      <PageHeader title="タスク管理" description={`${doneCount}/${kanbanTasks.length + routineTasks.length} 件完了`}>
         {assigneeOptions.length > 0 && (
           <select className="input w-32 text-sm" value={assignee} onChange={e => setAssignee(e.target.value)}>
             <option value="">全員</option>
@@ -169,6 +199,46 @@ export default function TasksPage() {
       )}
       {notice && (
         <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">{notice}</div>
+      )}
+
+      {routineTasks.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
+            🔁 ルーティン（毎日）— {routineDoneCount}/{routineTasks.length} 件完了
+          </h3>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {routineTasks.map(t => {
+              const done = completedTodayIds.has(t.id)
+              const editable = canEditTask(t)
+              return (
+                <label
+                  key={t.id}
+                  className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-100 p-3 hover:bg-slate-50"
+                >
+                  <input
+                    type="checkbox"
+                    checked={done}
+                    onChange={() => toggleRoutineCompletion(t.id)}
+                    className="mt-0.5 rounded border-slate-300 text-brand-600"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className={`block text-sm font-medium ${done ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+                      {t.title}
+                    </span>
+                    <span className="text-xs text-slate-400">{t.profiles?.full_name ?? '—'}</span>
+                  </span>
+                  {editable && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); openEdit(t) }}
+                      className="flex-shrink-0 text-xs font-medium text-brand-600 hover:underline"
+                    >編集</button>
+                  )}
+                </label>
+              )
+            })}
+          </div>
+        </div>
       )}
 
       {drafts.length > 0 && (
@@ -199,7 +269,7 @@ export default function TasksPage() {
 
       <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
         {COLUMNS.map((col, colIdx) => {
-          const items = visibleTasks.filter(t => t.status === col.key)
+          const items = kanbanTasks.filter(t => t.status === col.key)
           return (
             <div key={col.key} className="flex flex-col rounded-2xl bg-slate-50/80 p-3">
               <div className="mb-3 flex items-center gap-2 px-1">
@@ -315,9 +385,20 @@ export default function TasksPage() {
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">期限</label>
-              <input name="due_date" type="date" className="input" defaultValue={editingTask?.due_date ?? ''} />
+              <input
+                name="due_date" type="date" className="input" disabled={isRoutineForm}
+                defaultValue={editingTask?.due_date ?? ''}
+              />
             </div>
           </div>
+          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500">
+            <input
+              type="checkbox" name="is_routine" checked={isRoutineForm}
+              onChange={e => setIsRoutineForm(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-slate-300 text-brand-600"
+            />
+            ルーティン（毎日のタスク・期限を設定しない。ダッシュボードとタスク管理に毎日表示され、完了は日ごとにリセットされます）
+          </label>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">関連案件</label>
             <select name="project_id" className="input" defaultValue={editingTask?.project_id ?? ''}>

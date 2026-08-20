@@ -5,9 +5,10 @@ import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import {
   fetchCustomerCount, fetchEvents, fetchMyProfile, fetchNeedsReplyCount, fetchProjects, fetchTasks,
-  fetchRevenueLedger, fetchRecurringContracts,
+  fetchRevenueLedger, fetchRecurringContracts, fetchTaskCompletions, setTaskCompletion,
+  fetchDashboardSettings, updateDashboardZoomUrl,
   formatAmount, updateTaskStatus, type DbEvent, type DbProfile, type DbProject, type DbTask,
-  type DbRevenueEntry, type DbRecurringContract,
+  type DbRevenueEntry, type DbRecurringContract, type DbTaskCompletion, type DbDashboardSettings,
 } from '@/lib/db'
 import { buildLedgerRows, derivePipelineForecastRows, deriveFutureContractForecastRows, sumRowsByBusinessLine } from '@/lib/revenueRows'
 import { BUSINESS_LINE_LABELS } from '@/lib/revenueCategories'
@@ -43,7 +44,13 @@ export default function DashboardPage() {
   const [me,            setMe]            = useState<DbProfile | null>(null)
   const [ledger,        setLedger]        = useState<DbRevenueEntry[]>([])
   const [contracts,     setContracts]     = useState<DbRecurringContract[]>([])
+  const [completions,   setCompletions]   = useState<DbTaskCompletion[]>([])
+  const [dashSettings,  setDashSettings]  = useState<DbDashboardSettings | null>(null)
   const [loading,       setLoading]       = useState(true)
+  const [zoomEditing,   setZoomEditing]   = useState(false)
+  const [zoomDraft,     setZoomDraft]     = useState('')
+  const [zoomSaving,    setZoomSaving]    = useState(false)
+  const [zoomCopied,    setZoomCopied]    = useState(false)
 
   const now = new Date()
   const today = toISODate(now)
@@ -58,6 +65,8 @@ export default function DashboardPage() {
       fetchMyProfile().then(setMe).catch(() => {}),
       fetchRevenueLedger().then(setLedger).catch(() => {}),
       fetchRecurringContracts().then(setContracts).catch(() => {}),
+      fetchTaskCompletions(today).then(setCompletions).catch(() => {}),
+      fetchDashboardSettings().then(setDashSettings).catch(() => {}),
     ]).finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -103,18 +112,62 @@ export default function DashboardPage() {
     .sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''))
     .slice(0, 5)
 
-  const todayTasks = tasks
-    .filter(t => t.due_date && t.due_date <= today)
-    .slice(0, 5)
-  const doneCount = todayTasks.filter(t => t.status === 'done').length
+  // ルーティン（期限なし・毎日）タスクは常に表示し、完了は task_completions（当日分）で判定する。
+  // それ以外は従来どおり期限が今日までのものを表示し、status で完了判定する。
+  const routineTasks = tasks.filter(t => t.is_routine)
+  const dueTasks = tasks.filter(t => !t.is_routine && t.due_date && t.due_date <= today).slice(0, 5)
+  const todayTasks = [...routineTasks, ...dueTasks]
+  const completedTodayIds = new Set(completions.map(c => c.task_id))
+  const doneCount = todayTasks.filter(t => t.is_routine ? completedTodayIds.has(t.id) : t.status === 'done').length
 
   const toggleTask = async (t: DbTask) => {
+    if (t.is_routine) {
+      const wasDone = completedTodayIds.has(t.id)
+      setCompletions(prev => wasDone
+        ? prev.filter(c => c.task_id !== t.id)
+        : [...prev, { id: `optimistic-${t.id}`, task_id: t.id, completed_on: today, completed_by: me?.id ?? null }])
+      try {
+        await setTaskCompletion(t.id, today, !wasDone)
+      } catch {
+        setCompletions(prev => wasDone
+          ? [...prev, { id: `optimistic-${t.id}`, task_id: t.id, completed_on: today, completed_by: me?.id ?? null }]
+          : prev.filter(c => c.task_id !== t.id))
+      }
+      return
+    }
     const next = t.status === 'done' ? 'todo' : 'done'
     setTasks(prev => prev.map(x => x.id === t.id ? { ...x, status: next } : x))
     try {
       await updateTaskStatus(t.id, next)
     } catch {
       setTasks(prev => prev.map(x => x.id === t.id ? { ...x, status: t.status } : x))
+    }
+  }
+
+  const startZoomEdit = () => { setZoomDraft(dashSettings?.zoom_url ?? ''); setZoomEditing(true) }
+
+  const saveZoomUrl = async () => {
+    setZoomSaving(true)
+    try {
+      const url = zoomDraft.trim() || null
+      await updateDashboardZoomUrl(url)
+      setDashSettings({ id: 1, zoom_url: url, updated_at: new Date().toISOString() })
+      setZoomEditing(false)
+    } catch {
+      // 保存失敗時は編集欄を開いたままにして再入力できるようにする
+    } finally {
+      setZoomSaving(false)
+    }
+  }
+
+  const copyZoomUrl = async () => {
+    if (!dashSettings?.zoom_url) return
+    try {
+      await navigator.clipboard.writeText(dashSettings.zoom_url)
+      setZoomCopied(true)
+      setTimeout(() => setZoomCopied(false), 1500)
+    } catch {
+      // クリップボードが使えない環境では何もしない
     }
   }
 
@@ -131,6 +184,52 @@ export default function DashboardPage() {
         <Link href="/subsidies" className="btn-secondary text-sm">補助金一覧</Link>
         <Link href="/projects" className="btn-primary text-sm">新規案件</Link>
       </PageHeader>
+
+      {/* Zoom URL（全社共有・1件） */}
+      <div className="card flex items-center gap-3 p-4">
+        <span className="flex-shrink-0 text-sm font-medium text-slate-700">Zoom URL</span>
+        {zoomEditing ? (
+          <>
+            <input
+              type="url"
+              className="input flex-1 text-sm"
+              placeholder="https://zoom.us/j/..."
+              value={zoomDraft}
+              onChange={e => setZoomDraft(e.target.value)}
+              autoFocus
+            />
+            <button type="button" disabled={zoomSaving} className="btn-primary text-sm flex-shrink-0" onClick={saveZoomUrl}>
+              {zoomSaving ? '保存中...' : '保存'}
+            </button>
+            <button type="button" className="btn-secondary text-sm flex-shrink-0" onClick={() => setZoomEditing(false)}>
+              キャンセル
+            </button>
+          </>
+        ) : dashSettings?.zoom_url ? (
+          <>
+            <a
+              href={dashSettings.zoom_url}
+              target="_blank" rel="noopener noreferrer"
+              className="min-w-0 flex-1 truncate text-sm text-brand-600 hover:underline"
+            >
+              {dashSettings.zoom_url}
+            </a>
+            <button type="button" className="btn-secondary text-sm flex-shrink-0" onClick={copyZoomUrl}>
+              {zoomCopied ? 'コピーしました' : 'コピー'}
+            </button>
+            <button type="button" className="text-xs font-medium text-slate-400 hover:text-brand-600 hover:underline flex-shrink-0" onClick={startZoomEdit}>
+              編集
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="flex-1 text-sm text-slate-400">未設定</span>
+            <button type="button" className="btn-secondary text-sm flex-shrink-0" onClick={startZoomEdit}>
+              URLを設定
+            </button>
+          </>
+        )}
+      </div>
 
       {/* 要返信アラート */}
       {needsReply > 0 && (
@@ -321,7 +420,7 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-2">
             {todayTasks.map(t => {
-              const done = t.status === 'done'
+              const done = t.is_routine ? completedTodayIds.has(t.id) : t.status === 'done'
               const pr = PRIORITY_META[t.priority]
               return (
                 <div key={t.id} className="flex items-center gap-3 rounded-lg p-2.5 hover:bg-slate-50">
@@ -336,7 +435,7 @@ export default function DashboardPage() {
                       {t.title}
                     </p>
                     <p className={`text-xs ${done ? 'text-slate-300' : 'text-slate-400'}`}>
-                      {t.projects?.title ?? '社内'} · 期限 {t.due_date}
+                      {t.projects?.title ?? '社内'} · {t.is_routine ? '毎日のルーティン' : `期限 ${t.due_date}`}
                     </p>
                   </div>
                   <span className={`badge text-xs flex-shrink-0 ${pr.cls}`}>{pr.label}</span>
