@@ -23,6 +23,8 @@ export type Row = {
   // （金額未定のカテゴリ平均額で暫定計上した申請中案件は内訳が出せないため未設定のまま）。
   baseFee?: number
   successFee?: number
+  // 手入力行のみ設定。1件＝基本料金 or 成功報酬のどちらか（案件由来の内訳とは別の入力方法）。
+  fee_type?: 'base_fee' | 'success_fee' | null
 }
 
 export function deriveProjectRows(projects: DbProject[]): Row[] {

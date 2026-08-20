@@ -228,6 +228,7 @@ export default function RevenuePage() {
     setSaving(true)
     setError('')
     const f = new FormData(e.currentTarget)
+    const feeType = f.get('fee_type') as string
     const input: RevenueEntryInput = {
       entry_date:             f.get('entry_date') as string,
       payer_name:             f.get('payer_name') as string,
@@ -237,6 +238,8 @@ export default function RevenuePage() {
       payment_due_date:        (f.get('payment_due_date') as string) || null,
       payment_received_date:   (f.get('payment_received_date') as string) || null,
       memo:                     (f.get('memo') as string)?.trim() || null,
+      // 未選択なら送らない（revenue_ledger.fee_type 列が未マイグレーションの環境でも壊れないように）
+      ...(feeType ? { fee_type: feeType as 'base_fee' | 'success_fee' } : {}),
     }
     try {
       if (editing) await updateRevenueEntry(editing.id, input)
@@ -421,6 +424,8 @@ export default function RevenuePage() {
                   <td className="px-3 py-2.5 whitespace-nowrap text-xs text-slate-500">
                     {r.baseFee != null && r.successFee != null
                       ? `基本 ${formatAmount(r.baseFee)} + 成功報酬 ${formatAmount(r.successFee)}`
+                      : r.fee_type === 'base_fee' ? '基本料金'
+                      : r.fee_type === 'success_fee' ? '成功報酬'
                       : '—'}
                   </td>
                   <td className="px-3 py-2.5">
@@ -999,6 +1004,14 @@ export default function RevenuePage() {
               <select name="status" required className="input" defaultValue={editing?.status ?? 'confirmed'}>
                 <option value="confirmed">確定</option>
                 <option value="forecast">見込み</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">金額の種別</label>
+              <select name="fee_type" className="input" defaultValue={editing?.fee_type ?? ''}>
+                <option value="">未選択（該当なし）</option>
+                <option value="base_fee">基本料金</option>
+                <option value="success_fee">成功報酬</option>
               </select>
             </div>
             <div className="sm:col-span-2">

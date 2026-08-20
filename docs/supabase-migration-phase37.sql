@@ -70,3 +70,9 @@ CREATE POLICY "dashboard_settings: staff+ update"
   ON public.dashboard_settings FOR UPDATE
   USING (public.get_my_role() IN ('admin', 'manager', 'staff'))
   WITH CHECK (public.get_my_role() IN ('admin', 'manager', 'staff'));
+
+-- 3. 売上台帳（手入力）の明細が「基本料金」か「成功報酬」かを選べるようにする。
+--    案件由来の行（採択済み・申請中の補助金案件）は base_fee/success_fee_rate から
+--    自動で内訳を出しているため対象外（アプリ側のロジックのみで対応、DB変更不要）。
+ALTER TABLE public.revenue_ledger
+  ADD COLUMN IF NOT EXISTS fee_type TEXT CHECK (fee_type IN ('base_fee', 'success_fee'));

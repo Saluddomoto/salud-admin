@@ -1093,6 +1093,8 @@ export type DbRevenueEntry = {
   payment_due_date: string | null
   payment_received_date: string | null
   memo: string | null
+  // 手入力の売上明細が「基本料金」か「成功報酬」かの区分（任意・補助金以外は未設定）。
+  fee_type: 'base_fee' | 'success_fee' | null
 }
 
 export type RevenueEntryInput = {
@@ -1104,12 +1106,15 @@ export type RevenueEntryInput = {
   payment_due_date: string | null
   payment_received_date: string | null
   memo: string | null
+  fee_type?: 'base_fee' | 'success_fee' | null
 }
 
 export async function fetchRevenueLedger(): Promise<DbRevenueEntry[]> {
+  // fee_type 列はマイグレーション未適用の環境でも壊れないよう select('*') にしている
+  // （個別カラム指定だと未追加の列名で 400 エラーになるため）。
   const { data, error } = await db()
     .from('revenue_ledger')
-    .select('id, entry_date, payer_name, category, amount_excl_tax, status, payment_due_date, payment_received_date, memo')
+    .select('*')
     .order('entry_date', { ascending: false })
   if (error) throw error
   return (data ?? []) as DbRevenueEntry[]
