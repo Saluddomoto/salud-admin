@@ -95,6 +95,7 @@ export default function ProjectDetailPage() {
         payment_due_date:      projectType === 'web' ? (f.get('payment_due_date') as string) || null : null,
         payment_received_date: projectType === 'web' ? (f.get('payment_received_date') as string) || null : null,
         deadline:          projectType === 'web' ? null : (f.get('deadline') as string) || null,
+        result_at:         projectType === 'web' ? null : (f.get('result_at') as string) || null,
         notes:             (f.get('notes') as string) || null,
         homepage_url:      (f.get('homepage_url') as string)?.trim() || null,
         assigned_user_id:   (f.get('assigned_user_id') as string) || null,
@@ -249,6 +250,7 @@ export default function ProjectDetailPage() {
               { label: '基本料金',   value: formatAmount(project.base_fee) },
               { label: '成功報酬',   value: project.success_fee_rate != null ? `${project.success_fee_rate}%` : '—' },
               { label: '申請期限',   value: project.deadline ?? '—' },
+              { label: '採択発表日', value: project.result_at ?? '—' },
               { label: '社内担当',   value: [project.profiles?.full_name, project.assignee2?.full_name].filter(Boolean).join('・') || '—' },
             ]).map(row => (
               <div key={row.label} className="flex gap-3">
@@ -426,6 +428,11 @@ export default function ProjectDetailPage() {
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">申請期限</label>
                   <input name="deadline" type="date" className="input" defaultValue={project.deadline ?? ''} />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">採択発表日</label>
+                  <input name="result_at" type="date" className="input" defaultValue={project.result_at ?? ''} />
+                  <p className="mt-1 text-xs text-slate-400">未定でも入力しておくと、売上予測（見込み）の計上月に反映されます</p>
                 </div>
               </>
             ) : (

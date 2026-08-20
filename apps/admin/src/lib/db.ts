@@ -333,6 +333,7 @@ export async function updateProject(id: string, input: {
   payment_due_date?: string | null
   payment_received_date?: string | null
   deadline: string | null
+  result_at?: string | null
   notes: string | null
   homepage_url?: string | null
   assigned_user_id?: string | null

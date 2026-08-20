@@ -69,7 +69,8 @@ export function deriveProjectRows(projects: DbProject[]): Row[] {
       const preciseAmount = (p.base_fee ?? 0) + (p.subsidy_amount ?? p.applied_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100)
       const isEstimate = preciseAmount <= 0
       const amount = isEstimate ? (cat?.unitPrice ?? 0) : preciseAmount
-      const date = p.deadline
+      // 採択発表日が入力されていればその月に、無ければ申請期限の月に暫定計上する。
+      const date = p.result_at ?? p.deadline
       if (amount <= 0 || !date) continue
       rows.push({
         id: `project-${p.id}`,
@@ -117,7 +118,7 @@ export function derivePipelineForecastRows(projects: DbProject[], ledger: DbReve
     const expectedSubsidyAmount = p.subsidy_amount ?? p.applied_amount ?? 0
     const successFeePortion = expectedSubsidyAmount * ((p.success_fee_rate ?? 0) / 100)
     const amount = Math.round((p.base_fee ?? 0) + successFeePortion * rate)
-    const date = p.deadline
+    const date = p.result_at ?? p.deadline
     if (amount <= 0 || !date) continue
     const isActual = rate !== cat.acceptanceRate
     rows.push({
