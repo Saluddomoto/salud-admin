@@ -1,5 +1,15 @@
 import type { DbProject, DbRevenueEntry } from '@/lib/db'
 
+// 事業ライン（補助金事業／WEB事業／その他）。カテゴリ別売上をこの単位で合算して
+// ダッシュボード・売上管理画面に「事業別の売上」として出す（案件管理の project_type とは別軸）。
+export type RevenueBusinessLine = 'subsidy' | 'web' | 'other'
+
+export const BUSINESS_LINE_LABELS: Record<RevenueBusinessLine, string> = {
+  subsidy: '補助金事業',
+  web: 'WEB事業',
+  other: 'その他',
+}
+
 // 商品カテゴリ別の年間目標（Excel「目標管理シート」入力_前提シート相当のデフォルト値）。
 // 年ごとの実際の目標値は revenue_category_targets テーブルで上書き可能（/revenue の目標設定タブ）。
 // 件数×単価＝目標売上（isMonthly のカテゴリは ×12 した月額換算）、原価率から目標粗利を算出する。
@@ -13,25 +23,32 @@ export type RevenueCategory = {
   // true: 月額×12ヶ月で年間目標売上を計算する（伴走・保守・SEO支援など毎月発生するもの）
   isMonthly?: boolean
   memo?: string
+  businessLine: RevenueBusinessLine
 }
 
 export const REVENUE_CATEGORIES: RevenueCategory[] = [
-  { name: '持続化補助金',       annualTargetCount: 28, unitPrice: 290_000,   costRate: 0.206, acceptanceRate: 0.7 },
-  { name: '省力化補助金',       annualTargetCount: 10, unitPrice: 750_000,   costRate: 0.2,   acceptanceRate: 0.6 },
-  { name: '新事業進出補助金',   annualTargetCount: 6,  unitPrice: 2_200_000, costRate: 0.25,  acceptanceRate: 0.4 },
-  { name: 'ものづくり補助金',   annualTargetCount: 3,  unitPrice: 500_000,   costRate: 0.2,   acceptanceRate: 0.5 },
-  { name: 'HP制作',            annualTargetCount: 6,  unitPrice: 750_000,   costRate: 0.4 },
-  { name: '伴走',              annualTargetCount: 10, unitPrice: 15_000,    costRate: 0.6, isMonthly: true, memo: '持続化補助金経由の顧客は15,000円/月、それ以外は30,000円/月と幅あり（単価は加重平均目安）' },
-  { name: '保守',              annualTargetCount: 4,  unitPrice: 7_000,     costRate: 0.1, isMonthly: true },
-  { name: 'SEO支援',           annualTargetCount: 1,  unitPrice: 100_000,   costRate: 0.3, isMonthly: true },
-  { name: 'ビビッドガーデン売上', annualTargetCount: 1, unitPrice: 3_000_000, costRate: 0.3 },
-  { name: 'その他',            annualTargetCount: 0,  unitPrice: 0,         costRate: 0.3 },
+  { name: '持続化補助金',       annualTargetCount: 28, unitPrice: 290_000,   costRate: 0.206, acceptanceRate: 0.7, businessLine: 'subsidy' },
+  { name: '省力化補助金',       annualTargetCount: 10, unitPrice: 750_000,   costRate: 0.2,   acceptanceRate: 0.6, businessLine: 'subsidy' },
+  { name: '新事業進出補助金',   annualTargetCount: 6,  unitPrice: 2_200_000, costRate: 0.25,  acceptanceRate: 0.4, businessLine: 'subsidy' },
+  { name: 'ものづくり補助金',   annualTargetCount: 3,  unitPrice: 500_000,   costRate: 0.2,   acceptanceRate: 0.5, businessLine: 'subsidy' },
+  { name: 'HP制作',            annualTargetCount: 6,  unitPrice: 750_000,   costRate: 0.4, businessLine: 'web' },
+  { name: '伴走',              annualTargetCount: 10, unitPrice: 15_000,    costRate: 0.6, isMonthly: true, memo: '持続化補助金経由の顧客は15,000円/月、それ以外は30,000円/月と幅あり（単価は加重平均目安）', businessLine: 'web' },
+  { name: '保守',              annualTargetCount: 4,  unitPrice: 7_000,     costRate: 0.1, isMonthly: true, businessLine: 'web' },
+  { name: 'SEO支援',           annualTargetCount: 1,  unitPrice: 100_000,   costRate: 0.3, isMonthly: true, businessLine: 'web' },
+  { name: 'ビビッドガーデン売上', annualTargetCount: 1, unitPrice: 3_000_000, costRate: 0.3, businessLine: 'other' },
+  { name: 'その他',            annualTargetCount: 0,  unitPrice: 0,         costRate: 0.3, businessLine: 'other' },
 ]
 
 export const REVENUE_CATEGORY_NAMES = REVENUE_CATEGORIES.map(c => c.name)
 
 export function findRevenueCategory(name: string): RevenueCategory | null {
   return REVENUE_CATEGORIES.find(c => c.name === name) ?? null
+}
+
+// カテゴリ名から事業ラインを引く。案件管理の自由入力等で REVENUE_CATEGORIES に無い
+// カテゴリ名が来た場合は 'other' 扱い（売上台帳の「その他・未分類」と同じ考え方）。
+export function businessLineOfCategory(categoryName: string): RevenueBusinessLine {
+  return findRevenueCategory(categoryName)?.businessLine ?? 'other'
 }
 
 // カテゴリの年間目標売上（isMonthly なら 件数×単価×12、それ以外は 件数×単価）

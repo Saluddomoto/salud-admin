@@ -2,7 +2,10 @@
 // /revenue（売上台帳・月次実績・売上予測）と ダッシュボードの売上サマリーの両方から使う
 // 共通の計算元 — ここを分けて重複実装すると、画面ごとに数字がズレる原因になる。
 import { addMonths, type DbProject, type DbRevenueEntry, type DbRecurringContract } from '@/lib/db'
-import { matchRevenueCategoryFromSubsidyName, buildCategoryAcceptanceStats, resolveAcceptanceRate } from '@/lib/revenueCategories'
+import {
+  matchRevenueCategoryFromSubsidyName, buildCategoryAcceptanceStats, resolveAcceptanceRate,
+  businessLineOfCategory, type RevenueBusinessLine,
+} from '@/lib/revenueCategories'
 
 export type Row = {
   id: string
@@ -171,4 +174,15 @@ export function deriveFutureContractForecastRows(contracts: DbRecurringContract[
 export function buildLedgerRows(manual: DbRevenueEntry[], projects: DbProject[]): Row[] {
   const manualRows: Row[] = manual.map(r => ({ ...r, source: 'manual' as const }))
   return [...manualRows, ...deriveProjectRows(projects)]
+}
+
+// 売上行を事業ライン（補助金事業／WEB事業／その他）別に合算する。
+// ダッシュボードの売上管理カードや /revenue の事業別サマリーで、
+// 「ウェブ売上」と「補助金事業の売上」を分けて見せるために使う共通集計。
+export function sumRowsByBusinessLine(rows: Row[]): Record<RevenueBusinessLine, number> {
+  const totals: Record<RevenueBusinessLine, number> = { subsidy: 0, web: 0, other: 0 }
+  for (const r of rows) {
+    totals[businessLineOfCategory(r.category)] += r.amount_excl_tax
+  }
+  return totals
 }

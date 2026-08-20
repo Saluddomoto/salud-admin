@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Fragment, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
@@ -17,10 +17,12 @@ import {
   type DbRevenueSettings, type DbRevenueCategoryTarget,
 } from '@/lib/db'
 import {
-  REVENUE_CATEGORIES, REVENUE_CATEGORY_NAMES, annualTargetAmount,
-  type RevenueCategory,
+  REVENUE_CATEGORIES, REVENUE_CATEGORY_NAMES, annualTargetAmount, BUSINESS_LINE_LABELS,
+  type RevenueCategory, type RevenueBusinessLine,
 } from '@/lib/revenueCategories'
-import { deriveProjectRows, derivePipelineForecastRows, deriveFutureContractForecastRows, type Row } from '@/lib/revenueRows'
+import { deriveProjectRows, derivePipelineForecastRows, deriveFutureContractForecastRows, sumRowsByBusinessLine, type Row } from '@/lib/revenueRows'
+
+const BUSINESS_LINES: RevenueBusinessLine[] = ['subsidy', 'web', 'other']
 
 // Excel「入力_前提」シートの全体KGI相当のデフォルト値。revenue_settings に上書きが無い年はこれを使う。
 const DEFAULT_SETTINGS = {
@@ -337,6 +339,12 @@ export default function RevenuePage() {
       ? yearRows
       : yearRows.filter(r => r.status === breakdownStatusTab)
 
+  // 事業別（補助金事業／WEB事業）の内訳。「ウェブ売上」と「補助金事業の売上」を分けて見せる。
+  const lineTotalsConfirmed = useMemo(
+    () => sumRowsByBusinessLine(yearRows.filter(r => r.status === 'confirmed')), [yearRows]
+  )
+  const lineTotalsWithForecast = useMemo(() => sumRowsByBusinessLine(yearRows), [yearRows])
+
   if (!authLoading && !canAccess) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-6 text-center">
@@ -477,6 +485,31 @@ export default function RevenuePage() {
             </button>
           </div>
 
+          {/* 事業別の売上（補助金事業／WEB事業）。ウェブ売上と補助金事業の売上を分けて確認できるようにする */}
+          <div className="card overflow-x-auto p-0">
+            <div className="border-b border-slate-100 px-4 py-3">
+              <h3 className="text-sm font-semibold text-slate-900">事業別の売上（{year}年）</h3>
+            </div>
+            <table className="w-full min-w-[500px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
+                  <th className="px-3 py-2">事業</th>
+                  <th className="px-3 py-2 text-right">確定実績</th>
+                  <th className="px-3 py-2 text-right">確定＋見込み</th>
+                </tr>
+              </thead>
+              <tbody>
+                {BUSINESS_LINES.filter(line => lineTotalsConfirmed[line] || lineTotalsWithForecast[line]).map(line => (
+                  <tr key={line} className="border-b border-slate-50">
+                    <td className="px-3 py-2 font-medium text-slate-700">{BUSINESS_LINE_LABELS[line]}</td>
+                    <td className="px-3 py-2 text-right text-emerald-600">{formatAmount(lineTotalsConfirmed[line])}</td>
+                    <td className="px-3 py-2 text-right text-amber-600">{formatAmount(lineTotalsWithForecast[line])}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
           {[
             { key: 'confirmed' as const,    title: '月次実績（確定分のみ）', note: null },
             {
@@ -500,24 +533,41 @@ export default function RevenuePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {categories.map(cat => {
+                  {categories.map((cat, i) => {
                     const bucket = monthlyTotals.get(cat.name)!
                     const arr = bucket[block.key]
                     const total = arr.reduce((a, b) => a + b, 0)
                     const target = annualTargetAmount(cat)
                     const rate = target ? Math.round((total / target) * 100) : null
+                    // 事業ライン（補助金事業／WEB事業／その他）が切り替わる境目に小計行を挟んで、
+                    // 「ウェブ売上」と「補助金事業の売上」を視覚的に分ける。
+                    const nextCat = categories[i + 1]
+                    const isLineBoundary = !nextCat || nextCat.businessLine !== cat.businessLine
+                    const lineTotal = categories
+                      .filter(c => c.businessLine === cat.businessLine)
+                      .reduce((s, c) => s + (monthlyTotals.get(c.name)?.[block.key].reduce((a, b) => a + b, 0) ?? 0), 0)
                     return (
-                      <tr key={cat.name} className="border-b border-slate-50">
-                        <td className="px-3 py-2 font-medium text-slate-700">{cat.name}</td>
-                        {arr.map((v, i) => (
-                          <td key={i} className="px-2 py-2 text-right text-slate-500">{v ? formatAmount(v) : '—'}</td>
-                        ))}
-                        <td className="px-3 py-2 text-right font-semibold text-slate-900">{formatAmount(total)}</td>
-                        <td className="px-3 py-2 text-right text-slate-400">{target ? formatAmount(target) : '—'}</td>
-                        <td className={`px-3 py-2 text-right font-medium ${rate === null ? 'text-slate-300' : rate >= 100 ? 'text-emerald-600' : rate >= 60 ? 'text-amber-600' : 'text-rose-500'}`}>
-                          {rate === null ? '—' : `${rate}%`}
-                        </td>
-                      </tr>
+                      <Fragment key={cat.name}>
+                        <tr className="border-b border-slate-50">
+                          <td className="px-3 py-2 font-medium text-slate-700">{cat.name}</td>
+                          {arr.map((v, mi) => (
+                            <td key={mi} className="px-2 py-2 text-right text-slate-500">{v ? formatAmount(v) : '—'}</td>
+                          ))}
+                          <td className="px-3 py-2 text-right font-semibold text-slate-900">{formatAmount(total)}</td>
+                          <td className="px-3 py-2 text-right text-slate-400">{target ? formatAmount(target) : '—'}</td>
+                          <td className={`px-3 py-2 text-right font-medium ${rate === null ? 'text-slate-300' : rate >= 100 ? 'text-emerald-600' : rate >= 60 ? 'text-amber-600' : 'text-rose-500'}`}>
+                            {rate === null ? '—' : `${rate}%`}
+                          </td>
+                        </tr>
+                        {isLineBoundary && (
+                          <tr key={`${cat.businessLine}-subtotal`} className="border-b border-slate-200 bg-slate-50/50">
+                            <td className="px-3 py-1.5 text-xs font-semibold text-slate-500">{BUSINESS_LINE_LABELS[cat.businessLine]} 小計</td>
+                            <td colSpan={MONTHS.length} />
+                            <td className="px-3 py-1.5 text-right text-xs font-semibold text-slate-600">{formatAmount(lineTotal)}</td>
+                            <td colSpan={2} />
+                          </tr>
+                        )}
+                      </Fragment>
                     )
                   })}
                 </tbody>

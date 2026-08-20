@@ -9,7 +9,8 @@ import {
   formatAmount, updateTaskStatus, type DbEvent, type DbProfile, type DbProject, type DbTask,
   type DbRevenueEntry, type DbRecurringContract,
 } from '@/lib/db'
-import { buildLedgerRows, derivePipelineForecastRows, deriveFutureContractForecastRows } from '@/lib/revenueRows'
+import { buildLedgerRows, derivePipelineForecastRows, deriveFutureContractForecastRows, sumRowsByBusinessLine } from '@/lib/revenueRows'
+import { BUSINESS_LINE_LABELS } from '@/lib/revenueCategories'
 
 const EVENT_COLORS: Record<DbEvent['category'], string> = {
   sales: '#f59e0b', meeting: '#6366f1', deadline: '#ef4444', internal: '#64748b',
@@ -89,11 +90,13 @@ export default function DashboardPage() {
   const thisYearRevenueRows = allRevenueRows.filter(
     r => r.entry_date && new Date(r.entry_date).getFullYear() === currentYear
   )
-  const confirmedRevenueThisYear = thisYearRevenueRows
-    .filter(r => r.status === 'confirmed')
-    .reduce((s, r) => s + r.amount_excl_tax, 0)
-  const confirmedCountThisYear = thisYearRevenueRows.filter(r => r.status === 'confirmed').length
+  const confirmedRowsThisYear = thisYearRevenueRows.filter(r => r.status === 'confirmed')
+  const confirmedRevenueThisYear = confirmedRowsThisYear.reduce((s, r) => s + r.amount_excl_tax, 0)
+  const confirmedCountThisYear = confirmedRowsThisYear.length
   const withForecastRevenueThisYear = thisYearRevenueRows.reduce((s, r) => s + r.amount_excl_tax, 0)
+  // 事業別（補助金事業／WEB事業）の内訳。/revenue と同じ集計関数(sumRowsByBusinessLine)を使う。
+  const confirmedByLine = sumRowsByBusinessLine(confirmedRowsThisYear)
+  const withForecastByLine = sumRowsByBusinessLine(thisYearRevenueRows)
 
   const alerts = active
     .filter(p => p.deadline && daysUntil(p.deadline, today) >= 0 && daysUntil(p.deadline, today) <= 14)
@@ -212,11 +215,19 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-500">確定売上（{currentYear}年・{confirmedCountThisYear}件）</p>
               <p className="mt-1 text-2xl font-bold text-emerald-600">{formatAmount(confirmedRevenueThisYear)}</p>
               <p className="mt-0.5 text-[11px] text-slate-400">入金済み・採択済みなど実額が確定した分</p>
+              <div className="mt-2 flex gap-3 border-t border-slate-100 pt-2 text-[11px] text-slate-500">
+                <span>{BUSINESS_LINE_LABELS.subsidy}: {formatAmount(confirmedByLine.subsidy)}</span>
+                <span>{BUSINESS_LINE_LABELS.web}: {formatAmount(confirmedByLine.web)}</span>
+              </div>
             </div>
             <div className="rounded-xl bg-white/60 p-4">
               <p className="text-xs text-slate-500">確定＋見込み（{currentYear}年）</p>
               <p className="mt-1 text-2xl font-bold text-amber-600">{formatAmount(withForecastRevenueThisYear)}</p>
               <p className="mt-0.5 text-[11px] text-slate-400">申請中・パイプライン案件を採択率で加重した見込みを含む</p>
+              <div className="mt-2 flex gap-3 border-t border-slate-100 pt-2 text-[11px] text-slate-500">
+                <span>{BUSINESS_LINE_LABELS.subsidy}: {formatAmount(withForecastByLine.subsidy)}</span>
+                <span>{BUSINESS_LINE_LABELS.web}: {formatAmount(withForecastByLine.web)}</span>
+              </div>
             </div>
           </div>
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
