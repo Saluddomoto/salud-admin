@@ -281,24 +281,15 @@ export default function SettingsPage() {
     }
   }
 
-  // 設定は管理者のみ利用可能
-  if (!authLoading && role !== 'admin') {
-    return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-6 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
-          <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-        </div>
-        <h2 className="text-lg font-bold text-slate-900">設定は管理者のみ利用できます</h2>
-        <p className="text-sm text-slate-500">このページを表示する権限がありません。</p>
-        <a href="/" className="mt-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-          ダッシュボードに戻る
-        </a>
-      </div>
-    )
-  }
+  // 全員が自分のプロフィール・通知設定・パスワードを管理できる。
+  // 「メンバー管理」「連携サービス」（会社共通のGoogle/LINE連携）は管理者のみに絞り込む。
+  const ADMIN_ONLY_TABS: TabKey[] = ['members', 'integrations']
+  const visibleTabs = TABS.filter(t => role === 'admin' || !ADMIN_ONLY_TABS.includes(t.key))
+
+  useEffect(() => {
+    if (!authLoading && role !== 'admin' && ADMIN_ONLY_TABS.includes(tab)) setTab('profile')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, role, tab])
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
@@ -307,7 +298,7 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-[200px_1fr]">
         {/* 左ナビ */}
         <nav className="flex gap-1 overflow-x-auto md:flex-col">
-          {TABS.map(t => (
+          {visibleTabs.map(t => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
