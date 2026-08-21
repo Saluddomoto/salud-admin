@@ -35,6 +35,26 @@ function daysUntil(date: string, today: string): number {
   return Math.round((new Date(date).getTime() - new Date(today).getTime()) / 86_400_000)
 }
 
+// ヘッダーの常時表示クロック（1秒ごとに更新）
+function HeaderClock() {
+  const [now, setNow] = useState(new Date())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+  const dateLabel = now.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' })
+
+  return (
+    <div className="flex items-baseline gap-2 rounded-xl border border-slate-100 bg-white px-4 py-2 shadow-sm">
+      <span className="font-mono text-2xl font-bold tabular-nums leading-none text-slate-900">{time}</span>
+      <span className="whitespace-nowrap text-xs text-slate-500">{dateLabel}</span>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const [projects,      setProjects]      = useState<DbProject[]>([])
   const [tasks,         setTasks]         = useState<DbTask[]>([])
@@ -173,14 +193,14 @@ export default function DashboardPage() {
 
   const hour = now.getHours()
   const greeting = hour < 12 ? 'おはようございます' : hour < 18 ? 'こんにちは' : 'こんばんは'
-  const dateLabel = now.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader
         title="ダッシュボード"
-        description={`${dateLabel} — ${greeting}`}
+        description={greeting}
       >
+        <HeaderClock />
         <Link href="/subsidies" className="btn-secondary text-sm">補助金一覧</Link>
         <Link href="/projects" className="btn-primary text-sm">新規案件</Link>
       </PageHeader>
