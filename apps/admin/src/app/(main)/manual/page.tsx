@@ -235,6 +235,36 @@ export default function ManualPage() {
         </ul>
       </section>
 
+      {/* システムの保存先・PC故障時の復旧手順 */}
+      <section className="card p-5">
+        <h2 className="text-sm font-bold text-slate-800">システムの保存先・PC故障時の復旧手順</h2>
+        <div className="mt-3 space-y-3 text-sm leading-relaxed text-slate-600">
+          <p>
+            本システムは <span className="font-medium">Vercel</span>（アプリ本体）と{' '}
+            <span className="font-medium">Supabase</span>（データベース）というクラウド上で稼働しています。
+            社内の特定のパソコンには依存していないため、開発担当者のPCが故障・紛失しても、
+            このシステムの稼働やデータには影響ありません（メンバーは今まで通りログイン・利用できます）。
+          </p>
+          <p>
+            プログラム本体（ソースコード）は <span className="font-medium">GitHub</span>{' '}
+            にもバックアップされています：
+            <br />
+            <code className="text-xs">https://github.com/Saluddomoto/salud-admin</code>
+          </p>
+          <p className="font-medium text-slate-700">開発用PCが故障し、別のPCで開発を再開する場合の手順：</p>
+          <ol className="list-decimal space-y-1 pl-5">
+            <li><code className="text-xs">git clone https://github.com/Saluddomoto/salud-admin.git</code></li>
+            <li>Supabaseダッシュボード（プロジェクト設定 → API）からURL・鍵を取得し、各アプリの <code className="text-xs">.env.local</code> を作り直す</li>
+            <li>リポジトリ直下で <code className="text-xs">pnpm install</code>（pnpmモノレポのため、npm/yarnは使わない）</li>
+            <li><code className="text-xs">pnpm build --filter=@salud/admin</code> または各アプリで <code className="text-xs">pnpm dev</code> により開発再開</li>
+            <li>Vercelへのデプロイを再び行いたい場合は <code className="text-xs">npx vercel link</code> でこのプロジェクトに再接続</li>
+          </ol>
+          <p className="text-xs text-slate-400">
+            ※ 本番環境（実際に使う画面）自体はVercel上で稼働し続けるため、上記はあくまで「今後の開発・修正作業を再開するための手順」です。
+          </p>
+        </div>
+      </section>
+
       {/* 権限の違い */}
       <section className="flex flex-col gap-4">
         <h2 className="px-1 text-sm font-bold text-slate-800">権限（ロール）の違い</h2>
