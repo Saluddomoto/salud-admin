@@ -28,6 +28,26 @@ const PRIORITY_META = {
   low:    { label: '低', cls: 'bg-slate-100 text-slate-500' },
 } as const
 
+// 担当者名から決定的に色を割り当てる（DBに色は持たせず、名前のハッシュ値でパレットを選ぶ）
+const ASSIGNEE_COLORS = [
+  { bar: 'border-l-sky-400',     dot: 'bg-sky-500',     text: 'text-sky-700' },
+  { bar: 'border-l-emerald-400', dot: 'bg-emerald-500', text: 'text-emerald-700' },
+  { bar: 'border-l-amber-400',   dot: 'bg-amber-500',   text: 'text-amber-700' },
+  { bar: 'border-l-rose-400',    dot: 'bg-rose-500',    text: 'text-rose-700' },
+  { bar: 'border-l-violet-400',  dot: 'bg-violet-500',  text: 'text-violet-700' },
+  { bar: 'border-l-cyan-400',    dot: 'bg-cyan-500',    text: 'text-cyan-700' },
+  { bar: 'border-l-fuchsia-400', dot: 'bg-fuchsia-500', text: 'text-fuchsia-700' },
+  { bar: 'border-l-lime-500',    dot: 'bg-lime-500',    text: 'text-lime-700' },
+] as const
+
+function assigneeColor(name: string | null | undefined) {
+  const fallback = { bar: 'border-l-slate-200', dot: 'bg-slate-300', text: 'text-slate-400' }
+  if (!name) return fallback
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0
+  return ASSIGNEE_COLORS[hash % ASSIGNEE_COLORS.length] ?? fallback
+}
+
 export default function TasksPage() {
   const [tasks,      setTasks]      = useState<DbTask[]>([])
   const [drafts,     setDrafts]     = useState<DbTask[]>([])
@@ -201,6 +221,20 @@ export default function TasksPage() {
         <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">{notice}</div>
       )}
 
+      {assigneeOptions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+          {assigneeOptions.map(name => {
+            const c = assigneeColor(name)
+            return (
+              <span key={name} className="inline-flex items-center gap-1">
+                <span className={`h-2 w-2 rounded-full ${c.dot}`} />
+                {name}
+              </span>
+            )
+          })}
+        </div>
+      )}
+
       {routineTasks.length > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
@@ -281,11 +315,12 @@ export default function TasksPage() {
                 {items.map(t => {
                   const pr = PRIORITY_META[t.priority]
                   const editable = canEditTask(t)
+                  const ac = assigneeColor(t.profiles?.full_name)
                   return (
                     <div
                       key={t.id}
                       onClick={() => editable && openEdit(t)}
-                      className={`card p-3.5 transition-shadow hover:shadow-md ${editable ? 'cursor-pointer' : ''}`}
+                      className={`card border-l-4 ${ac.bar} p-2.5 transition-shadow hover:shadow-md ${editable ? 'cursor-pointer' : ''}`}
                       title={editable ? 'クリックして編集' : undefined}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -295,35 +330,39 @@ export default function TasksPage() {
                         <span className={`badge flex-shrink-0 text-xs ${pr.cls}`}>{pr.label}</span>
                       </div>
                       {t.description && (
-                        <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-slate-500">{t.description}</p>
+                        <p className="mt-1 line-clamp-2 text-xs leading-snug text-slate-500">{t.description}</p>
                       )}
-                      <p className="mt-1.5 text-xs text-slate-400">{t.projects?.title ?? '—'}</p>
-                      <div className="mt-3 flex items-center justify-between border-t border-slate-50 pt-2.5">
-                        <span className="text-xs text-slate-500">
-                          {t.profiles?.full_name ?? '—'} · 〆 {formatDate(t.due_date)}
+                      <div
+                        className="mt-2 flex items-center justify-between gap-2 border-t border-slate-50 pt-2"
+                        title={t.projects?.title ?? undefined}
+                      >
+                        <span className={`inline-flex min-w-0 items-center gap-1 text-xs font-medium ${ac.text}`}>
+                          <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${ac.dot}`} />
+                          <span className="truncate">{t.profiles?.full_name ?? '—'}</span>
+                          <span className="flex-shrink-0 text-slate-400">・〆{formatDate(t.due_date)}</span>
                         </span>
-                        <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                        <div className="flex flex-shrink-0 gap-1" onClick={e => e.stopPropagation()}>
                           {colIdx > 0 && (
-                            <button
-                              onClick={() => moveStatus(t.id, COLUMNS[colIdx - 1]!.key)}
-                              title={`${COLUMNS[colIdx - 1]!.label}に戻す`}
-                              className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-50"
-                            >←</button>
-                          )}
-                          {colIdx < COLUMNS.length - 1 && (
-                            <button
-                              onClick={() => moveStatus(t.id, COLUMNS[colIdx + 1]!.key)}
-                              title={`${COLUMNS[colIdx + 1]!.label}へ進める`}
-                              className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-50"
-                            >→</button>
-                          )}
-                          {canDeleteTask(t) && (
-                            <button
-                              onClick={() => handleDelete(t.id)}
-                              title="削除"
-                              className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-rose-500 hover:bg-rose-50"
-                            >×</button>
-                          )}
+                          <button
+                            onClick={() => moveStatus(t.id, COLUMNS[colIdx - 1]!.key)}
+                            title={`${COLUMNS[colIdx - 1]!.label}に戻す`}
+                            className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-50"
+                          >←</button>
+                        )}
+                        {colIdx < COLUMNS.length - 1 && (
+                          <button
+                            onClick={() => moveStatus(t.id, COLUMNS[colIdx + 1]!.key)}
+                            title={`${COLUMNS[colIdx + 1]!.label}へ進める`}
+                            className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-50"
+                          >→</button>
+                        )}
+                        {canDeleteTask(t) && (
+                          <button
+                            onClick={() => handleDelete(t.id)}
+                            title="削除"
+                            className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-rose-500 hover:bg-rose-50"
+                          >×</button>
+                        )}
                         </div>
                       </div>
                     </div>

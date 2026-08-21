@@ -113,29 +113,31 @@ export default function ProjectsPage() {
                 <h3 className="text-sm font-semibold text-slate-700">{col.label}</h3>
                 <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">{items.length}</span>
               </div>
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-2">
                 {items.map(p => (
-                  <div key={p.id} className="card p-3.5 transition-shadow hover:shadow-md">
-                    <Link href={`/projects/${p.id}`} className="text-sm font-semibold leading-snug text-slate-900 hover:text-brand-600 hover:underline">
-                      {p.title}
-                    </Link>
-                    <p className="mt-1 text-xs text-slate-500">{p.customers?.company_name ?? '—'}</p>
-                    <div className="mt-3 flex items-center justify-between text-xs">
-                      <span className="font-semibold text-slate-700">
+                  <div key={p.id} className="card p-2.5 transition-shadow hover:shadow-md">
+                    <div className="flex items-start justify-between gap-2">
+                      <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-sm font-semibold leading-snug text-slate-900 hover:text-brand-600 hover:underline">
+                        {p.title}
+                      </Link>
+                      <span className="flex-shrink-0 text-xs font-semibold text-slate-700">
                         {p.project_type === 'web'
                           ? formatAmount(p.web_fee_excl_tax)
                           : formatAmount(p.applied_amount)}
                       </span>
-                      <span className="text-slate-400">
-                        {p.project_type === 'web' ? `入金予定 ${formatDate(p.payment_due_date)}` : `〆 ${formatDate(p.deadline)}`}
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-500">
+                      <span className="min-w-0 truncate">{p.customers?.company_name ?? '—'}</span>
+                      <span className="flex-shrink-0 text-slate-400">
+                        {p.project_type === 'web' ? `入金 ${formatDate(p.payment_due_date)}` : `〆 ${formatDate(p.deadline)}`}
                       </span>
                     </div>
-                    <div className="mt-2.5 flex items-center justify-between border-t border-slate-50 pt-2.5">
-                      <span className="text-xs text-slate-500">
+                    <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-50 pt-2">
+                      <span className="min-w-0 truncate text-xs text-slate-500">
                         {[p.profiles?.full_name, p.assignee2?.full_name].filter(Boolean).join('・') || '—'}
                       </span>
                       <select
-                        className="rounded-lg border border-slate-200 px-1.5 py-1 text-xs text-slate-600"
+                        className="flex-shrink-0 rounded-lg border border-slate-200 px-1 py-0.5 text-xs text-slate-600"
                         value={p.status}
                         onChange={e => moveStatus(p.id, e.target.value)}
                       >
