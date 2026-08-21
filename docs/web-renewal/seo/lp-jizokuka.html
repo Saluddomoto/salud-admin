@@ -1,0 +1,181 @@
+<!--
+============================================================
+ SEOランディングページ：小規模事業者持続化補助金 サポート
+ 貼り付け先：WordPress 固定ページ →「カスタムHTML」ブロック
+ スラッグ(URL)：jizokuka   → https://salud-web.jp/jizokuka/
+ タイトルタグ(Yoast)：小規模事業者持続化補助金の申請サポート｜成功報酬型・採択まで伴走｜株式会社Salud
+ メタディスクリプション(Yoast)：小規模事業者持続化補助金の申請をプロがサポート。事前確認130件超・採択率82%の実績。計画書作成から採択後の報告まで伴走し、成功報酬12%・不採択なら0円。相談・診断は無料です。
+ フォーカスキーフレーズ(Yoast)：小規模事業者持続化補助金 サポート
+============================================================
+-->
+<style>
+.jz{max-width:960px;margin:0 auto;padding:0 4px;color:#1f2937;line-height:1.9;font-size:16.5px}
+.jz-crumb{max-width:960px;margin:0 auto 20px;padding:0 4px;font-size:13px;color:#64748b;display:flex;flex-wrap:wrap;gap:7px;align-items:center;line-height:1.6}
+.jz-crumb a{color:#0d9488;text-decoration:none}
+.jz-crumb a:hover{text-decoration:underline}
+.jz-crumb .sep{color:#cbd5e1}
+.jz-crumb .cur{color:#475569;font-weight:700}
+.jz h1{font-size:clamp(26px,4vw,38px);line-height:1.35;font-weight:800;margin:.2em 0 .6em;letter-spacing:.01em}
+.jz h1 .mk{background:linear-gradient(transparent 62%,#fde68a 62%);padding:0 .1em}
+.jz h2{font-size:clamp(21px,3vw,27px);font-weight:800;margin:2.4em 0 .8em;padding-left:.6em;border-left:6px solid #0ea5a4;line-height:1.4}
+.jz h3{font-size:18.5px;font-weight:800;margin:1.6em 0 .4em;color:#0f766e}
+.jz p{margin:.7em 0}
+.jz .lead{font-size:17.5px;color:#334155}
+.jz .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:1.2em 0}
+.jz .card{background:#f0fdfa;border:1px solid #ccfbf1;border-radius:14px;padding:20px 16px;text-align:center}
+.jz .card .k{font-size:13px;color:#0f766e;font-weight:700}
+.jz .card .v{font-size:26px;font-weight:800;color:#0d9488;margin-top:4px}
+.jz .card .v small{font-size:14px;font-weight:700}
+.jz ul.check{list-style:none;padding:0;margin:1em 0}
+.jz ul.check li{position:relative;padding:8px 0 8px 34px;border-bottom:1px dashed #e2e8f0}
+.jz ul.check li:before{content:"✓";position:absolute;left:4px;top:8px;color:#0d9488;font-weight:900}
+.jz .flow{counter-reset:s;list-style:none;padding:0;margin:1em 0}
+.jz .flow li{counter-increment:s;position:relative;padding:14px 16px 14px 62px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin:10px 0}
+.jz .flow li:before{content:counter(s);position:absolute;left:16px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:#0d9488;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center}
+.jz .flow li b{display:block;color:#0f172a}
+.jz .price{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:1.2em 0}
+.jz .price .pc{border:1px solid #e5e7eb;border-radius:14px;padding:20px 16px;text-align:center;background:#fff}
+.jz .price .pc.hot{border:2px solid #0d9488;background:#f0fdfa}
+.jz .price .pc .t{font-size:13px;color:#64748b;font-weight:700}
+.jz .price .pc .n{font-size:30px;font-weight:800;color:#0f172a;margin:4px 0}
+.jz .price .pc .n small{font-size:15px}
+.jz .price .pc .c{font-size:12.5px;color:#64748b}
+.jz .faq{margin:1em 0}
+.jz .faq details{border:1px solid #e5e7eb;border-radius:12px;padding:4px 18px;margin:10px 0;background:#fff}
+.jz .faq summary{font-weight:700;cursor:pointer;padding:14px 0;list-style:none}
+.jz .faq summary::-webkit-details-marker{display:none}
+.jz .faq summary:before{content:"Q. ";color:#0d9488;font-weight:800}
+.jz .faq details p{padding:0 0 14px;color:#334155}
+.jz .cta{background:linear-gradient(135deg,#0f766e,#0d9488);border-radius:20px;padding:40px 24px;text-align:center;color:#fff;margin:2.4em 0 1em}
+.jz .cta h2{color:#fff;border:none;padding:0;margin:0 0 .5em;font-size:clamp(22px,3.4vw,30px)}
+.jz .cta p{color:#d1fae5;margin:.3em 0 1.2em}
+.jz .btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.jz .btn{display:inline-block;padding:15px 28px;border-radius:999px;font-weight:800;text-decoration:none;font-size:16px}
+.jz .btn.y{background:#facc15;color:#1f2937}
+.jz .btn.l{background:#06c755;color:#fff}
+.jz .tel{margin-top:16px;color:#ecfeff;font-size:15px}
+.jz .tel b{font-size:22px}
+.jz .note{font-size:13px;color:#64748b}
+.jz .eyecatch{width:100%;height:auto;border-radius:18px;margin:0 0 30px;display:block;box-shadow:0 10px 30px rgba(13,148,136,.15)}
+.jz-author{max-width:960px;margin:36px auto 0;padding:22px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;display:flex;gap:18px;align-items:flex-start}
+.jz-author img{width:84px;height:84px;border-radius:50%;flex-shrink:0;background:#eef2f7;object-fit:cover}
+.jz-author .role{font-size:12.5px;color:#0f766e;font-weight:800;letter-spacing:.02em}
+.jz-author .name{font-size:19px;font-weight:800;color:#0f172a;margin:2px 0 6px}
+.jz-author .name .sup{font-size:11px;color:#94a3b8;font-weight:700;margin-left:6px}
+.jz-author p{margin:0;font-size:14px;line-height:1.8;color:#475569}
+@media(max-width:600px){.jz .cards,.jz .price{grid-template-columns:1fr}.jz-author{flex-direction:column;align-items:center;text-align:center}}
+</style>
+
+<nav class="jz-crumb" aria-label="パンくずリスト">
+  <a href="https://salud-web.jp/">ホーム</a>
+  <span class="sep">›</span>
+  <a href="https://salud-web.jp/#services">補助金申請支援</a>
+  <span class="sep">›</span>
+  <span class="cur" aria-current="page">小規模事業者持続化補助金</span>
+</nav>
+
+<div class="jz">
+
+  <!-- h1 は WordPressのページタイトルが自動出力します（ここには置かない） -->
+  <img class="eyecatch" src="https://salud-web.jp/wp-content/uploads/2026/07/jizokuka-hero.png" alt="小規模事業者持続化補助金 販路開拓・売上アップを補助金で 補助上限250万円・補助率2/3">
+
+  <p class="lead">「小規模事業者持続化補助金を使いたいが、計画書の書き方がわからない」——そんな事業者様を、<strong>中小企業庁認定の経営革新等支援機関</strong>である株式会社Saludが、申請から採択後の実績報告まで一貫してサポートします。相談・診断は無料、費用は<strong>成功報酬型（採択時のみ）</strong>です。</p>
+
+  <div class="cards">
+    <div class="card"><div class="k">補助上限</div><div class="v">最大250<small>万円</small></div></div>
+    <div class="card"><div class="k">補助率</div><div class="v">2/3</div></div>
+    <div class="card"><div class="k">相談・診断</div><div class="v">無料</div></div>
+  </div>
+
+  <h2>小規模事業者持続化補助金とは</h2>
+  <p>小規模事業者持続化補助金は、小規模事業者が取り組む<strong>販路開拓・売上拡大・業務効率化</strong>の費用の一部を国が補助する制度です。補助上限は最大250万円、補助率は原則2/3。チラシ・Web広告・<strong>ホームページ制作</strong>・店舗改装・展示会出展・新商品開発など、幅広い使い道が認められているのが特長で、はじめて補助金に挑戦する事業者にも活用しやすい制度です。</p>
+
+  <h3>対象になる主な経費</h3>
+  <ul class="check">
+    <li>広告・販促費（チラシ、ポスティング、Web広告、看板 など）</li>
+    <li>ウェブサイト関連費（集客用ホームページ・ネットショップの制作／改修）</li>
+    <li>店舗改装・外装工事（来店促進のためのリニューアル）</li>
+    <li>機械装置等費（業務効率化のための機器・設備の導入）</li>
+    <li>展示会出展費・新商品の開発費 など</li>
+  </ul>
+  <p class="note">※公募回により対象経費・上限額・要件は変わります。最新の公募要領に沿ってご提案します。</p>
+
+  <h2>Saludの持続化補助金サポート内容</h2>
+  <p>「補助金が通るかどうか」は、事業計画書の完成度で大きく変わります。Saludは審査目線を熟知した専門家が、<strong>採択される計画書づくり</strong>を軸に、面倒な手続きをまるごと代行・伴走します。</p>
+  <ul class="check">
+    <li>対象診断・活用プランのご提案（無料）</li>
+    <li>事業計画書・補助事業計画の作成サポート（審査目線での添削）</li>
+    <li>商工会議所／商工会の様式（事業支援計画書=様式4）取得のご案内</li>
+    <li>電子申請（Jグランツ）の入力・提出サポート</li>
+    <li>採択後の交付申請・実績報告まで伴走（もらい忘れ・返還リスクを防止）</li>
+    <li>補助対象のホームページ制作・広告・集客まで<strong>ワンストップ</strong>で対応</li>
+  </ul>
+
+  <h2>実績</h2>
+  <div class="cards">
+    <div class="card"><div class="k">持続化補助金の事前確認</div><div class="v">130<small>件超</small></div></div>
+    <div class="card"><div class="k">採択率</div><div class="v">82<small>%</small></div></div>
+    <div class="card"><div class="k">経営相談</div><div class="v">約1,000<small>件</small></div></div>
+  </div>
+  <p class="note">※銀行・商工会議所出身の担当者による実績を含みます。採択率は公募回により変動します。</p>
+
+  <h2>支援料金</h2>
+  <div class="price">
+    <div class="pc"><div class="t">基本料金</div><div class="n" style="font-size:22px">お見積り</div><div class="c">税別・ご依頼時のみ<br>（相談・診断は無料）</div></div>
+    <div class="pc hot"><div class="t">成功報酬（採択時）</div><div class="n">12<small>%</small></div><div class="c">採択金額の12%（税別）</div></div>
+    <div class="pc"><div class="t">不採択の場合</div><div class="n">0<small>円</small></div><div class="c">成功報酬なし<br>再申請は2回目まで無料</div></div>
+  </div>
+  <p>「申請したのに採択されなければ費用がかかる」という不安がないよう、Saludは<strong>成功報酬型</strong>を採用。不採択なら成功報酬はいただかず、同じ補助金の再申請も2回目まで無料でサポートします。</p>
+
+  <h2>ご依頼の流れ</h2>
+  <ol class="flow">
+    <li><b>無料診断・お問い合わせ</b>30秒の診断ツールまたはLINE・電話でご相談ください。</li>
+    <li><b>ヒアリング・活用プランのご提案</b>事業内容を伺い、対象経費と採択の可能性をご説明します。</li>
+    <li><b>事業計画書の作成サポート</b>審査目線で計画書を作り込み、必要書類を整えます。</li>
+    <li><b>電子申請・提出</b>Jグランツでの申請をサポート。提出まで伴走します。</li>
+    <li><b>採択・交付申請・実績報告</b>採択後の手続きから補助金の受け取りまでフォローします。</li>
+  </ol>
+
+  <h2>よくあるご質問</h2>
+  <div class="faq">
+    <details><summary>個人事業主でも申請できますか？</summary><p>はい。個人事業主も、常時使用する従業員数などの要件を満たせば対象です。開業間もない方もご相談ください。</p></details>
+    <details><summary>ホームページ制作にも使えますか？</summary><p>使えます。集客・販路開拓につながるサイトであればウェブサイト関連費として対象になり得ます。Saludは制作までワンストップで対応できます。</p></details>
+    <details><summary>採択率はどのくらいですか？</summary><p>公募回により変動しますが、事前準備と事業計画書の質で採択率は大きく変わります。当社は審査目線での計画書作成を支援し、事前確認130件超・採択率82%の実績があります。</p></details>
+    <details><summary>費用はいつ発生しますか？</summary><p>相談・診断は無料です。費用は原則、採択されたとき（成功報酬）に発生します。不採択の場合は成功報酬をいただきません。</p></details>
+    <details><summary>申請にはどのくらい時間がかかりますか？</summary><p>公募スケジュールにもよりますが、書類準備を含め数週間が目安です。締切から逆算して余裕を持ってご相談いただくと安心です。</p></details>
+  </div>
+
+  <aside class="jz-author">
+    <img src="https://salud-web.jp/wp-content/uploads/2026/07/domoto-takuo.png" alt="株式会社Salud 代表 堂本拓央">
+    <div>
+      <div class="role">監修｜株式会社Salud 代表</div>
+      <div class="name">堂本 拓央<span class="sup">DOMOTO TAKUO</span></div>
+      <p>中小企業庁認定「経営革新等支援機関」の代表として、中小企業・小規模事業者の資金調達と経営支援に従事。経営相談は累計約1,000件。補助金は「採択して終わり」ではなく、申請から採択後の実行・事業の成長までを見据えた伴走支援を大切にしています。</p>
+    </div>
+  </aside>
+
+  <div class="cta">
+    <h2>持続化補助金、対象になるか<br>まず無料でご相談ください。</h2>
+    <p>相談・診断は無料です。フォーム・LINE・お電話、ご都合の良い方法でどうぞ。</p>
+    <div class="btns">
+      <a class="btn y" href="https://salud-web.jp/contact/">無料で相談する →</a>
+      <a class="btn l" href="https://line.me/R/ti/p/@388rsdlz">LINEで相談する</a>
+    </div>
+    <p class="tel">お電話でのご相談 <b>050-6869-6588</b>（平日 10:00–18:00）</p>
+  </div>
+
+</div>
+
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"FAQPage",
+  "mainEntity":[
+    {"@type":"Question","name":"個人事業主でも小規模事業者持続化補助金を申請できますか？","acceptedAnswer":{"@type":"Answer","text":"はい。個人事業主も、常時使用する従業員数などの要件を満たせば対象です。開業間もない方もご相談ください。"}},
+    {"@type":"Question","name":"持続化補助金はホームページ制作にも使えますか？","acceptedAnswer":{"@type":"Answer","text":"使えます。集客・販路開拓につながるサイトであればウェブサイト関連費として対象になり得ます。株式会社Saludは制作までワンストップで対応できます。"}},
+    {"@type":"Question","name":"小規模事業者持続化補助金の採択率はどのくらいですか？","acceptedAnswer":{"@type":"Answer","text":"公募回により変動しますが、事前準備と事業計画書の質で採択率は大きく変わります。株式会社Saludは審査目線での計画書作成を支援し、事前確認130件超・採択率82%の実績があります。"}},
+    {"@type":"Question","name":"サポート費用はいつ発生しますか？","acceptedAnswer":{"@type":"Answer","text":"相談・診断は無料です。費用は原則、採択されたとき（成功報酬・採択金額の12%）に発生し、不採択の場合は成功報酬をいただきません。"}},
+    {"@type":"Question","name":"申請にはどのくらい時間がかかりますか？","acceptedAnswer":{"@type":"Answer","text":"公募スケジュールによりますが、書類準備を含め数週間が目安です。締切から逆算して余裕を持ってご相談ください。"}}
+  ]
+}
+</script>

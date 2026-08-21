@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>前橋ギヤー株式会社｜ギヤだけじゃない。困った時の、前橋ギヤー。</title>
+<meta name="description" content="図面がない、他社で断られた、1個だけ作りたい——そんな加工のお困りごとに対応。産業機械・設備部品の一点もの・小ロット加工なら前橋ギヤーへ。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Noto+Serif+JP:wght@700;900&family=Oswald:wght@300;400;500;600;700&family=Anton&family=Rajdhani:wght@300;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#111111;
+    --teal:#13BBBB;
+    --gray:#CCCCCC;
+    --yellow:#F9D006;
+    --red:#FF0000;
+    --content-max:1600px;
+    --edge:clamp(20px,4vw,120px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:"Noto Sans JP",sans-serif;
+    color:var(--black);
+    background:#fff;
+    line-height:1.8;
+    -webkit-font-smoothing:antialiased;
+  }
+  img{max-width:100%;display:block;}
+  a{color:inherit;text-decoration:none;}
+  .en{font-family:"Oswald",sans-serif;letter-spacing:.04em;}
+  .serif{font-family:"Noto Serif JP",serif;}
+  .inset{max-width:var(--content-max);margin:0 auto;padding:0 var(--edge);}
+  section{position:relative;}
+  h1,h2,h3{line-height:1.4;}
+
+  /* ---------- Header ---------- */
+  header{background:var(--black);color:#fff;}
+  .header-inner{
+    display:flex;align-items:stretch;justify-content:space-between;gap:24px;flex-wrap:wrap;
+    padding-left:var(--edge);padding-right:calc(var(--edge) * .3);
+  }
+  .header-left{display:flex;align-items:center;gap:28px;flex-wrap:wrap;padding:14px 0;}
+  .logo{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .logo img{height:52px;width:auto;}
+  .logo-text{font-size:12px;line-height:1.5;white-space:nowrap;}
+  .logo-text span{display:block;font-size:11px;}
+  .logo-text strong{display:block;font-size:19px;font-weight:900;}
+  nav{display:flex;gap:22px;font-size:13.5px;font-weight:500;flex-wrap:wrap;}
+  nav a:hover{color:var(--teal);}
+  .header-right{display:flex;align-items:stretch;flex-shrink:0;}
+  .header-tel{display:flex;flex-direction:column;justify-content:center;text-align:right;font-size:11px;color:var(--gray);line-height:1.7;padding:0 24px;}
+  .header-tel .num{
+    font-family:"Oswald",sans-serif;font-size:21px;font-weight:600;color:#fff;
+    display:flex;align-items:center;justify-content:flex-end;gap:6px;
+  }
+  .header-cta{
+    background:var(--teal);color:#fff;font-size:12px;font-weight:700;
+    padding:0 22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    text-align:center;line-height:1.5;flex-shrink:0;
+  }
+  @media (max-width:980px){
+    .header-left nav{display:none;}
+    .header-tel{display:none;}
+  }
+  @media (max-width:600px){
+    .header-inner{padding-left:14px;}
+    .header-left{gap:10px;}
+    .logo img{height:34px;}
+    .logo-text{font-size:9px;}
+    .logo-text strong{font-size:13px;}
+    .header-right{flex-shrink:1;min-width:0;}
+    .header-cta{padding:8px 10px;font-size:9.5px;flex-shrink:1;min-width:0;gap:2px;}
+    .header-cta img{width:16px;height:16px;}
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    background:var(--black);color:#fff;
+    display:grid;grid-template-columns:1fr 1fr;align-items:stretch;
+    min-height:calc(100vh - 78px);
+  }
+  .hero-photo{position:relative;min-height:420px;overflow:hidden;}
+  .hero-photo img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+  .hero-text{padding:64px var(--edge);display:flex;flex-direction:column;justify-content:center;}
+  .hero-text h1{font-size:clamp(28px,3vw,46px);font-weight:900;margin-bottom:20px;}
+  .hero-text .eyebrow{
+    font-size:clamp(14px,1.4vw,22px);color:var(--teal);font-weight:500;margin-bottom:28px;letter-spacing:.04em;
+  }
+  .hero-text p{font-size:15px;color:#e6e6e6;}
+  @media (max-width:900px){
+    .hero{grid-template-columns:1fr;min-height:0;}
+    .hero-photo{order:1;min-height:280px;}
+    .hero-text{order:2;padding:40px 24px;}
+  }
+
+  /* ---------- SOS ---------- */
+  .sos{background:#f2f2f0;padding:48px var(--edge) 64px;}
+  .sos-tagline{font-weight:700;font-size:17px;color:var(--black);margin-bottom:22px;}
+  .sos-grid{display:grid;grid-template-columns:1fr 1.15fr;gap:56px;align-items:start;}
+
+  .sos-ticket{position:relative;padding:36px 44px 0 40px;}
+  .sos-stripes{
+    position:absolute;top:-14px;left:-14px;width:70px;height:70px;overflow:hidden;pointer-events:none;
+  }
+  .sos-stripes span{
+    position:absolute;width:160%;height:6px;background:var(--teal);transform:rotate(-45deg);
+  }
+  .sos-stripes span:nth-child(1){top:10px;left:-40px;}
+  .sos-stripes span:nth-child(2){top:26px;left:-40px;}
+  .sos-stripes span:nth-child(3){top:42px;left:-40px;}
+  .sos-box{
+    border:1.5px solid var(--teal);padding:34px 38px;
+    clip-path:polygon(0 0, calc(100% - 38px) 0, 100% 38px, 100% 100%, 0 100%);
+    display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;
+  }
+  .sos-big{
+    font-family:"Anton",sans-serif;font-size:clamp(56px,7vw,104px);color:var(--black);line-height:.85;
+    letter-spacing:.01em;
+  }
+  .sos-box h2{font-size:clamp(19px,2vw,26px);font-weight:900;color:var(--black);line-height:1.35;}
+  .sos-box h2 .ul{border-bottom:3px solid var(--teal);padding-bottom:2px;}
+  .sos-ribbon{
+    background:var(--black);color:#fff;font-weight:700;font-size:15px;
+    padding:14px 30px;margin-left:24px;margin-top:-1px;
+    clip-path:polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+    display:inline-block;
+  }
+
+  .sos-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .sos-card{
+    background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.06);padding:24px 20px;
+    display:flex;align-items:center;gap:16px;font-weight:700;font-size:15px;color:var(--black);
+  }
+  .sos-card svg{width:48px;height:48px;flex-shrink:0;color:var(--black);}
+
+  .sos-ctas{grid-column:1/-1;display:flex;margin-top:40px;}
+  .sos-ctas a{
+    padding:22px 40px;font-weight:700;font-size:15px;color:#fff;display:flex;align-items:center;gap:10px;
+    position:relative;
+  }
+  .sos-ctas .a1{background:var(--teal);clip-path:polygon(0 0, calc(100% - 22px) 0, 100% 50%, calc(100% - 22px) 100%, 0 100%);padding-right:56px;margin-right:-20px;}
+  .sos-ctas .a2{background:#3a3a3a;padding-left:56px;}
+  @media (max-width:900px){
+    .sos-grid{grid-template-columns:1fr;}
+    .sos-cards{grid-template-columns:1fr;}
+    .sos-ribbon{margin-left:0;display:block;width:fit-content;}
+    .sos-ctas{flex-direction:column;}
+    .sos-ctas .a1{clip-path:none;margin-right:0;padding-right:40px;}
+    .sos-ctas .a2{padding-left:40px;}
+  }
+
+  /* ---------- Section heading ---------- */
+  .sec-head{margin-bottom:40px;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;}
+  .sec-num{
+    font-family:"Oswald",sans-serif;font-size:clamp(40px,4vw,64px);font-weight:600;
+    color:transparent;-webkit-text-stroke:1.5px var(--teal);line-height:1;
+  }
+  .sec-head h2{font-size:clamp(22px,2.4vw,32px);font-weight:900;}
+  .sec-head .en-sub{font-family:"Oswald",sans-serif;color:var(--teal);font-size:clamp(16px,1.6vw,26px);font-weight:400;letter-spacing:.04em;}
+  .sec-head-row{width:100%;}
+  .sec-head p.lead{margin-top:6px;color:#444;font-size:14px;width:100%;}
+
+  /* ---------- Section 01: features ---------- */
+  .features{padding:80px 0 64px;background:#fff;}
+  .feature-row{display:flex;gap:32px;flex-wrap:wrap;}
+  .feature-item{flex:1 1 220px;display:flex;align-items:flex-start;gap:16px;}
+  .feature-icon img{width:60px;height:60px;filter:invert(1);flex-shrink:0;}
+  .feature-icon.ng img{filter:invert(23%) sepia(94%) saturate(7471%) hue-rotate(1deg) brightness(103%) contrast(115%);}
+  .feature-item h3{font-size:16px;font-weight:700;margin-bottom:6px;}
+  .feature-item p{font-size:12.5px;color:#666;}
+  @media (max-width:900px){.feature-row{gap:28px 20px;}.feature-item{flex:1 1 45%;}}
+
+  /* ---------- Stats dark banner ---------- */
+  .stats-wrap{padding:0 0 88px;background:#fff;}
+  .stats{
+    background:var(--black);color:#fff;padding:56px;
+    display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:40px;align-items:center;
+  }
+  .stats h2{font-family:"Noto Serif JP",serif;font-size:clamp(22px,2.4vw,32px);font-weight:900;margin-bottom:18px;}
+  .stats p{font-size:13.5px;color:#c7cacc;}
+  .stats-photo{height:100%;min-height:260px;overflow:hidden;}
+  .stats-photo img{width:100%;height:100%;object-fit:cover;}
+  .stat-list{display:flex;flex-direction:column;}
+  .stat-row{border-top:1px solid rgba(255,255,255,.25);padding:14px 0;}
+  .stat-row:first-child{border-top:none;}
+  .stat-row .label{font-family:"Oswald",sans-serif;font-size:12px;color:var(--gray);letter-spacing:.08em;}
+  .stat-row .val{font-family:"Rajdhani",sans-serif;font-weight:300;font-size:clamp(36px,3.2vw,52px);color:var(--teal);}
+  @media (max-width:900px){.stats{grid-template-columns:1fr;padding:32px 24px;}.stats-photo{min-height:220px;}}
+
+  /* ---------- Section 02: processes ---------- */
+  .processes{padding:0 0 64px;background:#fff;}
+  .proc-grid{
+    border:1px solid var(--teal);display:grid;grid-template-columns:repeat(3,1fr);
+  }
+  .proc-cell{
+    display:flex;align-items:center;gap:16px;padding:22px;border:1px solid var(--teal);min-height:170px;
+  }
+  .proc-cell.empty{border:1px solid transparent;}
+  .proc-cell .ph{width:34%;flex-shrink:0;aspect-ratio:1/1;overflow:hidden;background:#f4f4f4;}
+  .proc-cell .ph img{width:100%;height:100%;object-fit:cover;}
+  .proc-cell .pc-num{font-family:"Oswald",sans-serif;color:var(--teal);font-weight:700;font-size:16px;margin-right:6px;}
+  .proc-cell h3{display:inline;font-size:15px;font-weight:700;}
+  .proc-cell p{margin-top:8px;font-size:12px;color:#666;}
+  @media (max-width:900px){
+    .proc-grid{grid-template-columns:1fr;}
+    .proc-cell{border:none;border-bottom:1px solid var(--teal);}
+  }
+
+  .other-support{
+    border:1px solid var(--gray);margin-top:0;padding:22px 26px;
+    display:grid;grid-template-columns:auto repeat(5,1fr);gap:22px;align-items:start;
+  }
+  .other-support .tag{font-weight:700;color:var(--teal);font-size:14px;align-self:center;}
+  .other-support .item{border-left:1px solid var(--gray);padding-left:22px;}
+  .other-support .item:first-of-type{border-left:none;padding-left:0;}
+  .other-support .item h4{font-size:13.5px;font-weight:700;margin-bottom:6px;}
+  .other-support .item p{font-size:11.5px;color:#666;line-height:1.6;}
+  @media (max-width:900px){
+    .other-support{grid-template-columns:1fr 1fr;}
+    .other-support .tag{grid-column:1/-1;}
+    .other-support .item{border-left:none;padding-left:0;}
+  }
+
+  .ask-strip{
+    margin-top:44px;display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;justify-content:space-between;
+  }
+  .ask-strip .left{display:flex;align-items:center;gap:14px;}
+  .ask-strip .qicon{width:32px;height:32px;flex-shrink:0;}
+  .ask-strip p{font-size:15px;font-weight:700;}
+  .ask-strip .more{font-size:14px;font-weight:700;color:var(--black);border-top:1px solid var(--teal);padding-top:10px;display:flex;align-items:center;gap:6px;}
+
+  /* ---------- Section 03: people ---------- */
+  .people-wrap{padding:0 0 56px;background:#fff;}
+  .people{background:var(--black);color:#fff;display:grid;grid-template-columns:1.15fr 1fr;}
+  .people-text{padding:56px;display:flex;flex-direction:column;justify-content:center;}
+  .people-text h2{font-family:"Noto Serif JP",serif;font-size:clamp(24px,2.6vw,34px);font-weight:900;margin:6px 0 6px;}
+  .people-text .en-sub{color:var(--teal);font-size:clamp(15px,1.6vw,22px);margin-bottom:26px;}
+  .people-body{display:flex;gap:32px;flex-wrap:wrap;margin-bottom:30px;}
+  .people-body p{font-size:14px;color:#e6e6e6;flex:1 1 240px;}
+  .people-quote{flex:1 1 200px;font-size:12.5px;color:#e6e6e6;}
+  .people-quote .signature{margin-top:14px;font-size:12px;color:var(--gray);}
+  .people-photo{position:relative;min-height:340px;overflow:hidden;}
+  .people-photo img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+  .people-more{align-self:flex-end;font-size:13px;font-weight:700;color:#fff;border-top:1px solid var(--teal);padding-top:10px;}
+  @media (max-width:900px){
+    .people{grid-template-columns:1fr;}
+    .people-photo{order:1;min-height:280px;}
+    .people-text{order:2;padding:40px 24px;}
+  }
+
+  /* ---------- FAQ ---------- */
+  .faq{padding:48px 0 80px;background:#fff;}
+  .faq .sec-head{margin-bottom:48px;}
+  .faq-row{display:flex;flex-direction:column;gap:0;max-width:820px;}
+  .faq-item{border-bottom:1px solid #e2e2e2;}
+  .faq-item summary{
+    list-style:none;cursor:pointer;padding:22px 4px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    font-weight:700;font-size:14.5px;
+  }
+  .faq-item summary::-webkit-details-marker{display:none;}
+  .faq-item summary .q{display:flex;align-items:center;gap:10px;}
+  .faq-item summary .qmark{
+    font-family:"Oswald",sans-serif;color:var(--teal);font-weight:700;font-size:14px;
+    width:26px;height:26px;border:1.5px solid var(--teal);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .faq-item summary .chev{
+    color:var(--teal);font-size:16px;transition:transform .2s;flex-shrink:0;
+  }
+  .faq-item[open] summary .chev{transform:rotate(180deg);}
+  .faq-item .a{padding:0 4px 24px 40px;font-size:13.5px;color:#555;}
+
+  /* ---------- Recruit ---------- */
+  .recruit{background:var(--teal);color:#fff;display:flex;flex-wrap:wrap;align-items:stretch;}
+  .recruit-head{padding:56px var(--edge);flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;}
+  .recruit-head .en{font-size:clamp(28px,3vw,40px);font-weight:700;margin-bottom:8px;}
+  .recruit-head h2{font-size:clamp(17px,1.6vw,20px);font-weight:900;white-space:nowrap;}
+  .recruit-body{padding:56px 24px;flex:1 1 260px;display:flex;align-items:center;}
+  .recruit-body p{font-size:13.5px;line-height:1.9;}
+  .recruit-photo{flex:0 0 30%;min-height:220px;position:relative;overflow:hidden;}
+  .recruit-photo img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+  @media (max-width:900px){
+    .recruit{flex-direction:column;}
+    .recruit-photo{flex:0 0 220px;width:100%;}
+  }
+
+  /* ---------- Footer ---------- */
+  footer{background:var(--black);color:#fff;}
+  .foot-main{
+    display:grid;grid-template-columns:1.3fr 1fr 1fr;
+    padding:var(--edge);
+  }
+  .foot-col{padding:0 32px;border-left:1px solid rgba(255,255,255,.2);}
+  .foot-col:first-child{border-left:none;padding-left:0;}
+  .foot-logo{display:flex;flex-direction:column;align-items:flex-start;gap:16px;}
+  .foot-logo img{height:60px;width:auto;}
+  .foot-logo .addr{font-size:12.5px;color:var(--gray);line-height:1.9;}
+  .foot-logo .addr strong{display:block;color:#fff;font-size:15px;margin-bottom:4px;}
+  .foot-label{font-size:12px;color:var(--yellow);margin-bottom:8px;}
+  .foot-col .num{font-family:"Oswald",sans-serif;font-size:26px;font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .foot-col .num img{width:20px;height:20px;}
+  .foot-divider{border-top:1px solid rgba(255,255,255,.2);padding-top:10px;font-size:11.5px;color:var(--gray);}
+  .foot-col .formlink{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .foot-col .formlink .arrow{color:var(--red);font-weight:900;}
+  .copyright{text-align:center;font-size:11px;color:#666;padding:16px;border-top:1px solid rgba(255,255,255,.08);}
+  @media (max-width:900px){
+    .foot-main{grid-template-columns:1fr;gap:32px;}
+    .foot-col{border-left:none;padding-left:0;border-top:1px solid rgba(255,255,255,.2);padding-top:24px;}
+    .foot-col:first-child{border-top:none;padding-top:0;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-left">
+      <div class="logo">
+        <img src="img/logo.png" alt="MAEBASHI GEAR CO.,LTD">
+        <div class="logo-text"><span>株式会社</span><strong>前橋ギヤー</strong></div>
+      </div>
+      <nav>
+        <a href="#sos">SOS対応</a>
+        <a href="#capabilities">加工技術</a>
+        <a href="#equipment">設備・品質</a>
+        <a href="#column">技術コラム</a>
+        <a href="#people">会社案内</a>
+        <a href="#contact">お問合わせ</a>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="header-tel">
+        お急ぎの方はお電話ください
+        <span class="num"><img src="img/icon-call.png" alt="" style="width:16px;height:16px;">027-261-9333</span>
+        受付時間 8:00-17:00（土日は除く）
+      </div>
+      <a href="#contact" class="header-cta">
+        <img src="img/icon-mail.png" alt="" style="width:22px;height:22px;">
+        <span>図面を送る</span><span>24時間受付</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-photo"><img src="img/photo-fv.jpeg" alt="加工の様子"></div>
+  <div class="hero-text">
+    <h1 class="serif">ギヤだけじゃない。<br>困った時の、前橋ギヤー。</h1>
+    <div class="eyebrow en">WE SOLVE WHAT OTHERS CAN'T.</div>
+    <p>図面だけが届くことがあります。<br>用途は知らされない部品ばかりです。<br>それでも求められるのは指定通りに作る技術。<br>前橋ギヤーは産業機械・設備部品を中心に、<br>一点ものから、小ロット加工まで対応しています。</p>
+  </div>
+</section>
+
+<section class="sos" id="sos">
+  <div class="sos-tagline">他社で断られた加工も、技術で解決。</div>
+  <div class="sos-grid">
+    <div class="sos-ticket">
+      <div class="sos-stripes"><span></span><span></span><span></span></div>
+      <div class="sos-box">
+        <span class="sos-big en">SOS</span>
+        <h2><span class="ul">お困りでは</span><br>ありませんか？</h2>
+      </div>
+      <span class="sos-ribbon">まずはご相談ください！</span>
+    </div>
+
+    <div class="sos-cards">
+      <div class="sos-card">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><rect x="12" y="6" width="24" height="32" rx="1"/><line x1="17" y1="15" x2="31" y2="15"/><line x1="17" y1="22" x2="31" y2="22"/><line x1="30" y1="30" x2="40" y2="40"/><line x1="40" y1="30" x2="30" y2="40"/></svg>
+        図面がない
+      </div>
+      <div class="sos-card">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="16" width="24" height="16" rx="1"/><path d="M28 22h9l5 6v4h-14z"/><circle cx="14" cy="36" r="3.5"/><circle cx="35" cy="36" r="3.5"/></svg>
+        急ぎで部品が必要
+      </div>
+      <div class="sos-card">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 40V20l10 6V20l10 6V14l14 10v16z"/><line x1="30" y1="26" x2="40" y2="36"/><line x1="40" y1="26" x2="30" y2="36"/></svg>
+        他社で断られた
+      </div>
+      <div class="sos-card">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="24" r="9"/><path d="M18 11v3M18 34v3M31 24h-3M8 24H5M27 15l-2 2M11 33l-2 2M27 33l-2-2M11 15l-2-2"/><text x="30" y="30" font-family="Oswald,sans-serif" font-size="18" fill="currentColor" stroke="none">1</text></svg>
+        1個だけ作りたい
+      </div>
+    </div>
+
+    <div class="sos-ctas">
+      <a href="#contact" class="a1">緊急加工・SOS相談はこちら <span>→</span></a>
+      <a href="#capabilities" class="a2">加工技術を見る <span>→</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="equipment">
+  <div class="inset">
+    <div class="sec-head">
+      <span class="sec-num en">01</span>
+      <h2 class="serif">前橋ギヤーが選ばれる理由</h2>
+      <span class="en-sub">TRUST &amp; QUALITY</span>
+    </div>
+    <div class="feature-row">
+      <div class="feature-item">
+        <div class="feature-icon"><img src="img/card-01.png" alt=""></div>
+        <div><h3>希少設備・技術力</h3><p>スロッター加工など特殊加工にも対応。</p></div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon"><img src="img/card-02.png" alt=""></div>
+        <div><h3>図面なし対応</h3><p>現物から採寸・復元し、製作可能な方法をご提案。</p></div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon"><img src="img/card-03.png" alt=""></div>
+        <div><h3>1個から対応</h3><p>試作品・補修部品など小ロット加工も対応。</p></div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon ng"><img src="img/card-04.png" alt=""></div>
+        <div><h3>他社NG案件対応</h3><p>他社で断られた加工も技術で解決。</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="stats-wrap">
+  <div class="inset">
+    <div class="stats">
+      <div>
+        <h2>大型スロッターが、<br>難加工を可能にする。</h2>
+        <p>高精度の大型部品加工を実現する、当社のコア設備。<br>内径キー溝・インボリュートスプライン・深溝・複雑形状まで、高剛性の加工で高精度に応えます。</p>
+      </div>
+      <div class="stats-photo"><img src="img/photo-topmid.jpg" alt="大型スロッター"></div>
+      <div class="stat-list">
+        <div class="stat-row"><div class="label en">MAX. MACHINING DIAMETER</div><div class="val en">φ2000<span style="font-size:.45em;">mm</span></div></div>
+        <div class="stat-row"><div class="label en">MAX. STROKE</div><div class="val en">650<span style="font-size:.45em;">L</span></div></div>
+        <div class="stat-row"><div class="label en">MAX. WORK</div><div class="val en">3<span style="font-size:.45em;">t</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="processes" id="capabilities">
+  <div class="inset">
+    <div class="sec-head">
+      <span class="sec-num en">02</span>
+      <h2 class="serif">対応加工一覧</h2>
+      <span class="en-sub">OUR CABILITIES</span>
+      <p class="lead">多様な加工技術と設備で、あらゆるご要望にお応えします。</p>
+    </div>
+
+    <div class="proc-grid">
+      <div class="proc-cell">
+        <div class="ph"><img src="img/process-01.png" alt="ギア加工"></div>
+        <div><span class="pc-num">01</span><h3>ギア加工</h3><p>歯車加工・特殊ギヤなど、各種ギヤ加工に対応します。</p></div>
+      </div>
+      <div class="proc-cell">
+        <div class="ph"><img src="img/process-02.png" alt="スロッター加工"></div>
+        <div><span class="pc-num">02</span><h3>スロッター加工</h3><p>希少なスロッター設備により、内径加工・特殊加工に対応します。</p></div>
+      </div>
+      <div class="proc-cell">
+        <div class="ph"><img src="img/process-03.png" alt="キー溝加工"></div>
+        <div><span class="pc-num">03</span><h3>キー溝加工</h3><p>一般キー溝から特殊形状まで、幅広く対応可能で。</p></div>
+      </div>
+      <div class="proc-cell">
+        <div class="ph"><img src="img/process-04.png" alt="インボリュートスプライン加工"></div>
+        <div><span class="pc-num">04</span><h3>インボリュートスプライン加工</h3><p>高精度な内径スプライン加工にも対応しています。</p></div>
+      </div>
+      <div class="proc-cell">
+        <div class="ph"><img src="img/process-05.png" alt="ブローチ加工"></div>
+        <div><span class="pc-num">05</span><h3>ブローチ加工</h3><p>内径加工・キー溝加工など、高精度加工を実現します。</p></div>
+      </div>
+      <div class="proc-cell empty"></div>
+    </div>
+
+    <div class="other-support">
+      <div class="tag">そのほかの<br>対応</div>
+      <div class="item"><h4>研削加工</h4><p>歯車やシャフトの高精度な研削加工に対応します。</p></div>
+      <div class="item"><h4>試作加工</h4><p>開発段階の試作品や単品加工もスピーディに対応いたします。</p></div>
+      <div class="item"><h4>現場からの製作</h4><p>図面がなくても、現場から形状を測定、復元し製作します。</p></div>
+      <div class="item"><h4>修復・再生加工</h4><p>摩耗・破損した部品の補修や、再生加工にも対応いたします。</p></div>
+      <div class="item"><h4>短納期対応</h4><p>お急ぎもご要望にもできる限り対応いたします。</p></div>
+    </div>
+
+    <div class="ask-strip">
+      <div class="left">
+        <img class="qicon" src="img/icon-contact-support.png" alt="">
+        <p>どのように加工すればいいかわからない場合も<br>まずはお気軽にご相談ください。</p>
+      </div>
+      <a href="#contact" class="more">お問い合わせ <span style="color:var(--red);">›</span></a>
+    </div>
+  </div>
+</section>
+
+<div class="people-wrap">
+  <div class="inset">
+    <div class="people" id="people">
+      <div class="people-text">
+        <span class="sec-num en">03</span>
+        <h2>技術をつなぐ、人がいる。</h2>
+        <div class="en-sub">TECHNOLOGY IS HUMAN.</div>
+        <div class="people-body">
+          <p>図図面に表れない意図まで汲み取り、対話を重ねながら、最適な加工へつなげていく。受け継いだ技術と経験を、次のものづくりへ。</p>
+          <div class="people-quote">
+            「断らない」ではなく、<br>「どうすればできるか」を考える。<br>それが、前橋ギヤーの仕事です。
+            <div class="signature">代表取締役社長　北野　麗</div>
+          </div>
+        </div>
+        <a href="#" class="people-more">会社概要を見る »</a>
+      </div>
+      <div class="people-photo"><img src="img/photo-kitano.jpg" alt="代表取締役社長 北野 麗"></div>
+    </div>
+  </div>
+</div>
+
+<section class="faq" id="column">
+  <div class="inset">
+    <div class="sec-head">
+      <span class="sec-num en">04</span>
+      <h2 class="serif">よくあるご質問</h2>
+    </div>
+    <div class="faq-row">
+      <details class="faq-item">
+        <summary><span class="q"><span class="qmark en">Q</span>図面がなくても依頼できますか？</span><span class="chev">▾</span></summary>
+        <div class="a">はい、対応可能です。現物やご要望をお伺いし、製作可能な方法をご提案します。まずはお気軽にご相談ください。</div>
+      </details>
+      <details class="faq-item">
+        <summary><span class="q"><span class="qmark en">Q</span>1個からでも対応できますか？</span><span class="chev">▾</span></summary>
+        <div class="a">はい、試作品や補修部品など、1個からの小ロット加工に対応しています。</div>
+      </details>
+      <details class="faq-item">
+        <summary><span class="q"><span class="qmark en">Q</span>短納期での対応は可能ですか？</span><span class="chev">▾</span></summary>
+        <div class="a">内容により異なりますが、できる限りお急ぎのご要望に対応いたします。まずはご相談ください。</div>
+      </details>
+      <details class="faq-item">
+        <summary><span class="q"><span class="qmark en">Q</span>どのような材質に対応していますか？</span><span class="chev">▾</span></summary>
+        <div class="a">鉄鋼・ステンレス・非鉄金属など、幅広い金属材質に対応しています。詳しくはお問い合わせください。</div>
+      </details>
+      <details class="faq-item">
+        <summary><span class="q"><span class="qmark en">Q</span>見積もりは無料ですか？</span><span class="chev">▾</span></summary>
+        <div class="a">はい、お見積もりは無料です。お気軽にご相談ください。</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="recruit">
+  <div class="recruit-head">
+    <span class="en">RECRUIT</span>
+    <h2 class="serif">現在、募集は行っておりません。</h2>
+  </div>
+  <div class="recruit-body">
+    <p>おかげさまで現在は募集を終了しております。<br>「ここで働いてみたい」<br>そう思っていただける会社であり続けられるよう、<br>これからも技術と品質を磨いてまいります。</p>
+  </div>
+  <div class="recruit-photo"><img src="img/photo-saiyou.jpg" alt=""></div>
+</section>
+
+<footer id="contact">
+  <div class="foot-main">
+    <div class="foot-col foot-logo">
+      <img src="img/logo.png" alt="MAEBASHI GEAR CO.,LTD">
+      <div class="addr">
+        <strong>前橋ギヤー株式会社</strong>
+        〒371-0857　群馬県前橋市高井町1-8-13
+      </div>
+    </div>
+    <div class="foot-col">
+      <div class="foot-label">お電話でのお問い合わせは</div>
+      <div class="num"><img src="img/icon-call.png" alt="">027-261-9333</div>
+      <div class="foot-divider">受付時間 8:00〜17:00（土日祝除く）</div>
+    </div>
+    <div class="foot-col">
+      <a href="#" class="formlink"><img src="img/icon-call.png" alt="" style="width:18px;height:18px;">お問い合わせフォーム／図面を送る <span class="arrow">»</span></a>
+      <div class="foot-divider">24時間受付中　TEL：027-251-2869　FAX：027-251-2802</div>
+    </div>
+  </div>
+  <div class="copyright">&copy; MAEBASHI GEAR CO.,LTD. — このページは仮ドメインでの確認用プレビューです。</div>
+</footer>
+
+</body>
+</html>

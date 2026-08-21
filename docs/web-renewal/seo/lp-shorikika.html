@@ -1,0 +1,74 @@
+<style>
+.sv{max-width:960px;margin:0 auto;padding:0 4px;color:#1f2937;line-height:1.9;font-size:16.5px}
+.sv .eyecatch{width:100%;height:auto;border-radius:18px;margin:0 0 30px;display:block;box-shadow:0 10px 30px rgba(13,148,136,.15)}
+.sv h2{font-size:clamp(21px,3vw,27px);font-weight:800;margin:2.4em 0 .8em;padding-left:.6em;border-left:6px solid #0ea5a4;line-height:1.4}
+.sv h3{font-size:17px;font-weight:800;margin:0 0 .4em;color:#0f766e}
+.sv p{margin:.7em 0}.sv .lead{font-size:17.5px;color:#334155}
+.sv .lead .mk{background:linear-gradient(transparent 62%,#fde68a 62%);padding:0 .1em;font-weight:800}
+.sv-crumb{max-width:960px;margin:0 auto 20px;padding:0 4px;font-size:13px;color:#64748b;display:flex;flex-wrap:wrap;gap:7px;align-items:center;line-height:1.6}
+.sv-crumb a{color:#0d9488;text-decoration:none}.sv-crumb a:hover{text-decoration:underline}
+.sv-crumb .sep{color:#cbd5e1}.sv-crumb .cur{color:#475569;font-weight:700}
+.sv .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:1.2em 0}
+.sv .card{background:#f0fdfa;border:1px solid #ccfbf1;border-radius:14px;padding:20px 16px;text-align:center}
+.sv .card .k{font-size:13px;color:#0f766e;font-weight:700}
+.sv .card .v{font-size:22px;font-weight:800;color:#0d9488;margin-top:4px}
+.sv .card .v small{font-size:13px}
+.sv .frames{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:1.2em 0}
+.sv .fr{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:18px;box-shadow:0 3px 12px rgba(15,118,110,.05)}
+.sv .fr .nm{font-weight:800;color:#0f172a;font-size:15px}
+.sv .fr .mx{font-size:22px;font-weight:800;color:#0d9488;margin:6px 0}
+.sv .fr .mx small{font-size:13px;color:#64748b;font-weight:700}
+.sv .fr .rt{font-size:12.5px;color:#0f766e;font-weight:700}
+.sv .vg{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:1.2em 0}
+.sv .vg .it{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:18px}
+.sv .vg .it p{font-size:14px;color:#475569;margin:.4em 0 0}
+.sv .price{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:1.2em 0}
+.sv .pc{border:1px solid #e5e7eb;border-radius:14px;padding:20px 16px;text-align:center;background:#fff}
+.sv .pc.hot{border:2px solid #0d9488;background:#f0fdfa}
+.sv .pc .t{font-size:13px;color:#64748b;font-weight:700}
+.sv .pc .n{font-size:26px;font-weight:800;color:#0f172a;margin:4px 0;line-height:1.3}
+.sv .pc .n small{font-size:14px}.sv .pc .c{font-size:12px;color:#64748b}
+.sv .flow{counter-reset:s;list-style:none;padding:0;margin:1em 0}
+.sv .flow li{counter-increment:s;position:relative;padding:14px 16px 14px 62px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin:10px 0}
+.sv .flow li:before{content:counter(s);position:absolute;left:16px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:#0d9488;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center}
+.sv .flow li b{display:block;color:#0f172a}
+.sv .faq details{border:1px solid #e5e7eb;border-radius:12px;padding:4px 18px;margin:10px 0;background:#fff}
+.sv .faq summary{font-weight:700;cursor:pointer;padding:14px 0;list-style:none}
+.sv .faq summary::-webkit-details-marker{display:none}
+.sv .faq summary:before{content:"Q. ";color:#0d9488;font-weight:800}
+.sv .faq details p{padding:0 0 14px;color:#334155}
+.sv .note{font-size:13px;color:#64748b}
+.sv-author{max-width:960px;margin:36px auto 0;padding:22px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;display:flex;gap:18px;align-items:flex-start}
+.sv-author img{width:84px;height:84px;border-radius:50%;flex-shrink:0;object-fit:cover}
+.sv-author .role{font-size:12.5px;color:#0f766e;font-weight:800}
+.sv-author .name{font-size:19px;font-weight:800;color:#0f172a;margin:2px 0 6px}
+.sv-author .name .sup{font-size:11px;color:#94a3b8;font-weight:700;margin-left:6px}
+.sv-author p{margin:0;font-size:14px;line-height:1.8;color:#475569}
+.sv .cta{background:linear-gradient(135deg,#0f766e,#0d9488);border-radius:20px;padding:40px 24px;text-align:center;color:#fff;margin:2.4em 0 1em}
+.sv .cta h2{color:#fff;border:none;padding:0;margin:0 0 .5em;font-size:clamp(22px,3.4vw,30px)}
+.sv .cta p{color:#d1fae5;margin:.3em 0 1.2em}
+.sv .btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.sv .btn{display:inline-block;padding:15px 28px;border-radius:999px;font-weight:800;text-decoration:none;font-size:16px}
+.sv .btn.y{background:#facc15;color:#1f2937}.sv .btn.l{background:#06c755;color:#fff}
+.sv .tel{margin-top:16px;color:#ecfeff;font-size:15px}.sv .tel b{font-size:22px}
+@media(max-width:680px){.sv .cards,.sv .frames,.sv .vg,.sv .price{grid-template-columns:1fr}.sv-author{flex-direction:column;align-items:center;text-align:center}}
+</style>
+<nav class="sv-crumb" aria-label="パンくずリスト"><a href="https://salud-web.jp/">ホーム</a><span class="sep">›</span><a href="https://salud-web.jp/#services">補助金申請支援</a><span class="sep">›</span><span class="cur" aria-current="page">中小企業省力化投資補助金</span></nav>
+<div class="sv">
+<img class="eyecatch" src="https://salud-web.jp/wp-content/uploads/2026/07/shorikika-hero.png" alt="中小企業省力化投資補助金 最大1億円 人手不足対策">
+<p class="lead">中小企業省力化投資補助金とは、人手不足に悩む中小企業が、<mark class="mk">省力化・自動化のための設備やシステム</mark>を導入する費用を補助する制度です。カタログから選ぶ手軽な枠と、オーダーメイドの一般型があり、一般型は最大1億円規模の投資に対応します。</p>
+<h2>中小企業省力化投資補助金とは</h2>
+<div class="cards"><div class="card"><div class="k">補助上限</div><div class="v">最大1<small>億円</small></div></div><div class="card"><div class="k">補助率</div><div class="v">1/2</div></div><div class="card"><div class="k">相談・診断</div><div class="v">無料</div></div></div>
+<h2>こんな使い方ができます</h2>
+<div class="vg"><div class="it"><h3>自動化設備の導入</h3><p>ロボット・自動搬送・無人化設備などで省人化。</p></div><div class="it"><h3>券売機・配膳ロボット</h3><p>飲食・小売・サービス業の省力化機器。</p></div><div class="it"><h3>生産・管理システム</h3><p>工程管理・在庫管理の自動化で生産性を向上。</p></div></div>
+<h2>支援料金</h2>
+<div class="price">
+  <div class="pc"><div class="t">基本料金</div><div class="n" style="font-size:22px">お見積り</div><div class="c">税別・ご依頼時のみ（相談・診断は無料）</div></div>
+  <div class="pc hot"><div class="t">成功報酬（採択時）</div><div class="n" style="font-size:22px">お見積り</div><div class="c">採択された場合のみ（税別）</div></div>
+  <div class="pc"><div class="t">不採択の場合</div><div class="n">0<small>円</small></div><div class="c">成功報酬なし・再申請は2回目まで無料</div></div>
+</div>
+<h2>よくあるご質問</h2><div class="faq"><details><summary>カタログ型と一般型の違いは？</summary><p>カタログ型は登録製品から選ぶ簡易な枠、一般型はオーダーメイドで大型投資に対応します。事業内容に合わせて選定します。</p></details><details><summary>どんな業種が対象ですか？</summary><p>製造・飲食・小売・物流など幅広い業種で活用されています。</p></details><details><summary>採択後のサポートは？</summary><p>交付申請・実績報告まで伴走します。導入後の運用・活用のご相談も可能です。</p></details></div>
+<aside class="sv-author"><img src="https://salud-web.jp/wp-content/uploads/2026/07/domoto-takuo.png" alt="株式会社Salud 代表 堂本拓央"><div><div class="role">監修｜株式会社Salud 代表</div><div class="name">堂本 拓央<span class="sup">DOMOTO TAKUO</span></div><p>中小企業庁認定「経営革新等支援機関」の代表。資金調達（補助金・融資）から採択後の実装まで一貫して支援。補助金は「取って終わり」ではなく成果に変えることを大切にしています。</p></div></aside>
+<div class="cta"><h2>省力化投資補助金、<br>対象になるか確認しませんか。</h2><p>相談・診断は無料です。フォーム・LINE・お電話でお気軽にどうぞ。</p><div class="btns"><a class="btn y" href="https://salud-web.jp/contact/">無料で相談する →</a><a class="btn l" href="https://line.me/R/ti/p/@388rsdlz">LINEで相談する</a></div><p class="tel">お電話でのご相談 <b>050-6869-6588</b>（平日 10:00–18:00）</p></div>
+</div>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Service","serviceType":"中小企業省力化投資補助金の申請サポート","provider":{"@type":"Organization","name":"株式会社Salud","url":"https://salud-web.jp/"},"areaServed":"JP","description":"中小企業省力化投資補助金とは、人手不足に悩む中小企業が、省力化・自動化のための設備やシステムを導入する費用を補助する制度です。カタログから選ぶ手軽な枠と、オーダーメイドの一般型があり、一般型は最大1億円規模の投資に対応し","offers":{"@type":"Offer","priceCurrency":"JPY","description":"相談・診断は無料。成功報酬型（不採択の場合は成功報酬なし）。"}}</script>

@@ -1,0 +1,119 @@
+==================================================================
+ お問い合わせフォーム（Contact Form 7 / ID:50）差し替え用
+ 補助金の窓口 https://hojyokinnomadoguchi.jp/contact/ と同じ項目
+------------------------------------------------------------------
+ 貼り付け場所：
+ WordPress管理画面 → 左メニュー「お問い合わせ」→「お問い合わせ」(ID50)を開く
+   ① 「フォーム」タブ … 【A】を全選択して貼り付け（既存を全部消して置換）
+   ② 「メール」タブ  … 本文欄に【B】を貼り付け、件名は【C】に
+   ③ 右上の「保存」をクリック
+==================================================================
+
+
+==================== 【A】フォーム（フォームタブに貼付） ====================
+
+<div class="mailform">
+<dl>
+  <dt>
+    <span class="required">必須</span>
+    <p>ご相談内容（複数選択可）</p>
+  </dt>
+  <dd>
+[checkbox* contactCheck use_label_element "補助金の相談" "融資の相談" "起業の相談" "WEB活用の相談" "会計税務の相談"]
+  </dd>
+</dl>
+<dl>
+  <dt>
+    <span class="free">任意</span>
+    <p>会社名</p>
+  </dt>
+  <dd>
+[text your-company placeholder "◯◯◯◯株式会社"]
+  </dd>
+</dl>
+<dl>
+  <dt>
+    <span class="free">任意</span>
+    <p>事業内容</p>
+  </dt>
+  <dd>
+[text business-content placeholder "◯◯の製造、◯◯の販売"]
+  </dd>
+</dl>
+<dl>
+  <dt>
+    <span class="required">必須</span>
+    <p>お名前</p>
+  </dt>
+  <dd>
+[text* your-name placeholder "例）山田太郎"]
+  </dd>
+</dl>
+<dl>
+  <dt>
+    <span class="required">必須</span>
+    <p>お電話番号</p>
+  </dt>
+  <dd>
+[tel* tel-num placeholder "09012345678"]
+  </dd>
+</dl>
+<dl>
+  <dt>
+    <span class="required">必須</span>
+    <p>メールアドレス</p>
+  </dt>
+  <dd>
+[email* email placeholder "例）mail@example.jp"]
+  </dd>
+</dl>
+<dl>
+  <dt>
+    <span class="free">任意</span>
+    <p>ご相談内容の詳細</p>
+  </dt>
+  <dd>
+[textarea textarea placeholder "希望する補助金活用の事業。チャレンジしたい新規事業の内容。"]
+  </dd>
+</dl>
+<div class="quiz">
+[quiz quiz-24 "次の計算の答えを入力してください(半角)　5+6=???|11"]
+</div>
+
+[submit "送信する"]
+</div>
+
+
+==================== 【B】メール本文（メールタブの本文欄に貼付） ====================
+
+以下の内容でお問い合わせがありました。
+
+【ご相談内容】
+[contactCheck]
+
+会社名：[your-company]
+事業内容：[business-content]
+お名前：[your-name]
+お電話番号：[tel-num]
+メールアドレス：[email]
+
+ご相談内容の詳細：
+[textarea]
+
+--
+送信ページ：[_url]
+送信者IP：[_remote_ip]
+
+
+==================== 【C】メールの件名（件名欄に貼付） ====================
+
+【お問い合わせ】[your-name] 様（[_site_title]）
+
+
+------------------------------------------------------------------
+ ※宛先（送信先メール）は変更しないでください。現状の
+   admin@hojokin-madoguchi.jp のままでOKです。
+ ※必須/任意はこの内容で設定済み。変えたい場合は
+   <span class="required">必須</span> ↔ <span class="free">任意</span>
+   と、フィールドの [text*] ↔ [text]（*が必須）を合わせて変更。
+------------------------------------------------------------------

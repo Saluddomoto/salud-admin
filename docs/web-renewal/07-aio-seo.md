@@ -27,8 +27,8 @@ AIは「構造が明確で、数字と定義がはっきりした、信頼でき
 - [ ] 一次情報の発信(自社の採択実績・相談データ→AIは一次情報を優遇)
 
 ### 3. AIクローラー対応(技術)
-- [ ] robots.txt で AI クローラーを許可(GPTBot / ClaudeBot / Google-Extended / PerplexityBot)
-- [ ] `llms.txt` を設置(サイト概要・主要ページをAI向けに要約したファイル)
+- [x] robots.txt で AI クローラーを許可(GPTBot / ClaudeBot / Google-Extended / PerplexityBot 等、2026-08-07設置)
+- [x] `llms.txt` を設置(サイト概要・主要ページをAI向けに要約したファイル、2026-08-07設置)
 - [ ] WordPressのSSR(サーバー側レンダリング)なので JS 依存問題なし ✓
 - [ ] ページ速度・モバイル対応(Core Web Vitals)
 

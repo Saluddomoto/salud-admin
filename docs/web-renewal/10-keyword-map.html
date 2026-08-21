@@ -1,0 +1,339 @@
+<title>補助金メディア キーワードマップ＆記事計画｜株式会社Salud</title>
+<style>
+  :root{
+    --bg:#f4f7f7; --panel:#ffffff; --ink:#0e2a2e; --ink-2:#3d5b5f; --ink-3:#6f8b8e;
+    --line:#dbe6e6; --line-2:#eaf1f1;
+    --teal:#0d8f86; --teal-deep:#0b5f5a; --teal-soft:#e2f3f0;
+    --amber:#c9861a; --amber-soft:#fbeecd;
+    --green:#3f8f4e; --green-soft:#e0f0e2;
+    --slate:#3b6ea5; --slate-soft:#e2ecf6;
+    --gold:#e9b13b;
+    --shadow:0 1px 2px rgba(11,60,58,.05),0 8px 24px rgba(11,60,58,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0c1516; --panel:#12211f; --ink:#e8f2f0; --ink-2:#a9c2c0; --ink-3:#7a9694;
+      --line:#213331; --line-2:#1a2927;
+      --teal:#3fbdae; --teal-deep:#7fd8cb; --teal-soft:#16302c;
+      --amber:#e0aa4e; --amber-soft:#2e2612;
+      --green:#68b678; --green-soft:#16291a;
+      --slate:#7db0e0; --slate-soft:#132436;
+      --gold:#e9b13b;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f4f7f7; --panel:#ffffff; --ink:#0e2a2e; --ink-2:#3d5b5f; --ink-3:#6f8b8e;
+    --line:#dbe6e6; --line-2:#eaf1f1;
+    --teal:#0d8f86; --teal-deep:#0b5f5a; --teal-soft:#e2f3f0;
+    --amber:#c9861a; --amber-soft:#fbeecd; --green:#3f8f4e; --green-soft:#e0f0e2;
+    --slate:#3b6ea5; --slate-soft:#e2ecf6; --gold:#e9b13b;
+    --shadow:0 1px 2px rgba(11,60,58,.05),0 8px 24px rgba(11,60,58,.06);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0c1516; --panel:#12211f; --ink:#e8f2f0; --ink-2:#a9c2c0; --ink-3:#7a9694;
+    --line:#213331; --line-2:#1a2927;
+    --teal:#3fbdae; --teal-deep:#7fd8cb; --teal-soft:#16302c;
+    --amber:#e0aa4e; --amber-soft:#2e2612; --green:#68b678; --green-soft:#16291a;
+    --slate:#7db0e0; --slate-soft:#132436; --gold:#e9b13b;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
+    line-height:1.75;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 22px}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* header */
+  header{padding:64px 0 34px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);font-weight:800}
+  h1{font-size:clamp(27px,4.6vw,42px);line-height:1.22;margin:.35em 0 .3em;font-weight:900;letter-spacing:.01em;text-wrap:balance}
+  .lede{font-size:17px;color:var(--ink-2);max-width:44em;margin:0}
+  .thesis{margin-top:26px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-weight:800;font-size:15px}
+  .thesis .eq{color:var(--ink-3)}
+  .thesis .t{padding:7px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow)}
+  .thesis .lack{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .thesis .dim{opacity:.55}
+  .callout{margin-top:20px;padding:15px 18px;border-left:4px solid var(--teal);background:var(--teal-soft);border-radius:0 12px 12px 0;font-size:14.5px;color:var(--ink)}
+  .callout b{color:var(--teal-deep)}
+
+  section{padding:44px 0}
+  .sec-h{display:flex;align-items:baseline;gap:12px;margin:0 0 6px}
+  .sec-k{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+  h2{font-size:clamp(20px,3vw,26px);font-weight:900;margin:0;letter-spacing:.01em}
+  .sec-sub{color:var(--ink-2);font-size:14.5px;margin:.4em 0 22px;max-width:46em}
+
+  /* legend */
+  .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+  .lg{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 17px;box-shadow:var(--shadow)}
+  .lg h3{margin:0 0 9px;font-size:13px;letter-spacing:.06em;color:var(--ink-3);text-transform:uppercase;font-weight:800}
+  .lg .row{display:flex;gap:9px;align-items:center;margin:6px 0;font-size:13.5px;color:var(--ink-2)}
+
+  .chip{display:inline-flex;align-items:center;font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap;letter-spacing:.02em}
+  .c-info{background:var(--slate-soft);color:var(--slate)}
+  .c-comp{background:var(--amber-soft);color:var(--amber)}
+  .c-cv{background:var(--green-soft);color:var(--green)}
+  .stars{color:var(--gold);letter-spacing:1px;font-size:13px}
+  .stars .off{color:var(--line)}
+  .dem{font-weight:800;font-size:12.5px;color:var(--ink-2)}
+
+  /* phase table */
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  table{border-collapse:collapse;width:100%;min-width:560px;background:var(--panel)}
+  th,td{text-align:left;padding:13px 15px;border-bottom:1px solid var(--line-2);font-size:14px;vertical-align:top}
+  thead th{background:var(--teal-soft);color:var(--teal-deep);font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:800;border-bottom:1px solid var(--line)}
+  tbody tr:last-child td{border-bottom:none}
+  .ph{font-weight:900;color:var(--teal);white-space:nowrap}
+  td .goal{color:var(--ink-3);font-size:13px}
+
+  /* clusters */
+  .clusters{display:flex;flex-direction:column;gap:22px}
+  .cluster{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+  .cl-head{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line-2);background:linear-gradient(180deg,var(--teal-soft),transparent)}
+  .cl-no{font-weight:900;color:var(--teal);font-size:13px;letter-spacing:.1em}
+  .cl-name{font-size:18px;font-weight:900;margin:0;flex:1;min-width:180px}
+  .cl-meta{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .cl-phase{font-size:11.5px;font-weight:800;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);padding:3px 10px;border-radius:999px}
+  .pillar{padding:11px 20px;font-size:13.5px;color:var(--ink-2);border-bottom:1px solid var(--line-2);background:var(--bg)}
+  .pillar b{color:var(--ink)}
+  .pillar .lp{color:var(--green);font-weight:800}
+  .pillar .url{color:var(--teal);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+  .cl-table{overflow-x:auto}
+  .cl-table table{min-width:640px}
+  .cl-table td:first-child{font-weight:700;color:var(--ink)}
+  .kw{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--teal-deep);background:var(--teal-soft);padding:2px 7px;border-radius:6px;display:inline-block}
+  :root[data-theme="dark"] .kw{color:var(--teal-deep)}
+
+  .note{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px 24px;box-shadow:var(--shadow)}
+  .note ul{margin:.4em 0 0;padding-left:1.1em}
+  .note li{margin:8px 0;color:var(--ink-2);font-size:14.5px}
+  .note li b{color:var(--ink)}
+  .kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:20px}
+  .kpi .k{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .kpi .k .v{font-size:23px;font-weight:900;color:var(--teal)}
+  .kpi .k .l{font-size:12.5px;color:var(--ink-3);font-weight:700}
+
+  footer{padding:40px 0 70px;color:var(--ink-3);font-size:13px;border-top:1px solid var(--line);margin-top:20px}
+  @media(max-width:600px){header{padding:44px 0 26px}.thesis{font-size:13.5px}}
+</style>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">株式会社Salud ｜ Web集客設計</div>
+    <h1>補助金メディア<br>キーワードマップ＆記事計画</h1>
+    <p class="lede">「補助金の相談が来るサイト」にするための検索集客の設計図。どのキーワードで、どんな記事を、どの順番で作るかを一枚に。</p>
+
+    <div class="thesis">
+      <span class="t">相談が来る</span><span class="eq">=</span>
+      <span class="t lack">流入 ✕</span><span class="eq">×</span>
+      <span class="t dim">信頼 ✓</span><span class="eq">×</span>
+      <span class="t dim">導線 ✓</span>
+    </div>
+    <div class="callout">
+      信頼（認定機関・実績130件超・採択率82%・監修者）と相談導線（フォーム・LINE・電話）は<b>すでに完成</b>。
+      足りないのは<b>流入</b>だけ。だから打ち手は「検索の入口＝記事を増やす」——それがこの計画です。
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="sec-h"><span class="sec-k">How to read</span></div>
+    <h2>凡例</h2>
+    <p class="sec-sub">各記事は「検索意図」「推定需要」「優先度」で分類しています。情報系で集客し、商用系（サービスLP）で相談に変える設計です。</p>
+    <div class="legend">
+      <div class="lg">
+        <h3>検索意図（ファネル）</h3>
+        <div class="row"><span class="chip c-info">情報</span> 制度を調べている段階（集客の入口）</div>
+        <div class="row"><span class="chip c-comp">比較</span> 申請方法・やり方を探す段階</div>
+        <div class="row"><span class="chip c-cv">商用</span> 依頼先を探す段階（相談に直結）</div>
+      </div>
+      <div class="lg">
+        <h3>優先度</h3>
+        <div class="row"><span class="stars">★★★</span> 最優先（需要大・CV貢献大）</div>
+        <div class="row"><span class="stars">★★<span class="off">★</span></span> 中（第2〜3陣）</div>
+        <div class="row"><span class="stars">★<span class="off">★★</span></span> 後回し（ロングテール）</div>
+      </div>
+      <div class="lg">
+        <h3>推定需要</h3>
+        <div class="row"><span class="dem">特大 / 大</span> 検索者が多い主要KW</div>
+        <div class="row"><span class="dem">中</span> ニッチだが確度の高いKW</div>
+        <div class="row"><span class="dem">小</span> 少数・ロングテール</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-h"><span class="sec-k">Roadmap</span></div>
+    <h2>4フェーズの進行計画</h2>
+    <p class="sec-sub">一気に全部ではなく、効果測定しながらクラスター単位で積み上げます。まずPhase 1で「集客→相談」の最小メディアを完成させ、効果を見て横展開します。</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>フェーズ</th><th>目安</th><th>やること</th><th>記事数</th><th>狙い</th></tr></thead>
+        <tbody>
+          <tr><td class="ph">Phase 1</td><td>今月</td><td>持続化クラスター完成 ＋ 横断ハブ（補助金一覧／申請代行／相談先）</td><td class="tnum">約8本</td><td class="goal">最初の集客エンジンを作り効果測定</td></tr>
+          <tr><td class="ph">Phase 2</td><td>〜2ヶ月</td><td>新事業進出・ものづくり商業サービス ＋ 省力化投資クラスター</td><td class="tnum">約5本</td><td class="goal">高単価・成長分野の流入を追加</td></tr>
+          <tr><td class="ph">Phase 3</td><td>〜3ヶ月</td><td>融資・資金調達クラスター</td><td class="tnum">約3本</td><td class="goal">資金調達ワンストップの網羅性を確立</td></tr>
+          <tr><td class="ph">Phase 4</td><td>継続運用</td><td>地域・属性ロングテール ＋ 全記事のリライト・締切更新・内部リンク強化</td><td class="tnum">継続</td><td class="goal">鮮度と回遊を維持し順位を伸ばす</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-h"><span class="sec-k">Keyword clusters</span></div>
+    <h2>6つのトピッククラスター</h2>
+    <p class="sec-sub">「柱（サービスLP）＋枝（情報記事）」で束ねる構造。同じクラスター内を内部リンクで繋ぎ、記事末から必ず柱のサービスLP（相談）へ誘導します。</p>
+
+    <div class="clusters">
+
+      <!-- C1 -->
+      <div class="cluster">
+        <div class="cl-head">
+          <span class="cl-no">CLUSTER 01</span>
+          <p class="cl-name">小規模事業者持続化補助金</p>
+          <div class="cl-meta"><span class="stars">★★★</span><span class="cl-phase">Phase 1・着手済み</span></div>
+        </div>
+        <div class="pillar">柱ページ：<b>小規模事業者持続化補助金の申請サポート</b> <span class="lp">［商用LP・公開済み］</span> <span class="url">/jizokuka/</span></div>
+        <div class="cl-table"><table>
+          <thead><tr><th>記事タイトル案</th><th>主要キーワード</th><th>意図</th><th>需要</th><th>優先</th></tr></thead>
+          <tbody>
+            <tr><td>小規模事業者持続化補助金とは？対象・上限・補助率を解説</td><td><span class="kw">持続化補助金 とは</span></td><td><span class="chip c-info">情報</span></td><td class="dem">大</td><td><span class="stars">★★★</span></td></tr>
+            <tr><td>持続化補助金は何に使える？対象経費と活用事例</td><td><span class="kw">持続化補助金 対象経費</span></td><td><span class="chip c-info">情報</span></td><td class="dem">大</td><td><span class="stars">★★★</span></td></tr>
+            <tr><td>持続化補助金の申請の流れと必要書類【完全ガイド】</td><td><span class="kw">持続化補助金 申請方法</span></td><td><span class="chip c-comp">比較</span></td><td class="dem">大</td><td><span class="stars">★★★</span></td></tr>
+            <tr><td>採択される事業計画書の書き方【持続化補助金】</td><td><span class="kw">持続化補助金 書き方</span></td><td><span class="chip c-comp">比較</span></td><td class="dem">中</td><td><span class="stars">★★<span class="off">★</span></span></td></tr>
+            <tr><td>持続化補助金でホームページは作れる？条件と事例</td><td><span class="kw">持続化補助金 ホームページ</span></td><td><span class="chip c-cv">商用</span></td><td class="dem">中</td><td><span class="stars">★★★</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <!-- C4 -->
+      <div class="cluster">
+        <div class="cl-head">
+          <span class="cl-no">CLUSTER 02</span>
+          <p class="cl-name">新事業進出・事業再構築</p>
+          <div class="cl-meta"><span class="stars">★★<span class="off">★</span></span><span class="cl-phase">Phase 2・高単価</span></div>
+        </div>
+        <div class="pillar">柱ページ：<b>新事業進出・ものづくり商業サービス補助金 サポート</b> <span class="lp">［商用LP］</span> <span class="url">/shinjigyo/</span></div>
+        <div class="cl-table"><table>
+          <thead><tr><th>記事タイトル案</th><th>主要キーワード</th><th>意図</th><th>需要</th><th>優先</th></tr></thead>
+          <tbody>
+            <tr><td>新事業進出補助金とは？対象・上限・特例枠を解説</td><td><span class="kw">新事業進出補助金</span></td><td><span class="chip c-info">情報</span></td><td class="dem">大</td><td><span class="stars">★★★</span></td></tr>
+            <tr><td>事業再構築補助金との違い・後継制度の位置づけ</td><td><span class="kw">事業再構築補助金</span></td><td><span class="chip c-info">情報</span></td><td class="dem">中</td><td><span class="stars">★★<span class="off">★</span></span></td></tr>
+            <tr><td>新事業進出補助金 採択されるためのポイント</td><td><span class="kw">新事業進出補助金 採択</span></td><td><span class="chip c-comp">比較</span></td><td class="dem">小</td><td><span class="stars">★<span class="off">★★</span></span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <!-- C5 -->
+      <div class="cluster">
+        <div class="cl-head">
+          <span class="cl-no">CLUSTER 03</span>
+          <p class="cl-name">省力化投資補助金</p>
+          <div class="cl-meta"><span class="stars">★★<span class="off">★</span></span><span class="cl-phase">Phase 2・成長中</span></div>
+        </div>
+        <div class="pillar">柱ページ：<b>省力化投資補助金の申請サポート</b> <span class="lp">［商用LP］</span> <span class="url">/shorikika/</span></div>
+        <div class="cl-table"><table>
+          <thead><tr><th>記事タイトル案</th><th>主要キーワード</th><th>意図</th><th>需要</th><th>優先</th></tr></thead>
+          <tbody>
+            <tr><td>省力化投資補助金とは？カタログ型と一般型の違い</td><td><span class="kw">省力化投資補助金 とは</span></td><td><span class="chip c-info">情報</span></td><td class="dem">中</td><td><span class="stars">★★<span class="off">★</span></span></td></tr>
+            <tr><td>省力化投資補助金の対象製品・上限額</td><td><span class="kw">省力化投資補助金 対象</span></td><td><span class="chip c-info">情報</span></td><td class="dem">中</td><td><span class="stars">★★<span class="off">★</span></span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <!-- C6 -->
+      <div class="cluster">
+        <div class="cl-head">
+          <span class="cl-no">CLUSTER 04</span>
+          <p class="cl-name">融資・資金調達</p>
+          <div class="cl-meta"><span class="stars">★★<span class="off">★</span></span><span class="cl-phase">Phase 3・コアサービス</span></div>
+        </div>
+        <div class="pillar">柱ページ：<b>融資支援・資金調達サポート</b> <span class="lp">［商用LP］</span> <span class="url">/yuushi/</span></div>
+        <div class="cl-table"><table>
+          <thead><tr><th>記事タイトル案</th><th>主要キーワード</th><th>意図</th><th>需要</th><th>優先</th></tr></thead>
+          <tbody>
+            <tr><td>創業融資とは？日本政策金融公庫の使い方</td><td><span class="kw">創業融資</span></td><td><span class="chip c-info">情報</span></td><td class="dem">大</td><td><span class="stars">★★<span class="off">★</span></span></td></tr>
+            <tr><td>補助金と融資の違い・賢い併用方法</td><td><span class="kw">補助金 融資 併用</span></td><td><span class="chip c-comp">比較</span></td><td class="dem">中</td><td><span class="stars">★★★</span></td></tr>
+            <tr><td>融資の事業計画書の書き方・必要書類</td><td><span class="kw">融資 事業計画書</span></td><td><span class="chip c-comp">比較</span></td><td class="dem">中</td><td><span class="stars">★★<span class="off">★</span></span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <!-- C7 -->
+      <div class="cluster">
+        <div class="cl-head">
+          <span class="cl-no">CLUSTER 05</span>
+          <p class="cl-name">横断・入口ビッグキーワード</p>
+          <div class="cl-meta"><span class="stars">★★★</span><span class="cl-phase">Phase 1・大入口/回遊ハブ</span></div>
+        </div>
+        <div class="pillar">柱ページ：<b>TOP／補助金診断ツール／会社概要</b> <span class="lp">［集客ハブ］</span> <span class="url">全クラスターへ回遊</span></div>
+        <div class="cl-table"><table>
+          <thead><tr><th>記事タイトル案</th><th>主要キーワード</th><th>意図</th><th>需要</th><th>優先</th></tr></thead>
+          <tbody>
+            <tr><td>【2026年版】中小企業が使える補助金一覧・種類まとめ</td><td><span class="kw">補助金 一覧</span></td><td><span class="chip c-info">情報</span></td><td class="dem">特大</td><td><span class="stars">★★★</span></td></tr>
+            <tr><td>補助金の申請代行・サポート会社の選び方と費用相場</td><td><span class="kw">補助金 申請代行</span></td><td><span class="chip c-cv">商用</span></td><td class="dem">大</td><td><span class="stars">★★★</span></td></tr>
+            <tr><td>補助金はどこに相談すればいい？相談先の種類と選び方</td><td><span class="kw">補助金 相談</span></td><td><span class="chip c-cv">商用</span></td><td class="dem">中</td><td><span class="stars">★★★</span></td></tr>
+            <tr><td>補助金の採択率を上げる共通のコツ</td><td><span class="kw">補助金 採択率</span></td><td><span class="chip c-comp">比較</span></td><td class="dem">中</td><td><span class="stars">★★<span class="off">★</span></span></td></tr>
+            <tr><td>補助金はいつもらえる？入金までの流れと注意点</td><td><span class="kw">補助金 いつもらえる</span></td><td><span class="chip c-info">情報</span></td><td class="dem">中</td><td><span class="stars">★★<span class="off">★</span></span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+      <!-- C8 -->
+      <div class="cluster">
+        <div class="cl-head">
+          <span class="cl-no">CLUSTER 06</span>
+          <p class="cl-name">地域・属性ロングテール</p>
+          <div class="cl-meta"><span class="stars">★<span class="off">★★</span></span><span class="cl-phase">Phase 4</span></div>
+        </div>
+        <div class="pillar">柱ページ：<b>会社概要／各サービスLP</b> <span class="lp">［確度の高いニッチ流入］</span></div>
+        <div class="cl-table"><table>
+          <thead><tr><th>記事タイトル案</th><th>主要キーワード</th><th>意図</th><th>需要</th><th>優先</th></tr></thead>
+          <tbody>
+            <tr><td>渋谷・東京で補助金申請を相談できる支援機関</td><td><span class="kw">東京 補助金 相談</span></td><td><span class="chip c-cv">商用</span></td><td class="dem">小</td><td><span class="stars">★★<span class="off">★</span></span></td></tr>
+            <tr><td>個人事業主が使える補助金まとめ</td><td><span class="kw">個人事業主 補助金</span></td><td><span class="chip c-info">情報</span></td><td class="dem">中</td><td><span class="stars">★★<span class="off">★</span></span></td></tr>
+            <tr><td>飲食店・小売店が使える補助金</td><td><span class="kw">飲食店 補助金</span></td><td><span class="chip c-info">情報</span></td><td class="dem">中</td><td><span class="stars">★<span class="off">★★</span></span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-h"><span class="sec-k">Operating rules</span></div>
+    <h2>1記事あたりの必須ルール ＆ 運用</h2>
+    <p class="sec-sub">量産しても「弱い記事」では順位が付きません。補助金は「お金＝YMYL」でGoogleが特に信頼性を厳しく見るため、全記事に以下を必ず入れます。</p>
+    <div class="note">
+      <ul>
+        <li><b>実URL・1記事1キーワード・h1は1つ</b>（SPAハッシュではなく個別ページ）</li>
+        <li><b>パンくず＋構造化データ</b>（Article／FAQ／BreadcrumbList）でリッチ表示・AI検索対応</li>
+        <li><b>監修者の明示</b>（堂本さん等）＋<b>公開日・更新日</b>＋<b>公式（一次情報）へのリンク</b>＝E-E-A-T</li>
+        <li><b>関連記事への内部リンク</b>（クラスター内で回遊）＋<b>記事末に相談導線</b>（無料相談・LINE・電話）</li>
+        <li><b>アイキャッチ画像・図解</b>で読みやすく（離脱防止）</li>
+        <li><b>締切・公募回は月次で更新</b>（鮮度が命）、GSCで順位・CTRを計測し伸び悩む記事をリライト</li>
+      </ul>
+      <div class="kpi">
+        <div class="k"><div class="v tnum">週2–3本</div><div class="l">公開ペースの目安</div></div>
+        <div class="k"><div class="v tnum">約13本</div><div class="l">Phase 1–2 の記事数</div></div>
+        <div class="k"><div class="v">情報→LP</div><div class="l">全記事に相談導線</div></div>
+        <div class="k"><div class="v tnum">3–6ヶ月</div><div class="l">検索流入が育つ期間</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    株式会社Salud ｜ 補助金メディア キーワードマップ＆記事計画　—　記事はWordPress（REST API）で作成・公開可能。需要は公開情報からの推定値で、GSC計測後に随時見直します。
+  </div>
+</footer>

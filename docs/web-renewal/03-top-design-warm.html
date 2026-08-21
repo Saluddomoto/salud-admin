@@ -1,3 +1,7 @@
+
+
+
+あぶ<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
 <title>Salud｜TOPデザイン案 v3（LP型・インパクト強化）</title>
 <style>
   :root {
@@ -468,6 +472,39 @@
   .info-table th { width: 180px; font-weight: 800; color: var(--teal-deep); background: var(--tint); white-space: nowrap; }
   .info-table a { color: var(--teal-deep); font-weight: 700; }
   @media (max-width: 640px) { .info-table th, .info-table td { display: block; width: auto; border: none; padding: 6px 4px; } .info-table th { background: none; color: var(--teal-deep); padding-top: 16px; } .info-table tr { border-bottom: 1px solid var(--line); display: block; padding: 4px 0 12px; } }
+
+  /* ===== WARM & SOFT overlay (親しみ・やわらか) ===== */
+  :root, body {
+    --ground: #fffdf8;
+    --cream: #fff7ec;
+    --tint: #eef7f0;         /* やわらかいミント */
+    --tint-2: #dcefe2;
+    --line: #efe7da;         /* 温かいライン */
+    --teal: #34a9c4;         /* 少しやわらかい青緑 */
+    --teal-deep: #2a8ba6;
+    --teal-dark: #22697f;
+    --teal-soft: #aadceb;
+    --green: #5fbf4a; --green-deep: #46a233;
+    --yellow: #ffd97a; --yellow-deep: #f0b73c;
+    --orange: #f6a15a; --red: #ef6f6f;
+    --radius: 28px;
+    --shadow-sm: 0 3px 16px rgba(150,120,80,.09);
+    --shadow-md: 0 12px 34px rgba(150,120,80,.15);
+    --font-jp: "Zen Maru Gothic", "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Yu Gothic UI", sans-serif;
+    --font-serif: "Zen Maru Gothic", "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", sans-serif;
+  }
+  /* 冷たいグリッド背景 → 温かいやわらかグラデに */
+  body {
+    background-color: var(--ground);
+    background-image:
+      radial-gradient(1100px 560px at 82% -8%, rgba(255,214,140,.20), transparent 62%),
+      radial-gradient(880px 520px at -2% 18%, rgba(120,200,168,.16), transparent 60%);
+    background-size: auto, auto;
+  }
+  /* 角丸・影をやわらかく（主要カード類） */
+  .card, .cat-card, .price-card, .fc, .post, .sem, .work, section, .btn { border-radius: var(--radius); }
+  .btn { border-radius: 999px; }
+
 </style>
 
 <header id="hd">

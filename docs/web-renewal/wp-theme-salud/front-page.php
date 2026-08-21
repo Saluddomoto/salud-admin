@@ -1,494 +1,11 @@
-<title>Salud｜TOPデザイン案 v3（LP型・インパクト強化）</title>
-<style>
-  :root {
-    --ink: #353333;
-    --ink-2: #5e6b70;
-    --ink-3: #8a979c;
-    --ground: #ffffff;
-    --cream: #fbfdfe;
-    --tint: #f0f8fd; --green: #56b53a; --green-deep: #3f9427;
-    --tint-2: #dceefb;
-    --line: #e2e9ee;
-    --teal: #1e9de3;
-    --teal-deep: #1479b3;
-    --teal-dark: #0d4d75;
-    --teal-soft: #8fd0f0;
-    --yellow: #ffd93b;
-    --yellow-deep: #e0b414;
-    --orange: #f0a03c;
-    --red: #e05252;
-    --line-green: #06c755;
-    --radius: 20px;
-    --shadow-sm: 0 2px 10px rgba(13, 107, 125, .07);
-    --shadow-md: 0 6px 24px rgba(13, 107, 125, .13);
-    --font-jp: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", YuGothic, "Noto Sans JP", Meiryo, sans-serif;
-    --font-serif: "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif JP", serif;
-    --font-en: "Avenir Next", "Segoe UI", Verdana, sans-serif;
-    --font-script: "Segoe Script", "Bradley Hand", "Comic Sans MS", cursive;
-  }
-  * { box-sizing: border-box; }
-  body { background-image: linear-gradient(rgba(20,60,90,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(20,60,90,.045) 1px, transparent 1px); background-size: 56px 56px; }
-  html { scroll-behavior: smooth; }
-  body {
-    margin: 0; background: var(--ground); color: var(--ink);
-    font-family: var(--font-jp); font-feature-settings: "palt";
-    font-size: 17px; line-height: 2; letter-spacing: .03em;
-    -webkit-font-smoothing: antialiased;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    .rv, .hero-copy, .hero-visual { transition: none !important; animation: none !important; opacity: 1 !important; transform: none !important; }
-    .wiggle, .pulse { animation: none !important; }
-  }
-  a { color: inherit; text-decoration: none; }
-  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 6px; }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-  section { padding: 52px 0; }
-  .trio { grid-template-columns: repeat(3, 1fr); }
-  @media (max-width: 900px) { .trio { grid-template-columns: 1fr; } }
-  .num { font-variant-numeric: tabular-nums; }
-
-  .sec-en { font-family: var(--font-en); font-size: clamp(32px, 4.8vw, 60px); font-weight: 800; letter-spacing: -.015em; line-height: .95; margin: 0 0 14px; }
-  .sec-en b { background: linear-gradient(92deg, var(--teal-deep), var(--teal) 55%, #4db8f0); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 800; }
-
-  /* ---------- marquee ---------- */
-  .marq { overflow: hidden; padding: 16px 0; background: #fff; border-bottom: 1px solid var(--line); }
-  .marq-track { display: flex; gap: 56px; white-space: nowrap; width: max-content; animation: marq 30s linear infinite; }
-  .marq-track span {
-    font-weight: 800; font-size: clamp(22px, 3.2vw, 34px); letter-spacing: .02em;
-    color: transparent; -webkit-text-stroke: 1.5px var(--teal-soft); flex: none;
-  }
-  .marq-track span.fill { color: var(--teal); -webkit-text-stroke: 0; }
-  @keyframes marq { to { transform: translateX(-50%); } }
-  @media (prefers-reduced-motion: reduce) { .marq-track { animation: none; } }
-
-  /* ---------- statement ---------- */
-  .statement { text-align: center; padding: 56px 0; background: #fff; position: relative; overflow: hidden; }
-  .statement .bg-en {
-    position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
-    font-family: var(--font-en); font-weight: 800; font-size: clamp(90px, 17vw, 230px); line-height: 1;
-    color: transparent; -webkit-text-stroke: 1px var(--tint-2); letter-spacing: -.02em; user-select: none;
-  }
-  .statement p { position: relative; font-family: var(--font-serif); font-weight: 700; font-size: clamp(28px, 4.6vw, 52px); line-height: 1.8; letter-spacing: .06em; margin: 0; text-wrap: balance; }
-  .statement .sub { font-family: var(--font-jp); font-size: clamp(15px, 1.8vw, 17.5px); color: var(--ink-2); font-weight: 600; margin-top: 26px; line-height: 2.2; letter-spacing: .04em; }
-
-  /* ---------- scroll indicator ---------- */
-  .sem-notice {
-    display: inline-flex; align-items: center; gap: 12px; margin-top: 16px;
-    background: #fff; border: 1px solid var(--line); border-radius: 99px;
-    padding: 10px 22px; font-size: 14px; font-weight: 700; box-shadow: var(--shadow-sm);
-    transition: transform .18s ease, border-color .18s ease; position: relative;
-  }
-  .sem-notice:hover { transform: translateY(-2px); border-color: var(--teal-soft); }
-  .sem-notice .lbl { font-size: 11px; font-weight: 800; color: #fff; background: var(--red); border-radius: 99px; padding: 3px 12px; letter-spacing: .08em; }
-  .sem-notice .d { color: var(--red); font-family: var(--font-en); font-weight: 800; }
-  .sem-notice .go2 { color: var(--teal); font-weight: 800; }
-  .scroll-ind { position: absolute; left: 24px; bottom: 20px; display: flex; align-items: center; gap: 10px; font-family: var(--font-en); font-size: 11.5px; font-weight: 700; letter-spacing: .3em; color: var(--ink-3); text-transform: uppercase; }
-  .scroll-ind::after { content: ""; width: 56px; height: 1.5px; background: var(--teal); animation: scrl 2s ease-in-out infinite; transform-origin: left; }
-  @keyframes scrl { 0% { transform: scaleX(0); } 55% { transform: scaleX(1); } 100% { transform: scaleX(1); opacity: 0; } }
-  @media (prefers-reduced-motion: reduce) { .scroll-ind::after { animation: none; } }
-  .sec-ja { font-size: 15px; font-weight: 700; color: var(--ink-2); display: flex; align-items: center; gap: 10px; }
-  .sec-ja::before { content: ""; width: 26px; height: 2px; border-radius: 2px; background: var(--teal); }
-  .sec-head { margin-bottom: 32px; }
-  .sec-head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
-  .lede { font-size: 17px; color: var(--ink-2); max-width: 42em; margin: 14px 0 0; }
-  .marker { background: linear-gradient(transparent 62%, var(--yellow) 62%, var(--yellow) 94%, transparent 94%); }
-  .more-link { font-size: 15px; font-weight: 700; color: var(--teal); white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; }
-  .more-link::after { content: "→"; transition: transform .2s ease; }
-  .more-link:hover::after { transform: translateX(4px); }
-
-  .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-    padding: 16px 32px; border-radius: 999px;
-    font-size: 16px; font-weight: 800; letter-spacing: .05em;
-    border: 0; cursor: pointer; font-family: inherit;
-    transition: transform .18s ease, box-shadow .18s ease; position: relative;
-  }
-  .btn:hover { transform: translateY(-2px); }
-  .btn-primary { background: linear-gradient(135deg, var(--green), #6cc94b); color: #fff; box-shadow: 0 5px 0 var(--green-deep); }
-  .btn-yellow { background: linear-gradient(135deg, var(--teal), #4db8f0); color: #fff; box-shadow: 0 5px 0 var(--teal-deep); }
-  .diag-card .btn-yellow { background: #fff; color: var(--teal-deep); box-shadow: 0 5px 0 rgba(0,0,0,.18); }
-  .btn-ghost-w { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.65); }
-  .btn-ghost { background: #fff; color: var(--teal-deep); border: 2px solid var(--tint-2); box-shadow: 0 4px 0 var(--tint-2); }
-  .btn-line { background: var(--line-green); color: #fff; box-shadow: 0 5px 0 #05a648; }
-  .btn-xl { padding: 22px 46px; font-size: 19px; }
-  @keyframes wiggle { 0%,100% { transform: rotate(0); } 20% { transform: rotate(-2.5deg); } 40% { transform: rotate(2.5deg); } 60% { transform: rotate(-1.5deg); } 80% { transform: rotate(1.5deg); } }
-  .wiggle { animation: wiggle 2.6s ease-in-out infinite; animation-delay: 1.2s; }
-
-  /* ---------- header ---------- */
-  header {
-    position: fixed; inset: 0 0 auto 0; z-index: 100;
-    background: rgba(255,255,255,.93);
-    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--line);
-  }
-  .nav { display: flex; align-items: center; gap: 32px; height: 72px; }
-  .logo { display: flex; align-items: center; gap: 10px; }
-  .logo img { height: 46px; width: auto; }
-  .logo .lg-txt { font-size: 17.5px; font-weight: 800; color: #14507e; letter-spacing: .03em; }
-  .nav-links { display: flex; gap: 26px; margin: 0 auto; padding: 0; list-style: none; }
-  .nav-links a { font-size: 15px; font-weight: 600; color: var(--ink-2); }
-  .nav-links a:hover { color: var(--teal); }
-  .nav-cta { display: flex; align-items: center; gap: 18px; }
-  .nav-login { font-size: 14.5px; font-weight: 700; color: var(--ink-2); }
-  .nav-cta .btn { padding: 11px 24px; font-size: 14.5px; }
-  @media (max-width: 900px) { .nav-links, .nav-login { display: none; } }
-
-  /* ---------- hero (案B: 左コピー×右診断カード) ---------- */
-  .hero {
-    position: relative; overflow: hidden; color: var(--ink);
-    background:
-      radial-gradient(720px 480px at 88% 10%, rgba(30,157,227,.10), transparent 68%),
-      radial-gradient(560px 420px at 8% 92%, rgba(86,181,58,.09), transparent 66%),
-      linear-gradient(168deg, rgba(255,255,255,.6) 0%, rgba(240,248,253,.6) 100%);
-    padding: 100px 0 48px;
-  }
-  .hero::before {
-    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .7;
-    background: linear-gradient(rgba(39,149,171,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(39,149,171,.09) 1px, transparent 1px);
-    background-size: 64px 64px;
-    -webkit-mask-image: radial-gradient(800px 600px at 75% 40%, #000, transparent 75%);
-    mask-image: radial-gradient(800px 600px at 75% 40%, #000, transparent 75%);
-  }
-  .hero-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 56px; align-items: center; position: relative; }
-  .hero-copy { opacity: 0; transform: translateY(16px); transition: opacity .7s ease .1s, transform .7s ease .1s; }
-  .hero-copy.on { opacity: 1; transform: none; }
-  .tag-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 26px; }
-  .tag { font-size: 13px; font-weight: 800; letter-spacing: .06em; background: var(--tint-2); color: var(--teal-deep); border-radius: 99px; padding: 5px 16px; }
-  .tag.hot { background: var(--yellow); color: #453604; }
-  .cert-band { display: inline-flex; align-items: center; gap: 9px; background: #fff; border: 1.5px solid var(--teal); color: var(--teal-deep); border-radius: 10px; padding: 8px 18px; font-size: 13.5px; font-weight: 800; letter-spacing: .04em; margin-bottom: 18px; box-shadow: 0 2px 10px rgba(13,107,125,.10); }
-  .cert-band .ic { display: flex; width: 20px; height: 20px; border-radius: 50%; background: var(--teal); color: #fff; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
-  .hero-checks { display: flex; gap: 20px; flex-wrap: wrap; margin: 0 0 32px; font-size: 14.5px; font-weight: 700; color: var(--ink-2); }
-  .hero-checks span::before { content: "✓"; color: var(--teal); font-weight: 900; margin-right: 7px; }
-  .h1-gothic { font-family: var(--font-jp); font-weight: 800; line-height: 1.45; letter-spacing: .015em; font-size: clamp(36px, 4.6vw, 54px); }
-  .h1-gothic .g { background: linear-gradient(92deg, var(--green-deep), var(--green) 55%, #7ccf5a); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  h1 {
-    font-family: var(--font-serif);
-    font-size: clamp(33px, 4.4vw, 50px); font-weight: 700;
-    line-height: 1.55; letter-spacing: .04em; margin: 0 0 22px;
-  }
-  .script { font-family: var(--font-script); color: var(--teal); }
-  .blob { position: absolute; border-radius: 50%; pointer-events: none; }
-  .blob-1 { width: 540px; height: 540px; right: -150px; top: -170px; background: radial-gradient(circle, var(--tint-2) 0%, transparent 66%); }
-  .blob-2 { width: 380px; height: 380px; left: -160px; bottom: -120px; background: radial-gradient(circle, #fdf3cf 0%, transparent 64%); }
-  .crumb { font-size: 13.5px; color: var(--ink-3); margin: 0 0 20px; position: relative; }
-  .crumb a { color: var(--teal); font-weight: 700; }
-  h1 .mk { background: linear-gradient(transparent 64%, var(--yellow) 64%, var(--yellow) 94%, transparent 94%); }
-  .hero-sub { font-size: 17px; color: var(--ink-2); margin: 0 0 30px; max-width: 29em; }
-  .hero-ctas { display: flex; gap: 16px; flex-wrap: wrap; }
-  .hero-note { font-size: 13.5px; color: var(--ink-3); margin-top: 18px; }
-  .mini-stats { display: flex; gap: 26px; margin-top: 26px; flex-wrap: wrap; }
-  .ms { border-left: 2px solid var(--green); padding-left: 14px; }
-  .ms .v { font-family: var(--font-en); font-size: 26px; font-weight: 800; line-height: 1.3; color: var(--green-deep); }
-  .ms .v small { font-size: .55em; }
-  .ms .k { font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
-  .hero-visual { position: relative; height: 410px; opacity: 0; transform: translateY(20px); transition: opacity .8s ease .35s, transform .8s ease .35s; }
-  .hero-visual.on { opacity: 1; transform: none; }
-  .fcard { position: absolute; background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 14px 40px rgba(13, 107, 125, .16); padding: 22px 24px; }
-  .fcard .cap { font-size: 12px; font-weight: 800; letter-spacing: .14em; color: var(--teal); margin-bottom: 10px; }
-  .fcB1 { top: 6px; right: 4%; width: 305px; transform: rotate(1.6deg); z-index: 3; }
-  .fcB1 .row { display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; font-weight: 700; }
-  .fcB1 .pct { color: var(--teal); font-size: 23px; font-weight: 800; font-family: var(--font-en); }
-  .fcB1 .bar { height: 8px; border-radius: 99px; background: var(--tint); margin: 8px 0 14px; overflow: hidden; }
-  .fcB1 .bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--teal), var(--teal-soft)); }
-  .fcB2 { top: 216px; left: 0; width: 285px; transform: rotate(-2deg); z-index: 4; }
-  .fcB2 .chip-ok { display: inline-block; font-size: 11.5px; font-weight: 800; color: #0c7a43; background: #e7f7ee; border-radius: 99px; padding: 4px 14px; margin-bottom: 10px; }
-  .fcB2 .amount { font-family: var(--font-en); font-size: 30px; font-weight: 800; }
-  .fcB2 .cap2 { font-size: 12px; color: var(--ink-3); }
-  .fcB3 { bottom: -6px; right: 10%; width: 250px; transform: rotate(1deg); z-index: 2; }
-  .fcB3 .drow { display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 700; padding: 7px 0; border-bottom: 1px dashed var(--line); }
-  .fcB3 .drow b { color: var(--red); font-family: var(--font-en); }
-  @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; } .hero-visual { height: 420px; max-width: 480px; } }
-
-  /* ---------- purpose chooser ---------- */
-  .chooser { position: relative; z-index: 5; }
-  .chooser-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: -38px; }
-  .choice {
-    background: #fff; border: 1px solid var(--line); border-radius: 16px;
-    padding: 18px 20px 14px; box-shadow: var(--shadow-md);
-    display: flex; flex-direction: column;
-    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-  }
-  .choice:hover { transform: translateY(-3px); border-color: var(--teal-soft); }
-  .choice .q { font-size: 12px; font-weight: 800; color: var(--ink-3); letter-spacing: .08em; }
-  .choice .t { font-size: 16px; font-weight: 800; line-height: 1.6; margin: 2px 0 8px; flex: 1; }
-  .choice .a { font-size: 13.5px; color: var(--teal); font-weight: 800; }
-  .choice.hot { background: var(--yellow); border-color: var(--yellow); }
-  .choice.hot .q { color: #7a6410; }
-  .choice.hot .a { color: #453604; }
-  @media (max-width: 900px) { .chooser-grid { grid-template-columns: 1fr 1fr; } }
-
-  /* ---------- seminar+blog duo ---------- */
-  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
-  .duo .sem + .sem { margin-top: 14px; }
-  .brows { border-top: 1px solid var(--line); margin-bottom: 14px; }
-  .brow { display: flex; gap: 14px; align-items: baseline; padding: 15px 4px; border-bottom: 1px solid var(--line); font-size: 15.5px; font-weight: 700; line-height: 1.8; }
-  .brow .bd { font-size: 13px; color: var(--ink-3); font-weight: 600; white-space: nowrap; }
-  .brow:hover { color: var(--teal-deep); }
-  @media (max-width: 820px) { .duo { grid-template-columns: 1fr; } }
-
-  /* ---------- deadline ticker ---------- */
-  .ticker { background: #fff8dc; border-bottom: 1px solid #f0e3a8; padding: 13px 0; }
-  .ticker-row { display: flex; align-items: center; gap: 18px; overflow-x: auto; white-space: nowrap; }
-  .ticker-label { font-size: 12px; font-weight: 800; color: var(--red); border: 1.5px solid var(--red); border-radius: 6px; padding: 2px 10px; flex: none; }
-  .ticker-item { font-size: 14.5px; font-weight: 700; color: #6b5a12; }
-  .ticker-item b { color: var(--red); font-family: var(--font-en); }
-  .ticker-item + .ticker-item { border-left: 1px solid #ecdc9a; padding-left: 18px; }
-
-  /* ---------- reveal ---------- */
-  .rv { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
-  .rv.on { opacity: 1; transform: none; }
-
-  /* ---------- value ---------- */
-  .intro-catch { font-size: clamp(26px, 3.6vw, 38px); font-weight: 800; line-height: 1.6; letter-spacing: .03em; margin: 0 0 18px; text-wrap: balance; }
-  .value-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 56px; }
-  .value { background: var(--cream); border: 1px solid var(--line); border-radius: var(--radius); padding: 34px 30px; box-shadow: var(--shadow-sm); }
-  .value .ic { width: 58px; height: 58px; border-radius: 50%; background: var(--tint); display: grid; place-items: center; margin-bottom: 18px; }
-  .value .ic svg { stroke: var(--teal); }
-  .value h3 { font-size: 20px; font-weight: 700; margin: 0 0 10px; }
-  .value p { font-size: 15.5px; color: var(--ink-2); margin: 0; }
-  @media (max-width: 820px) { .value-grid { grid-template-columns: 1fr; } }
-
-  /* ---------- category LP hub ---------- */
-  .cat-section { background: var(--tint); border-radius: 48px 48px 0 0; }
-  .cat-group-label { display: flex; align-items: center; gap: 14px; font-size: 17px; font-weight: 800; margin: 46px 0 20px; }
-  .cat-group-label:first-of-type { margin-top: 0; }
-  .cat-group-label .gl-num { font-family: var(--font-en); color: var(--teal); font-size: 26px; }
-  .cat-group-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-  .cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 11px; }
-  .cat-card {
-    background: #fff; border-radius: 14px; padding: 15px 16px 13px;
-    box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 4px;
-    border: 1px solid var(--line);
-    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-  }
-  .cat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--teal-soft); }
-  .cat-card .nm { font-size: 15px; font-weight: 800; line-height: 1.5; }
-  .cat-card .mx { font-size: 13.5px; font-weight: 700; color: var(--teal-deep); }
-  .cat-card .mx b { font-family: var(--font-en); font-size: 17px; }
-  .cat-card .go { font-size: 13px; font-weight: 700; color: var(--teal); margin-top: 6px; }
-  .cat-card.wide .nm { font-size: 15px; }
-  @media (max-width: 900px) { .cat-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 480px) { .cat-grid { grid-template-columns: 1fr; } }
-
-  /* ---------- diag band ---------- */
-  .diag { background: linear-gradient(180deg, #f2fafc, var(--tint-2)); padding: 56px 0 68px; }
-  .diag-card {
-    background: linear-gradient(135deg, var(--teal-deep) 0%, var(--teal) 62%, #4db8f0 100%); color: #fff;
-    border-radius: 28px; box-shadow: var(--shadow-md);
-    padding: 44px 48px; text-align: center; position: relative; overflow: hidden;
-  }
-  .diag-card::before { content: ""; position: absolute; width: 340px; height: 340px; border-radius: 50%; background: rgba(255, 217, 59, .1); right: -110px; top: -150px; }
-  .diag-card::after { content: ""; position: absolute; width: 260px; height: 260px; border-radius: 50%; background: rgba(255,255,255,.06); left: -90px; bottom: -120px; }
-  .diag-card h2 { font-size: clamp(26px, 4vw, 40px); font-weight: 800; line-height: 1.6; margin: 0 0 12px; position: relative; }
-  .diag-card h2 .hl { color: var(--yellow); }
-  .diag-card p { color: #cfe6ec; font-size: 16.5px; margin: 0 auto 34px; max-width: 34em; position: relative; }
-  .diag-card .note { display: block; font-size: 12px; color: #a9cfd8; margin-top: 16px; }
-
-  /* ---------- works ---------- */
-  .works-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-  .work { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 30px 28px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 14px; }
-  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-  .chip { font-size: 12.5px; font-weight: 700; border-radius: 99px; padding: 4px 13px; background: var(--tint); color: var(--teal-deep); }
-  .chip-ind { background: #f4f1e8; color: #7a6a35; }
-  .work .big { font-size: 31px; font-weight: 800; line-height: 1.2; color: var(--teal-deep); font-family: var(--font-en); }
-  .work .big small { display: block; font-family: var(--font-jp); font-size: 12px; font-weight: 700; color: var(--ink-3); margin-bottom: 6px; }
-  .work .quote { font-size: 15px; color: var(--ink-2); background: var(--cream); border-radius: 12px; padding: 14px 16px; flex: 1; }
-  .work .co { font-size: 13.5px; font-weight: 700; color: var(--ink-3); }
-  @media (max-width: 820px) { .works-grid { grid-template-columns: 1fr; } }
-
-  /* ---------- price ---------- */
-  .price-section { background: var(--cream); }
-  .price-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 10px; }
-  .price-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 36px 30px; text-align: center; box-shadow: var(--shadow-sm); position: relative; }
-  .price-card .ttl { font-size: 15.5px; font-weight: 800; color: var(--ink-2); margin-bottom: 10px; }
-  .price-card .val { font-family: var(--font-en); font-size: 42px; font-weight: 800; color: var(--teal-deep); line-height: 1.1; }
-  .price-card .val small { font-size: .42em; font-family: var(--font-jp); font-weight: 800; }
-  .price-card .cap { font-size: 14px; color: var(--ink-3); margin-top: 10px; }
-  .price-card.hot { border: 2px solid var(--yellow); }
-  .price-card.hot::before { content: "不採択なら"; position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--yellow); color: #453604; font-size: 11.5px; font-weight: 800; border-radius: 99px; padding: 3px 16px; }
-  @media (max-width: 820px) { .price-grid { grid-template-columns: 1fr; } }
-
-  /* ---------- flow ---------- */
-  .flow-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
-  .flow { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px 18px; box-shadow: var(--shadow-sm); position: relative; }
-  .flow .st { font-family: var(--font-en); font-size: 13px; font-weight: 800; color: var(--teal); letter-spacing: .1em; }
-  .flow h3 { font-size: 16.5px; font-weight: 800; margin: 4px 0 6px; }
-  .flow p { font-size: 14px; color: var(--ink-2); margin: 0; line-height: 1.8; }
-  .flow:not(:last-child)::after { content: "→"; position: absolute; right: -14px; top: 50%; transform: translateY(-50%); color: var(--teal-soft); font-weight: 800; z-index: 1; }
-  @media (max-width: 900px) { .flow-grid { grid-template-columns: 1fr; } .flow:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -22px; transform: translateX(-50%); } .flow-grid { row-gap: 26px; } }
-
-  /* ---------- voices ---------- */
-  .voices { background: var(--cream); }
-  .voice-rail { display: grid; grid-auto-flow: column; grid-auto-columns: min(340px, 78vw); gap: 20px; overflow-x: auto; padding: 4px 4px 20px; scroll-snap-type: x mandatory; }
-  .voice { scroll-snap-align: start; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow-sm); }
-  .voice .stars { color: var(--orange); font-size: 14px; letter-spacing: 3px; margin-bottom: 12px; }
-  .voice p { font-size: 14px; color: var(--ink-2); margin: 0 0 18px; }
-  .voice .who { display: flex; align-items: center; gap: 12px; }
-  .voice .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--tint-2); display: grid; place-items: center; font-size: 13px; font-weight: 800; color: var(--teal-deep); }
-  .voice .who b { display: block; font-size: 13.5px; line-height: 1.5; }
-  .voice .who span { font-size: 12px; color: var(--ink-3); }
-
-  /* ---------- seminar / blog ---------- */
-  .sem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .sem { display: flex; gap: 26px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 30px; box-shadow: var(--shadow-sm); }
-  .sem .date { text-align: center; min-width: 74px; background: var(--cream); border-radius: 14px; padding: 14px 10px; align-self: flex-start; }
-  .sem .date .d { font-family: var(--font-en); font-size: 28px; font-weight: 800; line-height: 1.1; color: var(--teal-deep); }
-  .sem .date .m { font-family: var(--font-en); font-size: 11px; font-weight: 800; color: var(--teal); letter-spacing: .12em; }
-  .sem .date .w { font-size: 11px; color: var(--ink-3); }
-  .sem h3 { font-size: 17px; font-weight: 700; margin: 8px 0; line-height: 1.7; }
-  .sem .meta { font-size: 12.5px; color: var(--ink-3); }
-  .sem .apply { font-size: 13px; font-weight: 700; color: var(--teal); }
-  @media (max-width: 820px) { .sem-grid { grid-template-columns: 1fr; } }
-
-  .blog-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-  .post { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); transition: transform .2s ease, box-shadow .2s ease; }
-  .post:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
-  .post .thumb { aspect-ratio: 16/9; background: linear-gradient(135deg, var(--tint), var(--tint-2)); display: grid; place-items: center; }
-  .post .thumb span { font-family: var(--font-script); font-size: 17px; color: var(--teal-soft); }
-  .post .body { padding: 22px 24px 26px; }
-  .post .meta { display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--ink-3); margin-bottom: 10px; }
-  .post h3 { font-size: 15px; font-weight: 700; line-height: 1.7; margin: 0; }
-  @media (max-width: 820px) { .blog-grid { grid-template-columns: 1fr; } }
-
-  /* ---------- FAQ ---------- */
-  .faq-list { max-width: 780px; margin: 0 auto; display: grid; gap: 14px; }
-  details { background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-sm); }
-  summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 22px 26px; font-size: 17px; font-weight: 700; }
-  summary::-webkit-details-marker { display: none; }
-  summary .q { color: var(--teal); font-weight: 800; margin-right: 4px; font-family: var(--font-en); }
-  summary .pm { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--tint); display: grid; place-items: center; font-size: 15px; color: var(--teal-deep); transition: transform .2s ease; }
-  details[open] .pm { transform: rotate(45deg); }
-  details .a { padding: 0 56px 24px 26px; font-size: 15.5px; color: var(--ink-2); }
-
-  /* ---------- final ---------- */
-  .final { text-align: center; padding: 130px 0; background: linear-gradient(140deg, var(--teal-dark), var(--teal-deep)); color: #fff; }
-  .final h2 { font-size: clamp(28px, 4.6vw, 44px); font-weight: 800; line-height: 1.55; margin: 0 0 14px; }
-  .final .lede { margin: 0 auto 42px; text-align: center; color: #cfe6ec; }
-  .final-ctas { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
-  .final .tel { font-size: 15px; color: #cfe6ec; }
-  .final .tel b { font-family: var(--font-en); font-size: 24px; font-weight: 800; margin: 0 6px; color: #fff; }
-
-  footer { background: var(--teal-dark); color: #cfe6ec; padding: 76px 0 0; font-size: 14.5px; }
-  .ft-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 48px; padding-bottom: 60px; }
-  .ft-brand .logo { display: inline-flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px; padding: 10px 18px; }
-  .ft-brand .logo img { height: 38px; width: auto; }
-  .ft-brand .logo .lg-txt { font-size: 14.5px; font-weight: 800; color: #14507e; }
-  .ft-brand p { margin: 14px 0 22px; max-width: 24em; }
-  .ft-col h4 { color: #fff; font-family: var(--font-en); font-size: 12px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; margin: 0 0 18px; }
-  .ft-col ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
-  .ft-col a:hover { color: #fff; }
-  .ft-diag { display: inline-flex; align-items: center; gap: 8px; color: var(--yellow); font-weight: 700; }
-  .ft-bottom { border-top: 1px solid rgba(255,255,255,.14); padding: 22px 0; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #9cc4cf; }
-  .ft-sns { display: flex; gap: 18px; }
-  @media (max-width: 820px) { .ft-grid { grid-template-columns: 1fr 1fr; } }
-
-  /* ワンストップ（戦略実行支援）セクション */
-  .onestop { position: relative; overflow: hidden; }
-  .onestop .bg-word { position: absolute; right: -24px; top: 4px; font-family: var(--font-en);
-    font-weight: 800; font-size: clamp(84px, 11vw, 150px); line-height: 1; letter-spacing: -.02em;
-    color: transparent; -webkit-text-stroke: 1px var(--tint-2); pointer-events: none; user-select: none; }
-  .os-grid { display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(0, .98fr); gap: 56px; align-items: center; position: relative; }
-  .os-catch { font-size: clamp(24px, 3vw, 33px); font-weight: 800; line-height: 1.75; margin: 0 0 14px; letter-spacing: .02em; }
-  .os-catch .x { font-family: var(--font-en); background: linear-gradient(92deg, var(--green-deep), var(--green) 60%, #7ccf5a);
-    -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .os-lede { font-size: 15.5px; color: var(--ink-2); margin: 0; max-width: 36em; }
-  .os-list { margin: 26px 0 28px; }
-  .os-item { display: flex; gap: 18px; align-items: baseline; padding: 13px 2px; border-top: 1px solid var(--line); }
-  .os-item:last-child { border-bottom: 1px solid var(--line); }
-  .os-item .no { font-family: var(--font-en); font-weight: 800; color: var(--teal); font-size: 13px; letter-spacing: .12em; }
-  .os-item .t { font-size: 15.5px; font-weight: 800; }
-  .os-item .d { font-size: 12.5px; color: var(--ink-3); font-weight: 600; margin-left: auto; text-align: right; }
-  .os-svg { width: 100%; height: auto; display: block; }
-  @media (max-width: 900px) { .os-grid { grid-template-columns: 1fr; } }
-
-  /* SWOT 診断バンド */
-  .swot-row { display: flex; gap: 10px; justify-content: center; margin: 22px 0 6px; }
-  .swot-row .sw { display: flex; flex-direction: column; align-items: center; justify-content: center;
-    width: 74px; height: 64px; border-radius: 12px; font-family: var(--font-en);
-    font-size: 22px; font-weight: 800; color: #fff; line-height: 1.15;
-    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3); }
-  .swot-row .sw small { font-size: 11px; font-weight: 700; font-family: var(--font-jp); }
-  .swot-row .s4 { background: rgba(255,217,59,.22); border-color: rgba(255,217,59,.55); }
-  .swot-gift { font-size: 14.5px; font-weight: 800; color: #fff; margin-bottom: 20px; }
-  .swot-gift b { background: linear-gradient(transparent 62%, rgba(255,217,59,.85) 62%, rgba(255,217,59,.85) 94%, transparent 94%); padding: 0 2px; }
-
-  /* 専門家カード */
-  .exp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-  .exp { background: #fff; border: 1px solid var(--line); border-radius: 16px;
-    padding: 24px 18px 20px; text-align: center; box-shadow: var(--shadow-sm); }
-  .exp img { width: 104px; height: 104px; border-radius: 50%; object-fit: cover;
-    border: 3px solid var(--tint-2); margin-bottom: 10px; }
-  .exp .chip2 { display: inline-block; font-size: 11px; font-weight: 800; color: var(--teal-deep);
-    background: var(--tint-2); border-radius: 99px; padding: 3px 13px; margin-bottom: 7px; }
-  .exp h4 { font-size: 17px; font-weight: 800; margin: 0 0 7px; letter-spacing: .06em; }
-  .exp p { font-size: 12.5px; color: var(--ink-2); margin: 0; line-height: 1.85; text-align: left; }
-  @media (max-width: 900px) { .exp-grid { grid-template-columns: repeat(2, 1fr); } }
-
-  /* 補助金の窓口 メディアPRバンド */
-  .media-band { padding: 12px 0 44px; }
-  .media-card { background: linear-gradient(120deg, #fff6fa 0%, #ffe9f2 100%);
-    border: 1px solid #f6d2e1; border-radius: 24px; padding: 30px 40px;
-    display: flex; align-items: center; gap: 36px; flex-wrap: wrap; box-shadow: var(--shadow-sm); }
-  .media-card .mk { flex-shrink: 0; }
-  .media-card .lb { font-family: var(--font-en); font-size: 11px; font-weight: 800;
-    letter-spacing: .22em; color: #d63d75; margin-bottom: 6px; }
-  .media-card h3 { font-size: clamp(19px, 2.4vw, 24px); font-weight: 800; margin: 0 0 8px; line-height: 1.6; }
-  .media-card h3 b { color: #d63d75; }
-  .media-card p { font-size: 14.5px; color: var(--ink-2); margin: 0; max-width: 36em; }
-  .media-card .btn-pink { background: linear-gradient(120deg, #e0457b, #ec6f9b); color: #fff;
-    box-shadow: 0 5px 0 #b7285c; margin-left: auto; }
-  @media (max-width: 900px) { .media-card .btn-pink { margin-left: 0; } }
-
-  /* 追従CTA（公式LINE + 補助金相談） */
-  .follow-cta { position: fixed; right: 20px; bottom: 20px; z-index: 90;
-    display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
-  .follow-cta a { display: inline-flex; align-items: center; gap: 9px; border-radius: 99px;
-    font-weight: 800; color: #fff; transition: transform .18s ease; white-space: nowrap; }
-  .follow-cta a:hover { transform: translateY(-2px); }
-  .fc-line { background: var(--line-green); font-size: 13.5px; padding: 12px 22px;
-    box-shadow: 0 10px 26px rgba(6, 199, 85, .35); }
-  .fc-diag { background: linear-gradient(120deg, var(--teal-deep), var(--teal) 60%, #4db8f0);
-    font-size: 15px; padding: 15px 26px; box-shadow: 0 12px 30px rgba(13, 107, 125, .35); }
-  .mobile-bar {
-    position: fixed; inset: auto 0 0 0; z-index: 95; display: none;
-    background: rgba(255,255,255,.95); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-    border-top: 1px solid var(--line); padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); gap: 10px;
-  }
-  .mobile-bar .btn { flex: 1; padding: 13px 10px; font-size: 14.5px; }
-  @media (max-width: 720px) {
-    .mobile-bar.show { display: flex; }
-    .follow-cta { display: none; }
-    section { padding: 76px 0; }
-  }
-
-  /* 会社概要テーブル */
-  .info-table { width: 100%; border-collapse: collapse; font-size: 15px; }
-  .info-table th, .info-table td { text-align: left; vertical-align: top; padding: 18px 20px; border-bottom: 1px solid var(--line); line-height: 1.9; }
-  .info-table th { width: 180px; font-weight: 800; color: var(--teal-deep); background: var(--tint); white-space: nowrap; }
-  .info-table a { color: var(--teal-deep); font-weight: 700; }
-  @media (max-width: 640px) { .info-table th, .info-table td { display: block; width: auto; border: none; padding: 6px 4px; } .info-table th { background: none; color: var(--teal-deep); padding-top: 16px; } .info-table tr { border-bottom: 1px solid var(--line); display: block; padding: 4px 0 12px; } }
-</style>
-
-<header id="hd">
-  <div class="wrap nav">
-    <a class="logo" href="#/"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGoAAABkCAYAAABuK6XnAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAACsASURBVHhe7Z0HdNTV1rf9vnd9a7331ateG0jvoAgiEIr0DgooVnrHclW8lmvBiqJY6J0AIRDSG+mV9D6ZPgmQ3nsmM+mF5PnW+U+CIbSQgnpff2udNRL/Scg82eXsvc/hnqampnebmpps7sYqMZbbeMWn2pQYK6/7f3+tW697mpqa3OlmpZY28KndRRb/KmPovwKJSa9o+8hfuo0EKJu2H+wq5ZRVE55ahk1kGg+vceAfa1z423IHPj0b3/bRv3QbdSsoQ3UdYcllRKeWMv/bAB5Z58JDa12Y8aUf1bW1bR//S7dQt4K60tiILMOAPNvIx2fiuH+1E49vOk/PTS7IkgvbPv6XbqFuBQVNXC6oJCrDwNmwZB7b4ESfzW7cu8KB3R66tg9TVd9IcU0DmRUNXCqrJq28jtLaBvFl/term0FBYXkNIcklRKUUMekTbx5d78qDq515aWcwipJKftbm8qEsnbURySwJusRMPy0TPbU846FmvKeWWT4JrAlJ4ZAuj/TymrZf/n+Nuh1UbX0DkamlqHKNvGMew/2rHOm16Twj/+nBa546BnvGMcZHxlgfBWa+Sib4KBjvrcDMR4WZp4pxHkpGnVcwwlnOJHcte7X51F9pbPtt/uPV7aCE39LlGYnJMHDU/xKPrHOi92Y3HlvjxBcuGpZHJzPKW8Y0fzVT/dU866tmoo/KtLxUTPZSS2uKp5oJbkoGOyp4MzwdQ21922/0H627AAryyqoJTS4lQJfHqPc96bnBlQdWOfLPw5EU1NTxSmgSo70UEqzfQKmZ2AxJrGc91Ux1VzPZXcMQASssnbqGK22/1X+s7gqoitp6wlJKUGTpeW1XKP9Y40yPDa48tdUDY3kVJbX1LA26zBhvBVN8lUz0Eetai5JAeWh41l3DJA81Qx0UfBGX2/Zb/cfqroBqbGxEkaknPtvIj84aKU6J7O8fqx1xi0uXnlGXVGLmrWait7wZ1M0tapKHhonuKobbydmrzm/77f4jdVdACaUUVRCWqsdTmc2gt87z+Mbz/H2lI++diLn6zFeKLEa6xzPpthalYZK7mgmuCkbYydmlErD+s3P4uwaquLKWkKQi5Nl6Fv94gYfWuEiVirEfe2KorJaeiS0sZ4ynigneNwHlfi2oya4qJrkoGGGrYFtMNgax5/oP1V0DVX/lCtFppchzjXxlq+TB1U703nSeR9c5EajOlp6pbrjC4sBLjPEU7u961/esh5pJbUA9K2C5qnjCVslS78u4ppWhLa1Gp68h2VhLbnU9FfUNNPHnTunvGijhmhLzjURllGETnUafza7Sfkq4v6/tFFef2hafzQj3+Bta1BQRmwSkNqCkV2cNz9grGWmr5km7iwy0SaafTRqD7dIZ55LN8z65vBeWxwFlIUfVRexT5LNbns8eeR4HlQWcSSjGO72MhNIqqq788VL/uwgK8gzVBKeUEplWwtQvfHl0nQv/WOvM/O2B1DeY3JZ1ajHDzt/YogSolmSiBdRkFwFKw2RnjQRLvE52UjHVQcVkOxWTbdRMtFYz/qyKcZYqzCyVmFkqMLNQMPG0iomnlEw8qcTslJJJFmpmnNHxmutldsny0ZUKl/zHiH13FVRVbT0RqXpU+RW8dSyaB1Y5SVbVe7MLmowi6RmdvpKxnmqpMtEWVNtk4iooF+01oMTrNEcN0x00zLLXMEcsOw3zbDUssBWvauZZq5lvrWX+OS0LrDTMO6dhvpWWeRZqpp9QMe6YkqkWOj4KykBVXNn2R7nruqugmpqaUGYbicsux/xCEo+sNRVp71vhwAEvU5HWOtnIk+e1TBCZXztAmVxfMygn9TWgpjlomGmvYbZYdhrm2mqYfxtQ8y01zLPUMN9Sy9yTGiYdUTL1lJb98gJqGn+/OHdXQQmll1QSklpGeHIRz3zkxWPrXXlojTNLdl7gB0UJH0WX8lJQCmO8FNfFqNb7qGtdXzOgToHSMt9KdxXUPEst805rWWChZd5xDeMPqNnskUZ6+e/TR7vroAxVtYSmlKLOL2fjwXAp+xN7qgFvnick2eT+LJOLGCrilHdbUNdb1GQX5W+g2ri+OwU17+xvFtUCar6FlgUndSw6kcCUg2qW2Fz6XVzhXQclmonK7DIUueV85aKV3J8o0gpgtqHJ0jOZFTVM8NIyzlN522RCSs9dugLUb67PBOtaUAtPJPDciQSmH9IyxzKRyLzytj9at+qugxLS5Jfzom8BW/3Sefo9d8mi7l/lxObDEVef+VaZzTBX+bX7KHe1CdJ1MUrVZaDmndFIS8QoCdSp30AJqxKwZh7WMNsigdBs4zU/V3fqroPS6mtY6J3Ll6GFXMoqY/EPF6Qi7WMbXBn1vgcVNaYYIKzqWWFVHiarulmM6jpQIkb9ZlE3AyXBMk9g9mENM07q8MswtP0Ru0V3FVRgTgXP++Xim1lOemYZSTkV/OSs5sE1TvTZ4ibtq7YcjiK31DROdvxiIUOdFEz2Ut006zPFqGZQnU4mbh6jWoNaZK7jOXMdcw+rmX5Mw2lN8R3WPe58b3bXQDmnlfO8bx7JBpPFXMwyosswss9Dx6PrnOm7xU1a961wZNyHnsReNlXF14amMtJVITUOb2RRpn1UsyV1ClTrGKVlnqXuFqBMVvXccR0LjmiYekDNe17p+GcYSCqrIaeynuzKetLL69CWVBKZU45nkp6TigI+9UvjuDKfpjtkdVdAuaYbWeqfS1ZFnfRnfUU1yhQ9EQkFDHvnPPevdKJfMyixxEzFgDdcCVFnk1tXz0QPHWbuSinrux5UK4vqlOvTSel5S4y6tUU1g2qGteSwltn71Uw/oGLhMS1LzHUsPqHluWMa5h1SMXuvghm/yJj1Uyxjv4nkSFxe27fotup2UP7ZVSzyySO3ygRJqFBfRezlYuQpxRzyTmD8x15SI7EFlNgEP7zWhR4bnAhSZmCXVcYTTgqmeoiEortAXZv1Cauab6m7YYxqC2rxES1LjupYckTFC4dULNmvYMl+OUv3KXhxr5xle+W8tE/Oy3vjmf1LHG6XSq55j9qjbgWlLKlmkU/uVXfXWqKcpEnXk1lYxbmQFB5b7yIBEmvQW248ut5F2gj33eyChyyDd2TZjHZV3AZUB1yftVaC1LYycScWdRXUUTUvHlHzwiGltF48oOSl/QqWtaw98czbHU9Y5p1ni90GqrC6nud9c4nIv/nmMLu4CllSGTGXinjmQ0+pSiESisU/BLHNSsZj65ylMegRb7vynX8S07wTmejWnKK3ilETXTSMc1Qz3lE0E7WYCctyULcPVGuLutGG94YWJZKJ9oN6cZ+cZfvkvLhbxqKDCrQlVW3fituqW0CJ3s+WsEIsLunb/q9rZKysJS6phKScctYeCDNN0m48z7B33NGkFfPJGRkPrHaU3ODYf3myzieRca32UZNcVIx3UTHTS8vygIts8U1ks5uKN7x1vOadyCQH9Z2Bus2Gt1MWtU/Okl/jeOWkhoLmLcidqFtAmSfqeT9SjCzfOrVpuNKIOl3PxexKjvtd4qHmNF3MVOx3TyC3xMiz23x5eK0rj6x04vVDETwXdBEz0YYXluWmYoOflk1WsSzZGcz4Dzzpv9GFfhuceXFXCCvctUyzU7cTlKnW15Fk4jpQB8VS8eLBa0Et+imGd5wuI9qYd6ouB6UrrZGadCU17Wu+peWXI08xEJqQz5Nb3eix0VXaAL/6ayilxip+ddXywGonacTsmfc9WeWTyFgPDeM81Gz217LgG396rHHi4dVO3L/Skelf+vHeKRkrfw3hE4d4FrhomWnXBpTNtaDmtdpHmdze7UDdxPUdaQGl4oWDSglUS3wSwGb+GMPeyJy2b0G71LWgmhrZHFaAe2b7zz+VVtQQd7mExGwDL/8aLEHqudGVke97Ep9STLAml4Fvm4Zheq93YYWVmKZNZG6AjlcOh/Ffy6wlkGIGY/3BCKpanRIxVFXx76AkJp5T3dKi5t/A9d2qMnFbi7qB63tht4xZe2XIi9r/3rRWl4JyyyjnzfCC27q81qpraECVVsrlXCM7nFRScVZkfo+sc+Z0UBKpBUambfPj0XWuPLbOhVlfB7Iu6CLLwxM5HXKR8zFZbDwYyX0r7QlLvH5/Yp2Qy7izinaA0t44mbiBRS08rmPR8WaragcokZpP/SGGLwPEaFz735vW6jJQ1Q2NvBJYgKb0zgf5U/OMaNLL8JRl0v+N81LXV3R/3zWPodhYxfLdofxjtal60WuDCzO/9uefVrHUNpisp6aunqc/9CCgeUimtXZGpzPBqj2gTBve9oASFiVASbBuAWrZAaUUm6b/HMdWtxSKOzGG3WWgzl428ElscdsPt0tFZVXIkkvQZZQy6yt/HlrnIlnQ5E99yCqu4GtbJfctd6TvG25SsvHIWhceXG6PrzLz6teY+ZU/Zv/2JuaysOgWNbEtNBkzq1u7vls1Dm8G6nau78VDShbvkTN/v4JdUbnU3mnNqI26BJQYBVsXXMBF/Z1bk1B1bT3ylFLS8sr53ErO35snaR9d74RbXCaxlwsZ+KartM9qqV4IkGafeOMam85ed63UePx/r9oz6ytfMZt79WvLCw1Ms1cxxaY9oFql56d/6/C2BbXwZsnE1axPydxdMuYd07DQPbvTkIS6BJRXZjnvRZq6sx1TE5eyDCRmGHCOTOfxjS5SM/G+VY58cjZe2m/tcFBx73J7KSsUdUGxBDhReX9gjekoj1QnXOPAl9bx1NSZSla5ZeW85aBgk7tOGm4xrZuB0rUr67sRqKVHdSw9omLhXjlTdsezyTmJi2VVfK3QY5/asQSitboE1JawIvxyOveXySutQpFUijKliMmf+fLIeldpozt/uz+Xc/Sk5Rv5xjaeXptcrkJpqQsKd9jyZ6lbvMaJed8EsO2cnEXfB9JrnTMv/HiBN9wTmG1zM1DXNg6vA2WewPxjWuYc0UiNwxkH1Uw/qGbafhXT96qYulfNtINqVthdxFpXTE2j6aSJrKiat8LFnvLOGiFt1WlQKcZaVgUXUtfJCZ3KmjqUySWk5hjYciRKqlIIIAPfcsVPkSUlHMWGKj46HSslGi1gbrQEOAH57yudpLHpXpvc6LvJhbcdlCxw0F63j2pbmWixqPmntcw5oWHSYTWTjmpZYJnA6/aX2eKWxge+GXwemM32kBx2R+VhqSmS2vPVjdeOVTc2NbIprIBLZR0LCy3qNKgTl/Ts1dy6VNQeNTU2cjFLT3K2keM+F3l4rbNkLaKEtNtNS2ZROWkF5VJMenyTizQO3RbQzZb4Ov02ubLFWsFCJ91NQbUMt4g1+5Qas6Mq5lgl8FVYjjRFm2qsxlhXf8e2sU+rZ5+urO2H70idBvV+VCGxhXdeZLyRsosr0KTqiUzMZ8R7HvTccF7qTS3fFUp6oYGLWQbJDc79xl+ymLZAbrYEqL6bXNlsHc8iZy1zbwjKlJ4vsNQwxVzJtDNafo3LJ6Pi1nW5K1duf5hOXVrDupBCybo6qk6BKqpuYENoAdX1t//LtkciaVAll5KSa+D13aHcv9pRqkgMf8eNqMRcknIM5JRUSMVaMQzTFsitVs/1zqw5GcNSF91NQGlYYKVl0nElLzknISu8edW/RY2NTZRWGVGkp1NYdnOLudJ4hfUh+Tds97RXnQLlm13Bh9Ed2zvdSOK3MyG9lLTccva66yS317c5OTjmk0hmYblkdT85a28bp9ouUdVYfTyaZa4JNwGlZry5ivVeaRRUt29jWl1fiy4nized3fjOI5zEnJv3mbbHl+Cc1vGEq1OgflKVcjyxa6dwMgrL0aaVEaDKZsjbbpJFibLS5sNRZBQayS6p4N+i/XGHoB5d68Lr+yNY7p7ILOtrQS20EpDkrPVKpay2fd6h/koDxpoKLCKjmXfyDJ97BfO1g4Kkm8z7OaRW8LPq5lZ3O3UK1LuRRYTndU18alFpRTWq5BIuZpWx8PsLUiwS+6UJ//ZGmVpMdnE5r+0K4UHR/b0BkLZLZI5iCeBjP/TiQ08d8+w1zLVWmUBZqRl7Qs4Wv3TpMpJ2qQmMNVVklhTytr0r883P8FlAMB6qS3x3Xke+/nq3qSyp4YNosdfsWJzqMKi6K42sDy0gp3lgpatUX9+ALl1PekEFn52Nl3pTYm/UY4MzzlFpZBUZmPmlv5R2t4XSdonPG/qOB4PedjfNYaxxYcH2QP7pncCscyKjUzPeQsW28Cwq7+Duiur6OvQ15fjpxKb3HItPnmGzpz+xWSn4JWSy1+sSV9p8vaKaet4IL6Cqvp2/DG3UYVDZlQ1sDi/qhss5mkjNN5KUbcQ5Mo0eG0yzFH9f6SBtYEuMlTz3fSAPrHK+ZnLpRktckPX6rlDeM4+6WtTtsdaZzRYxLLTXYHZGjbn29g3O1hIHx4uryikwlvKZux8LTtmx1MKG9e5+2Gm1VNYZOBR0GS/FtX2nhsYrvBlRTGYHf7E7DEpVUse/ujCRaC1RpFWn6dFllDD5Mx+pridc4Iyv/MgqNuIel86AN92kC7Dawmm9xOfN+y6QX7209BTDM80F3WnbfNkakIxP1p3HV0NNFWU1Rjw0CSw47cSyc64sO+vIendfDskUFBqKuVxawlcuGgrLWoeFRrZGFRFfbDqvfKfqMKioghq+lJW2/XCXSBRpNWmlUmLx3slYqXPbe5MbvTe54i3PlOYCNx6MkvZYbeG0XiIuPbHVkz0BCYx630v6sylmuRKT3LrK3j7VNtRTVGUkrbiALS7+LLRy4xVrN14+58IGd39+jI4nMSeTqsZKbOJSORWW2uqzm/g0thj/nOvjV3vUYVCh+TX8qOx8ReJGampqJDnHQFKukTMXLkvX8gj39+AqJ350UmOsrpEAis5uWzitl/icHutd+cFDw4LvL0gWJqxK3BpzPsZ0v0V71djUJLm8sioDB8JlzDzjzgu2Hrxs686rNm6sdw/giyg5ESlJ1F6porBSz9ceWrJKW8A08a28BPuUm6fwt1KHQQXn17Jbc+euo70q0FejTS+TWhxPf+ApDWiK0bEXdwZTYixn+Z7Q21qUWCI2bTkazdvm0ZJlio+JV6uQ1r/tt1d5bTX6GgMXLiez0MqT52x8ecHOi5ftPXnVzoP1bv58FiPHWaUhICGL8LQ8jkVc4kS46SiR0E5VKWeSfgdQe3U33jN0hSpqhPsrk4ZfVu4J44HVzlIWN+CN86zYFcL4f3tLsxVtwbRd4tq5adv8CVBnSqdFekhlKUdcottvUXVXGiiuMpJRUshGlwBmnvVisa0fL9j58pK9N6/be7HW1Y/P4pQcjZPhpkjhcOhltrlp2HxWhr7SVJD9RV3GmaSOvWedArWrGy1KZFdJOWVkFlawx113tWTUe/N5aQ/Vc+N5+r1xPZi2SwzLbD0ZS1V9Bct+CpKAP7bemYiL189X3Eji3LG+qoKyqjJ2hcYxwcKDBTa+LLbxZYmtD8scvHjN3os1Ln58Hqvmp5g4MoqyKW+oIMtQyk4/He5q051NP6v1WN5tUCJG7eymGNWivJJyqb636VCkVEZqC6E9S4D5ylaOobaCWV/58fdVTgx7x42ckva9YRW11ZRVG/G7lMw0Sy9mnPVivrWP5PoW2/ryooM3Lzt6sdLJl8+jVXwbIyMyJYnS6nLK68qJSM/jR59EKev7XlmKTfJddn2RBbXdlvUJNVy5QlZROedjMq5rFool3KBUFW8DRrQ/Hllrur1M/Fm8jv3Yi6jLuUzZ5sf/e81OqmyIhOV2qqmvp6TKQEZJASscLmBm4cUsKy/mnfNmoa0A5ccL9ib3t9LJj0+jVHwZI8dDp5M+r6jSQJZRzzceGvQV5Xyj0OOd2bFKTodBqUpq+SD6zk8ltFeFhmpphuIjyzjpdpe2QAa9LfZJzhKUFmAi/oi+0wbzKKZ+5cdjG1ykTfGj6535+EwsT24V8+1ORCTe/vo4MQci3mhDlZ4fguIYbe7J9LM+zLTyZu45Lxba+kjuT4pTDt687uTLJ5FKvpApsFIoKDLqKag0oK81sj84kaDEHLbJ9cQWdqyB2GFQojLxRngRDZ3s7N5IjU1XJEixlwoZ86HpioPWkETcecc8GvvwZGZ84Uu/ja48vs6FYW+eZ4tlHOvDU9hsK6fXelOZqfeW8/R/w5X/ft2ef5pHt/1210kcCBf7JWOtETfdJcad8mKipS/Tzvowy8qbOed8WGDtw/M2viy19eFFey9edfTm4wg5X8uUHI6TkasvorDKgKHOiIc2gwNBl3g/toT02/S3bqYOg6ptaGRDaCF5lR37xreSsapGanWc8LssVc5Nru685MaEhTy01plFOwIpMVQSmVrEBgcVay3jeOu8mgWeOuZ6JbLRMo7H17tI1QsRp+5d7kCPDY6E6G5tTSJ5KK2qQF9jRJObwxxrf0af9mWylT9TrfyYYeUrwZp/zlsCtdjGj6V23rzs4MWHoTK+kan5NSaGjOI8KhoqqKgvR5NXyPvOKtaF5FPZfJXQnarDoIT+GVlEVEHHfO6tJHpOl3PKsQlLoecGZyk+DXnHnUmf+khvvHQvxVvnScwskmYRnnVPZKq76bjNVDcd77upGfWeu7SHEvFt1d4wzgQlkZwn2gy3qOs1gb66kqIqAzn6Ita6RjDshC8TzgYw2cqPqVb+zLAKYOY5P+Za+7LQxs9kVXY+LLP35v3QeL6N17AzNpZjIWpORaYQmZpHSaWetfZqVgd2/BLIToHaoSyVZia6WnmllahT9VzK1jPzSz9pSGXqF36Y++vosdG0nxJxyykihdy6Bp521DDGQZyT0rLVW4fZB17S5zyx1Z0gTfuH8kXroqCijLLKMj4NlDPE3I/xZy5Ia9LZAKacC2DaOQHKnzkClK0fi+z8WGznwwt2nmwNkfF1vIbvY2Px017GTZPFjz5ajoUk8rJDIt/Kf6d+lEdGBR93cDr2VqqurUOTpiejoJzNhyP52+sO0gxFsCaTZz/zkWKWSLO3Ho9Cpa9ivlciczx0vHXhMvO+9ZdKRH973Y5jviItbp9E5SG/Qk9FtYF9UVoGmAcwyjKIcWeCMDt7gQlWAUy2DmCqTSDTrQOYbR3AfBsTKGFVL9r7sTVMwZfxar6Njkabm0HNlSpKagzYxyYx+qSO81kd9z6dApVXVc+G0CJq2zHgcScSLQExyJKSW45l0GUeWuckzU/scVPzsWVc86bVNPLslVKIU1opVheLWHsoggdXOkpTSgKSOH/VHlXU1pBXrqey1oi96jJDzQMYahHE6DPBjDkTxDgJVCCTz11gqs0FplkHMutcAHNt/VjQDOp1j0jeDVexLU7JN9HRyLPSpb1UUVWZtF4OyOZSWcfjeadACb0bWYi8uOO/KTdTbkmF5P7Ehvf5HYHSv5LzxHsevHU8UtoriVk9EX/c5RmkGas5G5LCI2sceWSdK8Pfdaekon1V6sq62mZI5fhdSmXUyUAGnbjAk5bBjDoTwpizwTxjFcR4qwtMsr7AFAHKJpCZNoHMsQ2UYL3gEsLqgHjeDlXweayCr2Kiic1IpaS6HH21gfC8EtaEFEhDLh1Vp0EdTtBzMKHr45T4FwgSMspIy6vENTqNnhudpGahOO3Rv7l0JFzcTmcllbXVOMekSVV2sZcS6ftnVrJbJw4SpBpyy/VSBSEqPYvxp4PpdzyIJy1CeNIyhFFnQhlzNoRnrIIZey6ICdYXeNbmAlNtLzDd9gIzbQNZ6BjEct9YVgXKeDtUzrZYBV/ExBCaclmyqMraMnYqC/hF3bn3qNOgEvU1rA8pbNdO/04lrjlQNI+PecSlS/+2R+sxMZG6v/JLKHn6CnL1lWy3V/A/K+ylzu69K+yly0Zupoq6GnKMesprjcizspl6JpTex4IZcSqUJ06FSrCeOhPK6LMhjLEK4ZlzQYy3vsBkmyCetQ1imu0FZtgH8ZJXDCv84lgZEMeboXK+iFWxLSYWn0Qd+iojxVV61gXnointuNsT6jQooQ2h+bc8/d5RiYHFYkM12gwxQ1GOIqWQBdsDpC6t1GvacF5yh2I6qdBYQ2aJgV3iIuCtHjy61km6vudGEjEp21CKocaIKieXGVYRPH4kmOGnwhl+KowRp8J44nSzVUmgQnnmXAjjrYOYZBPMZFthVUEsdI/hFb94lvvFSqDeEBYVp2ZbbBzuOg1VNUaCckqkU5idGb4U6hJQjqkGPo7pzGmOW6uyplYadxZp+1d2Sv57haM07CLN/K12ku6hEE4ur6yCfIMRbVYJCVmiDtkkbWBbq7ymhiy9Xiq0qrJzmHE2gscOhzDcQkAKZ4RFBCMsWkCFmtxfM6hx1sFMtAlios0F5rhEsdRHzst+st9Ahcj4PE7FZzEx+FzUcaWhnI9jCjh9uWOF2NbqElDVDQ2sDi7o1tshc4orJKv62k7JkH+e5+2jUTy+wYX7VjrygUVc81NNzcdtbhybyqqryBSQKivQ5OQy0yqShw8GM8Q8jOEnTaDEGiagnQ7lCctQnjobymirUMacE7CCGWcdxBTHCBZ5xbPUJ74VKBmbg+P5PEbJp1HRhKde4qLewBL/XMq64D72LgEldDRRz3fy7irSNpGvr0KXVYZbbDq+ikyCNTnSldyiNzXtCx/peOjNJKxKZIHper3UW1Jl5jPTMpKH94cy5Hi4BGpYK1BDLSIYahnOiDNhPGUVxiirUJ4+FybFKjP7CGa6y1nkJWOJ97WgNgXF80mUgs+ioriYm8p2eRH7O3k4oEVdBspQV88y/zxSjR2rDt9O+ooadFl6igwVZBZXoE0vZsJnPlKG12eLC6r0G7teMV+XZzSSXqLHUFlOVEo2MwSkfSEMOhLBkGMCVDhDT7QFFWECdTacUVZhjD4XyhibcCa7xt8EVBybg2V8HBHPjphIgtPSWR5USFld561JqMtACVkllfFB9J3NybVXYiBfzKbX1teRmK2XJmY3HoqQskAx3nwq8FLbT5GsLKu0nEx9GaVGPXbKNJ4yj+WRg5EMOhrFwCMRDBagjkcw9EQYw09F/AbqdATDT0cw8kw4T1mFM9o6AjPneKa4yW8J6qOwGE7Io3k7JJMTFzsfm1rUpaAaGk2xKjyv6zPAFoltQGq+QWoqHvVJ5B/iIpBVTmw6HNnqmSZKKytJLdZTYDSSUlDMJ946eh6M4bEjcfQ/HseA4zEMOBbFoKOREqjW7m+oRbgEaphlOE+cCWOkVThPO8VhJu4NPH8TiwqMZ0tALJ9fCOKjwDhWXCjs0opNl4ISii6sYqlfHpVddBTnRsorrZDmKUIT8hj8lmmDO+4jb8qra0yd4VIjKUV6ig0Ggi5mM+9MPPfviaXXETn9j8czQFpxDDCPYcDxKAYfN1lWi/trATX0dBjDzkbwpL2MMS4KxovbzdqC8pWx3D+O1X6xvOXqy4eenkxxSiKuSCRWXedZuhyU0M+qUr6QiWJt1/1FW8tYZUrXk3PLpENt0m0v613wkWeQbywnq8RAQWkpB8MuM2R/DP/YHUu/IwrTOipgyRhgLkCZYA00j2ageQRDBKiT4Qxrdn+DLSMYbhfPSEclY5zjTaDcTKAWeslY6h3PKxIoGetc/PmXoyNm1tH8qBYur2t/9m4BVd/YwMqgAs6nd52Pbi3RJhdxKre0kg8tTIOY4opTcXVcdU0FMSm5bHHW8tDP0fTYE0vfAzL6HopvBSqeAebxDDwhXmOlNehEpLSGnohg6KkwhlhEMMQmnhEOakY6KhjjEo+Zi7Co32KUAPWyv5yVrsG8Z+3AfCtflgYUUNfYtZCEugWUUJqxhgXeeej03bG3Eul6pTTafDY4iQdExXy9I6/vDuK7wCSeOKzk77/G03tvPP32yeh3II5+B2X0O6ygfzOo/uZy+p+QM+ikjEEn4xh4MppBJ6MYfDKcwafCGXIujqF2SkY4KJtBya+xKMn1+Sl52TWMzZZ2vGrpwjinFDIruybLa6tuAyUUklfJUr986ZLFzkokCLX1VzBU1UiQ0psPtalT83jhpwvM2RPByP0yHvxFzmN7tPQ+oKb3ASV998vpv19G/wMy+h+US1bV/5icfsfj6WcuZ9ApBQMtxJIx2CKWwaeiGHw2nuE2SobZKRjhoDKBau36POQs8FGyxCmU1cfOsfyEDcOstATnd8/WRKhbQQnZJJfzUkA+BeV1NNU3UF3XIFXGxYk9UfYXp+GvNDVK/y3Sb3GJlTgkUFFdR1lFrXQiIqu4nOR8A4nZZVJsSs0tIyO3lLCEHP7tqsPssIK+e5X02a2k/z4lffar6L1fI8Hqc0BJnwNy+h2Ib7YqOf1bkgpzOQNPyhlwSs5Ai3gJ1iBLBUOslAy3UVwLysUEarK7gpneKp6zCWTFfgteP3yaQRYK7DM6dkqjvep2UEKnLhtYcD6H8MQSElLLUKSUoUk3kJBp5FJOBRezK0jMMnAxo4yEDIPU3kjIFP/fwKUso3RgIDVXT3JOCXHJedhGp/KOnZqndsXx6I44+vwqZ8AeJQP3KOm/V0m//Sr67tfS+6CGPodUV2GJWNXvoClWtbjAAScFJAUDLOQSpMFnlW1ANbs+Zznj3NRMdlMy38Kd13cd4eU9J6WExDyp6/txbXVXQAmdSjIwxz2bC7piElPLiE/WE3uxkJiLBcRJKx/ZxTxpRetyCNfmEKjKwj0ug7MhSexw17HmtJxn98Ux8Mc4euyIo//Pcob8KmfQr3IG7lKYQIm1T7g8LX0Oauh9SG2CdVBBHwHpYBz9D8kkqxLuT4pTwv2dVjLozE1AOSkZ7aZhgkMMc/da8coPu3nu1+P0NZdhkdL9kITuGigh58xKZrtls+BbJxZss2PRnhie2xfHoj2RzN8Vzrxd4czdHcGsXyOY+nME43aGM3JHJIO3R9H322j67Ihl4E8yhv4cLwFqWYMlUHIJlLAsyar2qel7QEOvQ2p6H1bT74iaPoeV9Dkko9+hOPodkdHvqClODWwFSqyroOyVDHVJ4EknJZOOerDg2wO89O1Opuw8wSALFQ6Z3evuWuuughKKLq1j8KE47pn0NveOX8fjq44w4CNfBn0Ty+DvZQzZHs2wb6MYsT2aJ3ZEM/LHWEbulDHyJxkjfpIx/BcZw36RXQPqqlXtbraqvUr6C/d3QCQVOnofFKA0zUtlilEC0jGFCZRIJlpblLX417N1DLVX8pS5H1O+Ociij7/jhS92MPKHM4yyTSKiuGNHPDuquw5KqLQJ1l3I455l27mn51geGDaXHvP/Rf+NxxjxZQBP/SRn9M9KRu2UMXpnLKN2xkmgnhSwfm6BdS0osVpAtViV5P4OJNLnoPYqqL6Hlc1pupL+xxRSmi6sY8BZLQOsExhgo2PI6RhG7nJkwqe7mfHelzz3/jbmfPYjvXa681pgPjnVnWsCdkS/C6gWncy8Qo8dftzz9Ov89yNP8j99xnL/6CU8tuhDBmw6xojPfCRIo/doGLVHy6jdWkbuUjNit4rhu9QM3a2S1pDmNXCPmoH7NAzcr6P/wQT6Hr5E32Mp9DVPoc/xS/Q+pqP3MS19j+vodyqRPhYJ9LPQMeiknEGHghn2owMjP97HuM2fMnX9Vua8+TFz39vGE58eZtBxGbsSu6+GeTv9rqCEkuuQJkjv2XiMe4Yv4t6eT3Nfn7HcN2gyD4xayKMzN9P31e0MftOcYR/aM/xzT4Z9G8iQ78MY8mMUQ3ZGM2RnjPQ6cGck/X8IZeB3F+j/lQ/9P3el70fn6POhFb0+d6TvN6703+5G/+2uDPzSlsEfHmXYmz8wcvXHPP3qm4xbtoEJr25h2tp3mb35X4x+7zse/cGTV/3zUBvuvhW11u8OqkVexTDd7iL3LP+Fe55czP39xvHgQDMeHDyJh4dO5rERU+nx1Gx6PD2fnuOep8ekZfSa8jq9pi2n9/RV9J6+gj7TXqP3lGX0nriUPmbP02/CAvqNn82AcXMYOGEhQyY/z9Apixk2bTEjZy7jqTkv8/T81xj7/GrGvrSBia9u4tmVb/Hk5i/p+aUN05ySsM+6u7HoZvrDgBISFTK3giZm2F7i/2w6xj1mK3hg2DR6DpvM409O5/FRc+k5Zh49n57L42Pm0mvMHHqNmU2vMXPp/cwc+oydR59x8+lrtpB+ExcxYPIiBjz7HIMnL2bYs4sZPmUpI6YuZeTslxm9cAVPP7eScYtXYbZ0NaNf2kjftdt4+GtnZjonYZtRyx8DkUl/KFCt5VvQyJuhBQzc6c3/fe07/mvSKu4fOYeeI6bSa+Q0Hh89k17PzKX3uPn0Gb+QPmaL6DvhOfpNfJ7+kxYzYPLzDHz2eQY3Axo+ZQlPTFnCUzOWMnrOi4ye/SIjFq6m12sf8Y93DzN8fxCbQgrwKrjSwUtwuld/WFAtKmwEh5wG1gTm8MSBcB7ceoK/vfgJf5uxlvvNXuDhMfPpMXo2j4+aSd+nZ9F/zCwGjJ3JoLGzGPzMbAaNm8sgycKW8PiM5Ty8+B0eWr2dxz45y8hjMawMyOVcRi25fyTzuYH+8KBaSzRNooxwMq2Of0UWsMQpEbOjEQze4cGj/z7H/e8c4943D/Hfbxzk3rcO8eC7x3j8U2sG73Bn3OFQnne8yLvh+RxLriZSDyXd19vscv2pQN1Iol6d3wiXaiG+wgQy3GB6lVXA5RooaDQ992fWnx7U/xb9BepPor9A/Un0F6g/if4C9SfRX6D+JBKg3Nt+8C/98fT/AWwGCXN6Mz/CAAAAAElFTkSuQmCC" alt="株式会社Salud"><span class="lg-txt">株式会社Salud</span></a>
-    <ul class="nav-links">
-      <li><a href="#services">サービス</a></li>
-      <li><a href="#works">導入事例</a></li>
-      <li><a href="#/support">料金</a></li>
-      <li><a href="#/seminar">セミナー</a></li>
-      <li><a href="#blog">ブログ</a></li>
-      <li><a href="#/faq">よくある質問</a></li>
-      <li><a href="#/company">会社概要</a></li>
-    </ul>
-    <div class="nav-cta">
-      <a class="nav-login" href="#">ログイン</a>
-      <a class="btn btn-yellow" href="#">無料相談</a>
-    </div>
-  </div>
-</header>
-
+<?php
+/**
+ * フロントページ（TOP）。承認済み v16 デザインを描画。
+ * 下層サンプルは #/xxx のハッシュルーティングで同一ページ内に含む。
+ * @package Salud
+ */
+get_header();
+?>
 <div class="page" id="page-home">
 <div class="hero">
   <div class="blob blob-1"></div>
@@ -497,8 +14,8 @@
     <div class="hero-copy" id="heroCopy">
       <div class="cert-band"><span class="ic">✓</span>中小企業庁認定 経営革新等支援機関</div>
       <div class="script" style="font-size:34px;margin-bottom:12px">Grow together!</div>
-      <h1 class="h1-gothic">その設備投資も、<br>AI開発も、<br><span class="g">半分は補助金で。</span></h1>
-      <p class="hero-sub" style="margin-bottom:18px">補助金の診断・申請から、採択後の実行まで。設備導入・Web制作・AI開発——「使える補助金」を見つけ、成果につながる形で実装します。</p>
+      <h1 class="h1-gothic"><?php echo wp_kses_post( get_theme_mod( 'salud_hero_catch', 'その設備投資も、<br>AI開発も、<br><span class="g">半分は補助金で。</span>' ) ); ?></h1>
+      <p class="hero-sub" style="margin-bottom:18px"><?php echo wp_kses_post( get_theme_mod( 'salud_hero_sub', '補助金の診断・申請から、採択後の実行まで。設備導入・Web制作・AI開発——「使える補助金」を見つけ、成果につながる形で実装します。' ) ); ?></p>
       <div class="hero-checks">
         <span>成功報酬型</span>
         <span>採択後の実行支援まで</span>
@@ -506,12 +23,12 @@
       </div>
       <div class="hero-ctas">
         <a class="btn btn-yellow btn-xl wiggle" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
-        <a class="btn btn-ghost" href="#">無料相談を予約</a>
+        <a class="btn btn-ghost" href="<?php echo esc_url( home_url( '/contact/' ) ); ?>">無料相談を予約</a>
       </div>
       <p class="hero-note">登録不要・診断無料・しつこい営業は一切ありません</p>
       <a class="sem-notice" href="#/seminar">
         <span class="lbl">SEMINAR</span>
-        <span><span class="d num">7/16（木）</span> 最新補助金セミナー｜設備投資・生成AI活用｜参加無料</span>
+        <span><?php echo wp_kses_post( get_theme_mod( 'salud_sem_notice', '<span class="d num">8/25（火）</span> AIで変わる中小企業の未来｜生産性向上と補助金活用法｜参加無料' ) ); ?></span>
         <span class="go2">詳細 →</span>
       </a>
       <div class="mini-stats">
@@ -523,11 +40,11 @@
     <div class="hero-visual" id="heroVisual" aria-hidden="true">
       <div class="fcard fcB1">
         <div class="cap">あなたの会社の診断結果</div>
-        <div class="row"><span>ものづくり補助金</span><span class="pct num">92%</span></div>
+        <div class="row"><span>新事業進出補助金</span><span class="pct num">92%</span></div>
         <div class="bar"><i style="width:92%"></i></div>
         <div class="row"><span>省力化投資補助金</span><span class="pct num" style="font-size:17px">81%</span></div>
         <div class="bar"><i style="width:81%;opacity:.6"></i></div>
-        <div class="row"><span>IT導入補助金</span><span class="pct num" style="color:var(--ink-3);font-size:15px">74%</span></div>
+        <div class="row"><span>持続化補助金</span><span class="pct num" style="color:var(--ink-3);font-size:15px">74%</span></div>
         <div class="bar"><i style="width:74%;opacity:.35"></i></div>
       </div>
       <div class="fcard fcB2">
@@ -582,8 +99,8 @@
 
 <div class="marq" aria-hidden="true">
   <div class="marq-track">
-    <span>ものづくり補助金</span><span class="fill">最大4,000万円</span><span>省力化投資補助金</span><span class="fill">最大1億円</span><span>新事業進出補助金</span><span class="fill">最大9,000万円</span><span>持続化補助金</span><span class="fill">AI導入</span><span>事業承継・M&A</span>
-    <span>ものづくり補助金</span><span class="fill">最大4,000万円</span><span>省力化投資補助金</span><span class="fill">最大1億円</span><span>新事業進出補助金</span><span class="fill">最大9,000万円</span><span>持続化補助金</span><span class="fill">AI導入</span><span>事業承継・M&A</span>
+    <span>新事業進出・ものづくり商業サービス補助金</span><span class="fill">最大9,000万円</span><span>省力化投資補助金</span><span class="fill">最大1億円</span><span>持続化補助金</span><span class="fill">最大250万円</span><span>成長加速化補助金</span><span class="fill">最大5億円</span><span>事業承継・M&A補助金</span>
+    <span>新事業進出・ものづくり商業サービス補助金</span><span class="fill">最大9,000万円</span><span>省力化投資補助金</span><span class="fill">最大1億円</span><span>持続化補助金</span><span class="fill">最大250万円</span><span>成長加速化補助金</span><span class="fill">最大5億円</span><span>事業承継・M&A補助金</span>
   </div>
 </div>
 
@@ -591,7 +108,7 @@
   <div class="wrap">
     <div class="sec-head rv">
       <div class="sec-en"><b>W</b>hy Salud</div>
-      <div class="sec-ja">Saludが選ばれる理由</div>
+      <h2 class="sec-ja">Saludが選ばれる理由</h2>
     </div>
     <p class="intro-catch rv">申請して終わり、ではなく。<br><span class="marker">調達した資金を成果につなげる</span>ところまで。</p>
     <p class="lede rv">Saludは、中小企業庁認定の「経営革新等支援機関」です。軸は補助金申請支援。ただし、申請して終わりにはしません。融資も組み合わせた資金設計から、採択後の実行——設備導入・Web制作・AI開発まで一貫して伴走します。補助金は「取ること」より「使い切ること・成果につなげること」を重視しています。</p>
@@ -620,7 +137,7 @@
   <div class="wrap">
     <div class="sec-head rv">
       <div class="sec-en"><b>O</b>ne-Stop</div>
-      <div class="sec-ja">戦略実行支援 — 資金調達から実装まで</div>
+      <h2 class="sec-ja">戦略実行支援 — 資金調達から実装まで</h2>
     </div>
     <div class="os-grid">
       <div class="rv">
@@ -755,32 +272,31 @@
     <div class="sec-head sec-head-row rv">
       <div>
         <div class="sec-en"><b>S</b>ervice</div>
-        <div class="sec-ja">カテゴリーから探す — 各サービスは専用ページで詳しく</div>
+        <h2 class="sec-ja">カテゴリーから探す — 各サービスは専用ページで詳しく</h2>
       </div>
-      <a class="more-link" href="#">サービス一覧を見る</a>
+      <a class="more-link" href="#/support">サービス一覧を見る</a>
     </div>
 
     <div class="cat-group-label rv"><span class="gl-num">01</span>補助金申請支援 — 制度別（融資との併用設計も）</div>
     <div class="cat-grid">
-      <a class="cat-card rv" href="#/yuushi"><span class="nm">融資支援（創業・設備・運転）</span><span class="mx">融資×補助金の併用設計</span><span class="go">詳しく見る →</span></a>
-      <a class="cat-card rv" href="#/shinjigyo"><span class="nm">新事業進出・ものづくり<br>商業サービス補助金</span><span class="mx">上限 <b class="num">9,000</b>万円</span><span class="go">詳しく見る →</span></a>
-      <a class="cat-card rv" href="#/jizokuka"><span class="nm">小規模事業者持続化補助金</span><span class="mx">上限 <b class="num">250</b>万円</span><span class="go">詳しく見る →</span></a>
-      <a class="cat-card rv" href="#/it"><span class="nm">デジタル化・AI導入補助金</span><span class="mx">上限 <b class="num">450</b>万円</span><span class="go">詳しく見る →</span></a>
-      <a class="cat-card rv" href="#/shorikika"><span class="nm">中小企業省力化投資補助金</span><span class="mx">上限 <b class="num">1</b>億円</span><span class="go">詳しく見る →</span></a>
-      <a class="cat-card rv" href="#/seicho"><span class="nm">成長加速化補助金</span><span class="mx">上限 <b class="num">5</b>億円</span><span class="go">詳しく見る →</span></a>
-      <a class="cat-card rv" href="#/shokei"><span class="nm">事業承継・M&A補助金</span><span class="mx">上限 <b class="num">2,000</b>万円</span><span class="go">詳しく見る →</span></a>
-      <a class="cat-card rv" href="#/nenkan"><span class="nm">年間補助金戦略サポート</span><span class="mx">料金はご相談・中長期設計</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="/yuushi/"><span class="nm">融資支援（創業・設備・運転）</span><span class="mx">融資×補助金の併用設計</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="/shinjigyo/"><span class="nm">新事業進出・ものづくり<br>商業サービス補助金</span><span class="mx">上限 <b class="num">9,000</b>万円</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="/jizokuka/"><span class="nm">小規模事業者持続化補助金</span><span class="mx">上限 <b class="num">250</b>万円</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="/shorikika/"><span class="nm">中小企業省力化投資補助金</span><span class="mx">上限 <b class="num">1</b>億円</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="/seicho/"><span class="nm">成長加速化補助金</span><span class="mx">上限 <b class="num">5</b>億円</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="/shokei/"><span class="nm">事業承継・M&A補助金</span><span class="mx">上限 <b class="num">2,000</b>万円</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="/nenkan/"><span class="nm">年間補助金戦略サポート</span><span class="mx">料金はご相談・中長期設計</span><span class="go">詳しく見る →</span></a>
       <a class="cat-card rv" href="#diag" style="background:var(--teal);border-color:var(--teal)"><span class="nm" style="color:#fff">どの制度が合うかわからない方へ</span><span class="mx" style="color:var(--yellow)">30秒で無料診断</span><span class="go" style="color:#fff">診断する →</span></a>
     </div>
 
     <div class="cat-group-label rv" id="jikko"><span class="gl-num">02</span>実行支援 — 補助金を成果に変える（Web・AI・プロダクト）</div>
     <div class="cat-grid">
-      <a class="cat-card rv" href="#/web"><span class="nm">ホームページ制作</span><span class="mx">補助金活用OK</span><span class="go">詳しく見る →</span></a>
-      <a class="cat-card rv" href="#/web"><span class="nm">LP制作</span><span class="mx">成約率から設計</span><span class="go">詳しく見る →</span></a>
-      <a class="cat-card rv" href="#/web"><span class="nm">SEO対策</span><span class="mx">資産型の集客基盤</span><span class="go">詳しく見る →</span></a>
-      <a class="cat-card rv" href="#/web"><span class="nm">Webマーケティング</span><span class="mx">広告・SNS・分析</span><span class="go">詳しく見る →</span></a>
-      <a class="cat-card rv" href="#/web"><span class="nm">プロダクト初期実装</span><span class="mx">構想を動く形に</span><span class="go">詳しく見る →</span></a>
-      <a class="cat-card rv" href="#/web"><span class="nm">AI開発・AI導入</span><span class="mx">補助金活用で負担を抑える</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="/jikko-shien/"><span class="nm">ホームページ制作</span><span class="mx">補助金活用OK</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="/jikko-shien/"><span class="nm">LP制作</span><span class="mx">成約率から設計</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="/jikko-shien/"><span class="nm">SEO対策</span><span class="mx">資産型の集客基盤</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="/jikko-shien/"><span class="nm">Webマーケティング</span><span class="mx">広告・SNS・分析</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="/jikko-shien/"><span class="nm">プロダクト初期実装</span><span class="mx">構想を動く形に</span><span class="go">詳しく見る →</span></a>
+      <a class="cat-card rv" href="/jikko-shien/"><span class="nm">AI開発・AI導入</span><span class="mx">補助金活用で負担を抑える</span><span class="go">詳しく見る →</span></a>
     </div>
   </div>
 </section>
@@ -806,7 +322,7 @@
     <div class="sec-head sec-head-row rv" style="margin-bottom:28px">
       <div>
         <div class="sec-en"><b>T</b>rust</div>
-        <div class="sec-ja">実績と体制</div>
+        <h2 class="sec-ja">実績と体制</h2>
       </div>
       <a class="more-link" href="#/support">専門家・料金・流れをくわしく</a>
     </div>
@@ -838,7 +354,7 @@
   <div class="wrap">
     <div class="sec-head rv">
       <div class="sec-en"><b>V</b>oice</div>
-      <div class="sec-ja">お客様の声</div>
+      <h2 class="sec-ja">お客様の声</h2>
     </div>
     <div class="voice-rail">
       <div class="voice rv">
@@ -872,39 +388,42 @@
         <div class="sec-head sec-head-row rv" style="margin-bottom:28px">
           <div>
             <div class="sec-en"><b>S</b>eminar</div>
-            <div class="sec-ja">セミナー</div>
+            <h2 class="sec-ja">セミナー</h2>
           </div>
           <a class="more-link" href="#/seminar">一覧・アーカイブ</a>
         </div>
-        <article class="sem rv">
-          <div class="date"><div class="m">JUL</div><div class="d num">16</div><div class="w">木 15:00</div></div>
-          <div>
-            <span class="chip">オンライン・無料</span>
-            <h3>【第1部】7月最新！新事業進出補助金・ものづくり補助金を徹底解説</h3>
-            <a class="apply" href="https://forms.gle/pNKZwAyNGXFatSas5" target="_blank" rel="noopener">申し込む →</a>
-          </div>
-        </article>
-        <article class="sem rv">
-          <div class="date"><div class="m">JUL</div><div class="d num">16</div><div class="w">木 15:00</div></div>
-          <div>
-            <span class="chip">オンライン・無料</span>
-            <h3>【第2部】生成AIで加速する業務改善・事業成長（最新動向・活用事例）</h3>
-            <a class="apply" href="https://forms.gle/pNKZwAyNGXFatSas5" target="_blank" rel="noopener">申し込む →</a>
-          </div>
-        </article>
+        <?php
+        $salud_top_seminars = salud_get_upcoming_seminars( 2 );
+        if ( $salud_top_seminars->have_posts() ) :
+          while ( $salud_top_seminars->have_posts() ) : $salud_top_seminars->the_post();
+            echo salud_render_seminar_card( get_the_ID(), false );
+          endwhile; wp_reset_postdata();
+        else : ?>
+          <article class="sem rv">
+            <div>
+              <span class="chip">準備中</span>
+              <h3>次回セミナーは現在準備中です。「セミナー → 新規追加」から登録すると、ここに自動で表示されます</h3>
+            </div>
+          </article>
+        <?php endif; ?>
       </div>
-      <div>
+      <div id="blog">
         <div class="sec-head rv" style="margin-bottom:28px">
           <div class="sec-en"><b>B</b>log</div>
-          <div class="sec-ja">補助金・集客の最新情報</div>
+          <h2 class="sec-ja">補助金・集客の最新情報</h2>
         </div>
         <div class="brows rv">
-          <a class="brow" href="#"><span class="bd num">2026.07.01</span><span>【2026年最新】ものづくり補助金の採択率を上げる事業計画書の書き方</span></a>
-          <a class="brow" href="#"><span class="bd num">2026.06.24</span><span>中小企業のAI導入、最初の一歩は「議事録」と「見積」から</span></a>
-          <a class="brow" href="#"><span class="bd num">2026.06.18</span><span>ホームページ制作に補助金は使える？対象制度と申請の流れ</span></a>
-          <a class="brow" href="#"><span class="bd num">2026.06.10</span><span>省力化投資補助金 一般型 第7回のスケジュールと変更点</span></a>
+          <?php
+          $salud_blog = new WP_Query( array( 'post_type' => 'post', 'posts_per_page' => 4, 'ignore_sticky_posts' => true, 'no_found_rows' => true ) );
+          if ( $salud_blog->have_posts() ) :
+            while ( $salud_blog->have_posts() ) : $salud_blog->the_post(); ?>
+              <a class="brow" href="<?php the_permalink(); ?>"><span class="bd num"><?php echo esc_html( get_the_date( 'Y.m.d' ) ); ?></span><span><?php the_title(); ?></span></a>
+            <?php endwhile; wp_reset_postdata();
+          else : ?>
+              <a class="brow" href="#"><span class="bd num">準備中</span><span>最初の記事を「投稿 → 新規追加」から書くと、ここに自動で表示されます</span></a>
+          <?php endif; ?>
         </div>
-        <a class="more-link rv" href="#">ブログ一覧を見る</a>
+        <a class="more-link rv" href="<?php echo esc_url( get_permalink( get_option( 'page_for_posts' ) ) ?: home_url( '/blog/' ) ); ?>">ブログ一覧を見る</a>
       </div>
     </div>
   </div>
@@ -941,8 +460,8 @@
     <p class="lede">課題が明確でなくても大丈夫です。現状を伺い、いま打てる最善の一手をご提案します。</p>
     <div class="final-ctas">
       <a class="btn btn-yellow btn-xl" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
-      <a class="btn btn-line" href="#">LINEで相談する</a>
-      <a class="btn btn-ghost-w" href="#">無料相談を予約</a>
+      <a class="btn btn-line" href="<?php echo esc_url( salud_opt( 'line_url', '#' ) ); ?>" target="_blank" rel="noopener">LINEで相談する</a>
+      <a class="btn btn-ghost-w" href="<?php echo esc_url( home_url( '/contact/' ) ); ?>">無料相談を予約</a>
     </div>
     <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
   </div>
@@ -964,13 +483,13 @@
       <p class="hero-sub" style="max-width:36em">機械装置・システム構築費が対象（補助率1/2・2/3）。認定支援機関のSaludが、制度の診断から書類作成、採択後の実績報告まで伴走します。</p>
       <div class="hero-ctas">
         <a class="btn btn-yellow btn-xl wiggle" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
-        <a class="btn btn-ghost" href="#">無料相談を予約</a>
+        <a class="btn btn-ghost" href="<?php echo esc_url( home_url( '/contact/' ) ); ?>">無料相談を予約</a>
       </div>
     </div>
   </div>
   <section style="padding:84px 0 40px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><div class="sec-ja">こんな投資に使えます</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><h2 class="sec-ja">こんな投資に使えます</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>生産設備の自動化</h3><p>人手不足の解消や生産能力の向上に向けた、機械装置・ロボットの導入。</p></div>
         <div class="value rv"><h3>新製品・新サービス開発</h3><p>革新的な製品・サービスの開発に必要な設備投資や試作開発。</p></div>
@@ -980,7 +499,7 @@
   </section>
   <section class="price-section" style="padding:60px 0">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><div class="sec-ja">ものづくり補助金の支援料金</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><h2 class="sec-ja">ものづくり補助金の支援料金</h2></div>
       <div class="price-grid">
         <div class="price-card rv"><div class="ttl">基本料金</div><div class="val" style="font-size:24px">お見積り</div><div class="cap">税別・ご依頼時のみ（相談・診断は無料）</div></div>
         <div class="price-card hot rv"><div class="ttl">成功報酬（採択時）</div><div class="val num">10<small>〜</small>15<small>%</small></div><div class="cap">従業員数による（最低成功報酬50万円・税別）</div></div>
@@ -990,7 +509,7 @@
   </section>
   <section style="padding:60px 0 40px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>W</b>orks</div><div class="sec-ja">採択事例</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>W</b>orks</div><h2 class="sec-ja">採択事例</h2></div>
       <div class="works-grid">
         <article class="work rv"><div class="chips"><span class="chip chip-ind">製造業</span></div><div class="big" style="font-size:21px"><small>採択事例</small>自動化製造設備の導入</div><p class="quote">生産ラインの自動化という大型の設備投資に活用。審査員目線の事業計画で採択につなげました。</p></article>
         <article class="work rv"><div class="chips"><span class="chip chip-ind">IT・サービス業</span></div><div class="big" style="font-size:21px"><small>採択事例</small>業務用マッチングサイトの構築</div><p class="quote">システム構築費を対象に採択。Webの実装まで一貫して支援しました。</p></article>
@@ -1004,7 +523,7 @@
       <h2>まずは、対象になるか<br>確認してみませんか。</h2>
       <div class="final-ctas">
         <a class="btn btn-yellow btn-xl" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
-        <a class="btn btn-line" href="#">LINEで相談する</a>
+        <a class="btn btn-line" href="<?php echo esc_url( salud_opt( 'line_url', '#' ) ); ?>" target="_blank" rel="noopener">LINEで相談する</a>
       </div>
       <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
     </div>
@@ -1023,16 +542,16 @@
         <span class="tag">申請とセットで依頼可</span>
       </div>
       <h1 style="font-size:clamp(30px,4.2vw,46px)">ホームページ制作、<br><span class="mk">実質1/3の負担</span>でつくれます。</h1>
-      <p class="hero-sub" style="max-width:36em">小規模事業者持続化補助金（補助率2/3）を活用すれば、60万円のサイトが実質20万円に。補助金の申請から制作・集客まで、Saludがまとめて対応します。</p>
+      <p class="hero-sub" style="max-width:36em"><a href="#/jizokuka">小規模事業者持続化補助金</a>（補助率2/3）を活用すれば、60万円のサイトが実質20万円に。補助金の申請から制作・集客まで、Saludがまとめて対応します。</p>
       <div class="hero-ctas">
         <a class="btn btn-yellow btn-xl wiggle" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
-        <a class="btn btn-ghost" href="#">無料相談を予約</a>
+        <a class="btn btn-ghost" href="<?php echo esc_url( home_url( '/contact/' ) ); ?>">無料相談を予約</a>
       </div>
     </div>
   </div>
   <section style="padding:84px 0 40px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>P</b>oint</div><div class="sec-ja">Saludに頼む理由</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>P</b>oint</div><h2 class="sec-ja">Saludに頼む理由</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>申請と制作をワンストップで</h3><p>補助金の申請支援と制作を同じ会社に頼めるから、書類も段取りも迷いません。</p></div>
         <div class="value rv"><h3>成果につながる設計</h3><p>見た目だけでなく、問い合わせ・集客につながる導線とSEOを設計します。</p></div>
@@ -1042,7 +561,7 @@
   </section>
   <section class="price-section" style="padding:60px 0">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>E</b>xample</div><div class="sec-ja">費用イメージ（持続化補助金を活用した場合）</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>E</b>xample</div><h2 class="sec-ja">費用イメージ（持続化補助金を活用した場合）</h2></div>
       <div class="price-grid">
         <div class="price-card rv"><div class="ttl">HP制作費（例）</div><div class="val num">60<small>万円</small></div><div class="cap">オリジナルデザイン・SEO・スマホ対応</div></div>
         <div class="price-card rv"><div class="ttl">補助金（2/3）</div><div class="val num">−40<small>万円</small></div><div class="cap">小規模事業者持続化補助金を活用</div></div>
@@ -1052,7 +571,7 @@
   </section>
   <section style="padding:60px 0 40px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>W</b>orks</div><div class="sec-ja">補助金×Webの採択事例</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>W</b>orks</div><h2 class="sec-ja">補助金×Webの採択事例</h2></div>
       <div class="works-grid">
         <article class="work rv"><div class="chips"><span class="chip chip-ind">小売・EC</span><span class="chip">IT導入補助金</span></div><div class="big" style="font-size:21px"><small>採択事例</small>ネットショップ構築・モール出店</div><p class="quote">ECサイトの構築とモール出店を支援。制作から販路開拓まで一括対応しました。</p></article>
         <article class="work rv"><div class="chips"><span class="chip chip-ind">教育・スクール</span><span class="chip">持続化補助金</span></div><div class="big" style="font-size:21px"><small>採択事例</small>オンラインサービスの立ち上げ</div><p class="quote">オンライン化に向けたWeb整備を補助金で。新しい収益の柱になりました。</p></article>
@@ -1066,7 +585,7 @@
       <h2>そのWeb投資、<br>補助金が使えるかもしれません。</h2>
       <div class="final-ctas">
         <a class="btn btn-yellow btn-xl" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
-        <a class="btn btn-line" href="#">LINEで相談する</a>
+        <a class="btn btn-line" href="<?php echo esc_url( salud_opt( 'line_url', '#' ) ); ?>" target="_blank" rel="noopener">LINEで相談する</a>
       </div>
       <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
     </div>
@@ -1087,7 +606,7 @@
     <div class="wrap">
       <div class="sec-head rv">
         <div class="sec-en"><b>E</b>xperts</div>
-        <div class="sec-ja">専門家チーム</div>
+        <h2 class="sec-ja">専門家チーム</h2>
       </div>
       <div class="exp-grid">
         <article class="exp rv">
@@ -1146,7 +665,7 @@
     <div class="wrap">
       <div class="sec-head rv">
         <div class="sec-en"><b>P</b>rice</div>
-        <div class="sec-ja">料金 — 成功報酬型</div>
+        <h2 class="sec-ja">料金 — 成功報酬型</h2>
       </div>
       <div class="price-grid">
         <div class="price-card rv">
@@ -1172,7 +691,7 @@
     <div class="wrap">
       <div class="sec-head rv">
         <div class="sec-en"><b>F</b>low</div>
-        <div class="sec-ja">ご相談から採択までの流れ</div>
+        <h2 class="sec-ja">ご相談から採択までの流れ</h2>
       </div>
       <div class="flow-grid">
         <div class="flow rv"><span class="st">STEP 1</span><h3>無料診断・相談</h3><p>30秒の診断＋Zoom約30分。制度・流れ・費用をご説明。</p></div>
@@ -1187,7 +706,7 @@
     <div class="wrap">
       <div class="sec-head rv">
         <div class="sec-en"><b>W</b>orks</div>
-        <div class="sec-ja">採択事例</div>
+        <h2 class="sec-ja">採択事例</h2>
       </div>
       <div class="works-grid">
         <article class="work rv">
@@ -1215,7 +734,7 @@
       <h2>まずは、話を聞かせてください。</h2>
       <div class="final-ctas">
         <a class="btn btn-yellow btn-xl" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
-        <a class="btn btn-line" href="#">LINEで相談する</a>
+        <a class="btn btn-line" href="<?php echo esc_url( salud_opt( 'line_url', '#' ) ); ?>" target="_blank" rel="noopener">LINEで相談する</a>
       </div>
       <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
     </div>
@@ -1253,7 +772,7 @@
         </details>
         <details>
           <summary><span><span class="q">Q.</span>ホームページ制作に補助金は使えますか？</span><span class="pm">＋</span></summary>
-          <div class="a">制度によっては対象になります。小規模事業者持続化補助金やIT導入補助金など、Web制作と組み合わせられる制度のご提案から申請まで一括でサポートできるのがSaludの強みです。</div>
+          <div class="a">制度によっては対象になります。<a href="#/jizokuka">小規模事業者持続化補助金</a>や<a href="#/it">IT導入補助金</a>など、<a href="/jikko-shien/">Web制作</a>と組み合わせられる制度のご提案から申請まで一括でサポートできるのがSaludの強みです。</div>
         </details>
         <details>
           <summary><span><span class="q">Q.</span>ITに詳しい社員がいなくてもAI導入はできますか？</span><span class="pm">＋</span></summary>
@@ -1262,6 +781,62 @@
         <details>
           <summary><span><span class="q">Q.</span>採択された後は何をすればいいですか？</span><span class="pm">＋</span></summary>
           <div class="a">採択後は交付申請・補助事業の実施・実績報告を経て、補助金が入金されます。取引書類の整理や報告書の作成もサポートしますのでご安心ください（採択後サポートは別途、伴走プラン月額1.5万円〜）。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>個人事業主でも申請できますか？</span><span class="pm">＋</span></summary>
+          <div class="a">はい、個人事業主も対象です。多くの補助金制度は「中小企業・小規模事業者」を対象としており、個人事業主も要件を満たせばご利用いただけます。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>創業したばかりでも相談できますか？</span><span class="pm">＋</span></summary>
+          <div class="a">はい、ご相談いただけます。<a href="/yuushi/">創業融資</a>は日本政策金融公庫や制度融資に対応しており、創業準備の段階からサポート可能です。補助金は制度によって創業〇ヶ月以上などの要件がある場合があるため、無料相談で該当する制度をご案内します。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>補助金と融資はどちらを利用すればいいですか？</span><span class="pm">＋</span></summary>
+          <div class="a">補助金は原則返済不要、融資は返済が必要な借入という違いがあります。どちらか一方ではなく、補助金と融資を組み合わせた資金設計もご提案可能です。まずは無料相談で、貴社の資金計画に合わせた最適な組み合わせをご案内します。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>他の申請代行会社とは何が違いますか？</span><span class="pm">＋</span></summary>
+          <div class="a">Saludは中小企業庁認定の経営革新等支援機関で、中小企業診断士・行政書士など専門家8名が在籍しています。審査員目線で事業計画を磨き上げ、小規模事業者持続化補助金では事前確認130件超・採択率82%の実績があります。成功報酬型のため、不採択の場合は成功報酬が発生しません。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>顧問契約や継続契約は必要ですか？</span><span class="pm">＋</span></summary>
+          <div class="a">いいえ、必須ではありません。単発のご依頼も承っています。採択後の実行支援や中長期的な補助金活用をご希望の場合は、伴走プランや<a href="/nenkan/">年間補助金戦略サポート</a>を任意でお選びいただけます。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>相談から採択まではどのくらいの期間がかかりますか？</span><span class="pm">＋</span></summary>
+          <div class="a">無料診断・相談から書類作成、申請、採択発表までの期間は、制度の公募スケジュールによって異なります。目安として、ご相談から申請書類の作成・提出まで数週間〜1ヶ月程度、その後の採択発表までは制度ごとの審査期間が必要です。具体的なスケジュールは無料相談でご案内します。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>年に複数の補助金を申請することはできますか？</span><span class="pm">＋</span></summary>
+          <div class="a">はい、可能です。単発の申請だけでなく、年間の事業計画にもとづいて複数の制度を計画的に活用したい方向けに「<a href="/nenkan/">年間補助金戦略サポート</a>」もご用意しています。制度の選定からスケジュール設計、融資との資金設計まで継続的にサポートします。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>補助金の対象になる経費にはどのようなものがありますか？</span><span class="pm">＋</span></summary>
+          <div class="a">制度によって異なりますが、設備費・システム導入費・広報費・専門家への謝金など幅広い経費が対象になり得ます。ホームページ制作費も、集客につながるサイトであれば対象になる場合があります。どの経費が使えるかは事業内容によって変わるため、無料相談で具体的にご案内します。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>採択されればすぐに補助金は振り込まれますか？</span><span class="pm">＋</span></summary>
+          <div class="a">いいえ、採択後すぐに入金されるわけではありません。補助金は原則「後払い」で、交付決定後に補助事業を実施し、実績報告を提出・確定検査を経てから入金されます。事業実施にかかる費用は一旦自己資金や融資で立て替える必要があるため、資金計画も含めてご相談いただけます。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>どのくらいの規模の会社が対象になりますか？</span><span class="pm">＋</span></summary>
+          <div class="a">多くの補助金は「中小企業」「小規模事業者」が対象で、業種ごとに従業員数・資本金の基準が中小企業基本法で定められています。個人事業主も対象に含まれる制度がほとんどです。自社が対象になるかは無料診断・相談で確認できます。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>打ち合わせは対面でもできますか？</span><span class="pm">＋</span></summary>
+          <div class="a">基本的にはZoom・LINEを使ったオンラインでの対応となります。全国どこからでも同じ品質でご相談いただけるよう、あえてオンラインに特化しています。対面が必要な場合は個別にご相談ください。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>自分で申請するのと依頼するのとでは何が違いますか？</span><span class="pm">＋</span></summary>
+          <div class="a">補助金は自分で申請することも可能ですが、事業計画書の書き方や要件の解釈次第で採択率が大きく変わります。Saludは審査員目線で事業計画をブラッシュアップしており、小規模事業者持続化補助金では事前確認130件超・採択率82%の実績があります。書類作成の手間や専門知識の不足を補える点が、依頼するメリットです。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>中小企業省力化投資補助金と新事業進出・ものづくり補助金はどう違いますか？</span><span class="pm">＋</span></summary>
+          <div class="a">中小企業省力化投資補助金は、人手不足解消のための省力化・自動化設備（IoT・ロボット等）の導入を支援する制度です。一方、新事業進出・ものづくり商業サービス補助金は、新分野展開や革新的な製品・サービス開発など挑戦的な事業を支援する制度です。どちらが自社に適するかは、無料診断でご案内します。</div>
+        </details>
+        <details>
+          <summary><span><span class="q">Q.</span>相談したら必ず依頼しないといけませんか？</span><span class="pm">＋</span></summary>
+          <div class="a">いいえ、そのようなことはありません。無料相談・診断はあくまで情報提供の場です。ご提案内容にご納得いただけた場合のみご依頼ください。強引な勧誘は行いませんので、まずはお気軽にご相談ください。</div>
         </details>
       </div>
     </div>
@@ -1272,7 +847,7 @@
       <h2>解決しないことは、<br>直接聞いてください。</h2>
       <div class="final-ctas">
         <a class="btn btn-yellow btn-xl" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
-        <a class="btn btn-line" href="#">LINEで相談する</a>
+        <a class="btn btn-line" href="<?php echo esc_url( salud_opt( 'line_url', '#' ) ); ?>" target="_blank" rel="noopener">LINEで相談する</a>
       </div>
       <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
     </div>
@@ -1288,6 +863,7 @@
       <div class="tag-row">
         <span class="tag hot">紹介だけでOK</span>
         <span class="tag">実務は専門家チームが対応</span>
+        <span class="tag">中小企業庁認定 経営革新等支援機関</span>
         <span class="tag">全国対応</span>
       </div>
       <h1 style="font-size:clamp(30px,4.2vw,46px)">補助金支援を、<br><span class="mk">貴社の新しい商材</span>に。</h1>
@@ -1300,33 +876,72 @@
   </div>
   <section style="padding:72px 0 32px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>M</b>erit</div><div class="sec-ja">代理店のメリット</div></div>
-      <div class="value-grid" style="margin-top:0">
-        <div class="value rv"><h3>既存顧客への新提案</h3><p>「補助金が使えるかもしれません」の一言が、既存のお客様への新しい価値提案になります。</p></div>
-        <div class="value rv"><h3>実務負担ゼロ</h3><p>診断・書類作成・採択後の報告まで、実務はすべて認定支援機関のSaludが対応します。</p></div>
-        <div class="value rv"><h3>成果に応じた紹介報酬</h3><p>ご成約に応じた紹介報酬をお支払い。継続的な収益の柱になります。</p></div>
+      <div class="sec-head rv"><div class="sec-en"><b>M</b>erit</div><h2 class="sec-ja">代理店のメリット</h2></div>
+      <div class="value-grid" style="margin-top:0;grid-template-columns:repeat(2,1fr)">
+        <div class="value rv"><span class="ic">🤝</span><h3>既存顧客への新提案</h3><p>「補助金が使えるかもしれません」の一言が、既存のお客様への新しい価値提案になります。</p></div>
+        <div class="value rv"><span class="ic">📋</span><h3>実務負担ゼロ</h3><p>診断・書類作成・採択後の報告まで、実務はすべて認定支援機関のSaludが対応します。</p></div>
+        <div class="value rv"><span class="ic">💰</span><h3>最大100万円の紹介報酬</h3><p>補助金申請の成功報酬の一部を代理店様へ還元。ご成約に応じた紹介報酬をお支払いします。</p></div>
+        <div class="value rv"><span class="ic">📡</span><h3>営業支援ツールの提供</h3><p>最新の補助金情報の定期配信、お客様に使っていただける補助金の可能性診断ツールを無償でご提供。ご希望の代理店様には、補助金診断会の共同実施（任意）も承ります。</p></div>
       </div>
     </div>
   </section>
   <section style="padding:40px 0 32px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>F</b>or</div><div class="sec-ja">こんな事業者様におすすめ</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>R</b>evenue</div><h2 class="sec-ja">代理店報酬モデル</h2></div>
+      <p class="rv" style="margin:-8px 0 20px;color:var(--ink-2)">補助金の種類ごとに、代理店報酬・年間収益の目安は以下の通りです（紹介件数や補助金種類により変動します）。</p>
+      <div class="rev-table-wrap rv">
+        <table class="rev-table">
+          <thead>
+            <tr><th>補助金</th><th>件数（年間想定）</th><th class="num">代理店報酬</th><th class="num">年間収益</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="補助金">新事業進出補助金</td><td data-label="件数">3件</td><td data-label="代理店報酬" class="num">50万〜100万円</td><td data-label="年間収益" class="num">150万〜300万円</td></tr>
+            <tr><td data-label="補助金">中小企業省力化投資補助金</td><td data-label="件数">2件</td><td data-label="代理店報酬" class="num">30万〜100万円</td><td data-label="年間収益" class="num">60万〜200万円</td></tr>
+            <tr><td data-label="補助金">ものづくり補助金</td><td data-label="件数">2件</td><td data-label="代理店報酬" class="num">30万〜100万円</td><td data-label="年間収益" class="num">60万〜100万円</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rev-total rv">
+        <span class="lb">年間収益例</span>
+        <span class="amt">約270万円〜600万円</span>
+        <span class="note">※上記3制度の紹介実績を積み上げた場合のモデルケースです</span>
+      </div>
+    </div>
+  </section>
+  <section style="padding:40px 0 32px">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>F</b>or</div><h2 class="sec-ja">こんな事業者様におすすめ</h2></div>
       <div class="cat-grid rv">
         <span class="cat-card"><span class="nm">税理士・会計事務所</span><span class="mx">顧問先への付加価値に</span></span>
+        <span class="cat-card"><span class="nm">社会保険労務士事務所</span><span class="mx">労務相談先への提案に</span></span>
+        <span class="cat-card"><span class="nm">行政書士事務所</span><span class="mx">許認可顧客への提案に</span></span>
+        <span class="cat-card"><span class="nm">弁護士・司法書士事務所</span><span class="mx">法人顧問先への提案に</span></span>
         <span class="cat-card"><span class="nm">保険代理店・FP</span><span class="mx">法人顧客への新提案に</span></span>
         <span class="cat-card"><span class="nm">Web制作・広告会社</span><span class="mx">制作費の補助金活用提案に</span></span>
         <span class="cat-card"><span class="nm">設備・機械の販売会社</span><span class="mx">導入費用の負担軽減提案に</span></span>
+        <span class="cat-card"><span class="nm">金融機関・コンサルティング会社</span><span class="mx">取引先への新提案に</span></span>
+      </div>
+      <p class="rv" style="margin-top:18px;color:var(--ink-2);font-size:14px">士業の皆様へ：申請書類の作成は、弊社グループの行政書士事務所（クリ行政書士）が対応いたします。顧問先へのご提案のみで完結し、実務は弊社が一貫して担当します。</p>
+    </div>
+  </section>
+  <section style="padding:40px 0 32px">
+    <div class="wrap">
+      <div class="sec-head rv"><div class="sec-en"><b>F</b>low</div><h2 class="sec-ja">パートナー開始までの流れ</h2></div>
+      <div class="flow-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="flow rv"><span class="st">STEP 1</span><h3>契約条件のご確認</h3><p>契約書およびコミッション条件をご確認いただきます。</p></div>
+        <div class="flow rv"><span class="st">STEP 2</span><h3>契約締結</h3><p>電子サインでスピーディーに契約を締結します。</p></div>
+        <div class="flow rv"><span class="st">STEP 3</span><h3>チャットグループ作成</h3><p>Googleチャット・Chatwork等で専用相談窓口を作成します。</p></div>
+        <div class="flow rv"><span class="st">STEP 4</span><h3>キックオフMTG</h3><p>ZOOMでの打ち合わせを経て、ご紹介を開始いただけます。</p></div>
       </div>
     </div>
   </section>
   <section style="padding:40px 0 56px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>F</b>low</div><div class="sec-ja">パートナー開始までの流れ</div></div>
-      <div class="flow-grid" style="grid-template-columns:repeat(4,1fr)">
-        <div class="flow rv"><span class="st">STEP 1</span><h3>お問い合わせ</h3><p>フォームから資料請求・説明希望をお送りください。</p></div>
-        <div class="flow rv"><span class="st">STEP 2</span><h3>オンライン説明</h3><p>制度の仕組み・報酬体系をご説明します。</p></div>
-        <div class="flow rv"><span class="st">STEP 3</span><h3>パートナー契約</h3><p>契約締結後、紹介ツールをお渡しします。</p></div>
-        <div class="flow rv"><span class="st">STEP 4</span><h3>ご紹介開始</h3><p>お客様をご紹介。以降はSaludが伴走します。</p></div>
+      <div class="sec-head rv"><div class="sec-en"><b>A</b>ctivity</div><h2 class="sec-ja">パートナー様にお願いすること</h2></div>
+      <div class="toss-highlight rv">
+        <span class="ic">🤝</span>
+        <h3>顧客企業のご紹介（トスアップ）だけ</h3>
+        <p>設備投資やDX、資金調達を検討していそうな企業様を弊社にお繋ぎいただく――それだけで完了です。診断・提案・申請書類の作成・採択後のフォローまで、以降の実務はすべてSaludの専門家チームが一貫して担当します。</p>
       </div>
     </div>
   </section>
@@ -1364,7 +979,7 @@
   </div>
   <section style="padding:72px 0 32px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>W</b>anted</div><div class="sec-ja">募集している専門家</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>W</b>anted</div><h2 class="sec-ja">募集している専門家</h2></div>
       <div class="cat-grid rv">
         <span class="cat-card"><span class="nm">中小企業診断士</span><span class="mx">事業計画・申請書類の作成</span></span>
         <span class="cat-card"><span class="nm">行政書士</span><span class="mx">申請書類の作成・確認</span></span>
@@ -1375,7 +990,7 @@
   </section>
   <section style="padding:40px 0 32px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>M</b>erit</div><div class="sec-ja">パートナーのメリット</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>M</b>erit</div><h2 class="sec-ja">パートナーのメリット</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>営業不要・案件供給</h3><p>集客・営業はSaludが担当。専門業務に集中していただけます。</p></div>
         <div class="value rv"><h3>柔軟な働き方</h3><p>フルリモート・案件単位の業務委託。本業や事務所と両立できます。</p></div>
@@ -1402,41 +1017,43 @@
     <div class="wrap" style="position:relative">
       <p class="crumb"><a href="#/">TOP</a> 〉 セミナー</p>
       <h1 style="font-size:clamp(28px,4vw,42px)">セミナー・勉強会</h1>
-      <p class="hero-sub" style="max-width:38em">7月16日（木）15:00〜開催。最新補助金（新事業進出・ものづくり）と生成AI活用を、専門家がわかりやすく解説します。参加無料・希望者は個別相談会も。</p>
+      <p class="hero-sub" style="max-width:38em"><?php echo wp_kses_post( get_theme_mod( 'salud_sem_page_lede', '8月25日（火）15:00〜16:00開催。AI活用による生産性向上・新たな事業創出と、それを後押しする「省力化投資補助金」「新事業進出・ものづくり商業サービス補助金」の活用法を、専門家がわかりやすく解説します。参加無料・希望者は個別相談会も。' ) ); ?></p>
     </div>
   </div>
   <section style="padding:64px 0 32px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>U</b>pcoming</div><div class="sec-ja">開催予定</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>U</b>pcoming</div><h2 class="sec-ja">開催予定</h2></div>
       <div class="sem-grid">
-        <article class="sem rv">
-          <div class="date"><div class="m">JUL</div><div class="d num">16</div><div class="w">木 15:00</div></div>
-          <div>
-            <span class="chip">オンライン・無料</span>
-            <h3>【第1部】7月最新！新事業進出補助金・ものづくり補助金を徹底解説</h3>
-            <div class="meta">7/16（木）15:00〜（約1時間）／ Zoom開催 ／ 参加無料　※第3部は個別相談会（希望者・先着順）</div>
-            <a class="btn btn-yellow" style="padding:12px 28px;font-size:14.5px;margin-top:10px" href="https://forms.gle/pNKZwAyNGXFatSas5" target="_blank" rel="noopener">申し込む →</a>
-          </div>
-        </article>
-        <article class="sem rv">
-          <div class="date"><div class="m">JUL</div><div class="d num">16</div><div class="w">木 15:00</div></div>
-          <div>
-            <span class="chip">オンライン・無料</span>
-            <h3>【第2部】生成AIで加速する業務改善・事業成長（最新動向・活用事例）</h3>
-            <div class="meta">7/16（木）15:00〜（約1時間）／ Zoom開催 ／ 参加無料　※第3部は個別相談会（希望者・先着順）</div>
-            <a class="btn btn-yellow" style="padding:12px 28px;font-size:14.5px;margin-top:10px" href="https://forms.gle/pNKZwAyNGXFatSas5" target="_blank" rel="noopener">申し込む →</a>
-          </div>
-        </article>
+        <?php
+        $salud_upcoming = salud_get_upcoming_seminars( 6 );
+        if ( $salud_upcoming->have_posts() ) :
+          while ( $salud_upcoming->have_posts() ) : $salud_upcoming->the_post();
+            echo salud_render_seminar_card( get_the_ID(), true );
+          endwhile; wp_reset_postdata();
+        else : ?>
+          <p class="lede">現在開催予定のセミナーはありません。「セミナー → 新規追加」から登録すると、ここに自動で表示されます。</p>
+        <?php endif; ?>
       </div>
     </div>
   </section>
   <section style="padding:40px 0 64px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>A</b>rchive</div><div class="sec-ja">過去のセミナー（アーカイブ視聴）</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>A</b>rchive</div><h2 class="sec-ja">過去のセミナー（アーカイブ視聴）</h2></div>
       <div class="brows rv" style="max-width:780px">
-        <a class="brow" href="#"><span class="bd num">2026.06.12</span><span>ものづくり補助金 23次締切 直前対策セミナー</span><span style="color:var(--teal);font-weight:800;white-space:nowrap">▶ 視聴</span></a>
-        <a class="brow" href="#"><span class="bd num">2026.05.16</span><span>省力化投資補助金（一般型）徹底解説</span><span style="color:var(--teal);font-weight:800;white-space:nowrap">▶ 視聴</span></a>
-        <a class="brow" href="#"><span class="bd num">2026.04.18</span><span>持続化補助金でホームページを作る方法</span><span style="color:var(--teal);font-weight:800;white-space:nowrap">▶ 視聴</span></a>
+        <?php
+        $salud_past = salud_get_past_seminars( 6 );
+        if ( $salud_past->have_posts() ) :
+          while ( $salud_past->have_posts() ) : $salud_past->the_post();
+            $salud_past_id   = get_the_ID();
+            $salud_past_date = get_post_meta( $salud_past_id, 'salud_sem_date', true );
+            $salud_past_ts   = $salud_past_date ? strtotime( $salud_past_date ) : false;
+            $salud_past_url  = get_post_meta( $salud_past_id, 'salud_sem_apply_url', true ) ?: '#';
+            ?>
+            <a class="brow" href="<?php echo esc_url( $salud_past_url ); ?>" target="_blank" rel="noopener"><span class="bd num"><?php echo esc_html( $salud_past_ts ? wp_date( 'Y.m.d', $salud_past_ts ) : '' ); ?></span><span><?php the_title(); ?></span><span style="color:var(--teal);font-weight:800;white-space:nowrap">▶ 視聴</span></a>
+          <?php endwhile; wp_reset_postdata();
+        else : ?>
+          <p class="lede">アーカイブはまだありません。</p>
+        <?php endif; ?>
       </div>
     </div>
   </section>
@@ -1446,7 +1063,7 @@
       <h2>セミナーより早く知りたい方は、<br>30秒診断へ。</h2>
       <div class="final-ctas">
         <a class="btn btn-yellow btn-xl" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
-        <a class="btn btn-line" href="#">LINEで相談する</a>
+        <a class="btn btn-line" href="<?php echo esc_url( salud_opt( 'line_url', '#' ) ); ?>" target="_blank" rel="noopener">LINEで相談する</a>
       </div>
     </div>
   </section>
@@ -1462,7 +1079,7 @@
       <p class="crumb"><a href="#/">TOP</a> 〉 補助金申請支援 〉 小規模事業者持続化補助金</p>
       <div class="tag-row"><span class="tag">小規模事業者向け</span><span class="tag">販路開拓</span><span class="tag">成功報酬型</span></div>
       <h1 style="font-size:clamp(30px,4.2vw,46px)">販路開拓・広告・店舗改装に、<br><span class="mk">最大250万円</span>。</h1>
-      <p class="hero-sub" style="max-width:38em">小規模事業者持続化補助金とは、小規模事業者の販路開拓や業務効率化の取り組みを対象に、最大250万円（補助率2/3）が交付される制度です。チラシ・広告・ホームページ制作・店舗改装・展示会出展など、幅広い使い道が認められています。</p>
+      <p class="hero-sub" style="max-width:38em">小規模事業者持続化補助金とは、小規模事業者の販路開拓や業務効率化の取り組みを対象に、最大250万円（補助率2/3）が交付される制度です。チラシ・広告・<a href="/jikko-shien/">ホームページ制作</a>・店舗改装・展示会出展など、幅広い使い道が認められています。</p>
       <div class="hero-ctas">
         <a class="btn btn-yellow btn-xl wiggle" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断する →</a>
         <a class="btn btn-line" href="https://line.me/R/ti/p/@388rsdlz">LINEで相談する</a>
@@ -1472,7 +1089,7 @@
 
   <section style="padding:56px 0 8px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>A</b>bout</div><div class="sec-ja">小規模事業者持続化補助金とは</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>A</b>bout</div><h2 class="sec-ja">小規模事業者持続化補助金とは</h2></div>
       <div class="cat-grid trio rv" style="margin-top:0">
         <div class="cat-card"><span class="nm">補助上限</span><span class="mx" style="font-size:20px">最大250万円</span></div>
         <div class="cat-card"><span class="nm">補助率</span><span class="mx" style="font-size:20px">補助率2/3</span></div>
@@ -1483,7 +1100,7 @@
 
   <section style="padding:32px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><div class="sec-ja">こんな使い方ができます</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><h2 class="sec-ja">こんな使い方ができます</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>広告・販促</h3><p>チラシ・ポスティング・Web広告など新規顧客獲得の取り組み。</p></div>
         <div class="value rv"><h3>ホームページ・EC</h3><p>集客用サイトやネットショップの制作・改修。</p></div>
@@ -1494,7 +1111,7 @@
 
   <section class="price-section" style="padding:48px 0">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><div class="sec-ja">小規模事業者持続化補助金の支援料金</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><h2 class="sec-ja">小規模事業者持続化補助金の支援料金</h2></div>
       <div class="price-grid">
         <div class="price-card rv"><div class="ttl">基本料金</div><div class="val" style="font-size:24px">お見積り</div><div class="cap">税別・ご依頼時のみ（相談・診断は無料）</div></div>
         <div class="price-card hot rv"><div class="ttl">成功報酬（採択時）</div><div class="val num">12<small>%</small></div><div class="cap">採択金額の12%（税別）</div></div>
@@ -1505,7 +1122,7 @@
 
   <section style="padding:24px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>F</b>AQ</div><div class="sec-ja">よくあるご質問</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>F</b>AQ</div><h2 class="sec-ja">よくあるご質問</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>Q. 個人事業主でも申請できますか？</h3><p>A. はい、個人事業主も要件を満たせば対象です。</p></div>
         <div class="value rv"><h3>Q. ホームページ制作にも使えますか？</h3><p>A. 使えます。集客につながるサイトであれば対象経費になり得ます。制作までワンストップで支援できます。</p></div>
@@ -1545,7 +1162,7 @@
 
   <section style="padding:56px 0 8px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>A</b>bout</div><div class="sec-ja">デジタル化・AI導入補助金とは</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>A</b>bout</div><h2 class="sec-ja">デジタル化・AI導入補助金とは</h2></div>
       <div class="cat-grid trio rv" style="margin-top:0">
         <div class="cat-card"><span class="nm">補助上限</span><span class="mx" style="font-size:20px">最大450万円</span></div>
         <div class="cat-card"><span class="nm">補助率</span><span class="mx" style="font-size:20px">補助率1/2〜3/4</span></div>
@@ -1556,7 +1173,7 @@
 
   <section style="padding:32px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><div class="sec-ja">こんな使い方ができます</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><h2 class="sec-ja">こんな使い方ができます</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>業務システム導入</h3><p>会計・受発注・在庫・顧客管理などのソフトウェア導入。</p></div>
         <div class="value rv"><h3>AIツール活用</h3><p>議事録・見積・問い合わせ対応などのAI活用で生産性を向上。</p></div>
@@ -1567,7 +1184,7 @@
 
   <section class="price-section" style="padding:48px 0">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><div class="sec-ja">デジタル化・AI導入補助金の支援料金</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><h2 class="sec-ja">デジタル化・AI導入補助金の支援料金</h2></div>
       <div class="price-grid">
         <div class="price-card rv"><div class="ttl">基本料金</div><div class="val" style="font-size:24px">お見積り</div><div class="cap">税別・ご依頼時のみ（相談・診断は無料）</div></div>
         <div class="price-card hot rv"><div class="ttl">成功報酬（採択時）</div><div class="val num">10<small>〜</small>15<small>%</small></div><div class="cap">従業員数による（最低成功報酬50万円・税別）</div></div>
@@ -1578,7 +1195,7 @@
 
   <section style="padding:24px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>F</b>AQ</div><div class="sec-ja">よくあるご質問</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>F</b>AQ</div><h2 class="sec-ja">よくあるご質問</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>Q. どんなソフトが対象ですか？</h3><p>A. 制度に登録されたITツールが対象です。自社の課題に合ったツール選定から支援します。</p></div>
         <div class="value rv"><h3>Q. AIツールも対象になりますか？</h3><p>A. 業務効率化・売上向上に資するAIツールは対象になり得ます。導入から社内定着まで伴走します。</p></div>
@@ -1618,7 +1235,7 @@
 
   <section style="padding:56px 0 8px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>A</b>bout</div><div class="sec-ja">中小企業省力化投資補助金とは</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>A</b>bout</div><h2 class="sec-ja">中小企業省力化投資補助金とは</h2></div>
       <div class="cat-grid trio rv" style="margin-top:0">
         <div class="cat-card"><span class="nm">補助上限</span><span class="mx" style="font-size:20px">最大1億円</span></div>
         <div class="cat-card"><span class="nm">補助率</span><span class="mx" style="font-size:20px">補助率1/2</span></div>
@@ -1629,7 +1246,7 @@
 
   <section style="padding:32px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><div class="sec-ja">こんな使い方ができます</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><h2 class="sec-ja">こんな使い方ができます</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>自動化設備の導入</h3><p>ロボット・自動搬送・無人化設備などで省人化。</p></div>
         <div class="value rv"><h3>券売機・配膳ロボット</h3><p>飲食・小売・サービス業の省力化機器。</p></div>
@@ -1640,7 +1257,7 @@
 
   <section class="price-section" style="padding:48px 0">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><div class="sec-ja">中小企業省力化投資補助金の支援料金</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><h2 class="sec-ja">中小企業省力化投資補助金の支援料金</h2></div>
       <div class="price-grid">
         <div class="price-card rv"><div class="ttl">基本料金</div><div class="val" style="font-size:24px">お見積り</div><div class="cap">税別・ご依頼時のみ（相談・診断は無料）</div></div>
         <div class="price-card hot rv"><div class="ttl">成功報酬（採択時）</div><div class="val num">10<small>〜</small>15<small>%</small></div><div class="cap">従業員数による（最低成功報酬40万円・税別）</div></div>
@@ -1651,7 +1268,7 @@
 
   <section style="padding:24px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>F</b>AQ</div><div class="sec-ja">よくあるご質問</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>F</b>AQ</div><h2 class="sec-ja">よくあるご質問</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>Q. カタログ型と一般型の違いは？</h3><p>A. カタログ型は登録製品から選ぶ簡易な枠、一般型はオーダーメイドで大型投資に対応します。事業内容に合わせて選定します。</p></div>
         <div class="value rv"><h3>Q. どんな業種が対象ですか？</h3><p>A. 製造・飲食・小売・物流など幅広い業種で活用されています。</p></div>
@@ -1695,7 +1312,7 @@
 
   <section style="padding:56px 0 8px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>F</b>rame</div><div class="sec-ja">3つの申請枠</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>F</b>rame</div><h2 class="sec-ja">3つの申請枠</h2></div>
       <div class="cat-grid trio rv" style="margin-top:0">
         <div class="cat-card"><span class="nm">革新的新製品・サービス枠</span><span class="mx">上限 <b class="num">2,500</b>万円<br>（賃上げ特例で3,500万円）</span><span class="go">補助率 1/2〜2/3</span></div>
         <div class="cat-card"><span class="nm">新事業進出枠</span><span class="mx">上限 <b class="num">7,000</b>万円<br>（賃上げ特例で9,000万円）</span><span class="go">補助率 1/2〜2/3</span></div>
@@ -1707,7 +1324,7 @@
 
   <section style="padding:32px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><div class="sec-ja">こんな取り組みに使えます</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><h2 class="sec-ja">こんな取り組みに使えます</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>革新的な製品・サービス開発</h3><p>新製品・新サービスの開発に必要な設備投資・試作開発。</p></div>
         <div class="value rv"><h3>新市場・新事業への進出</h3><p>既存事業と異なる高付加価値な新事業への挑戦。</p></div>
@@ -1719,7 +1336,7 @@
 
   <section class="price-section" style="padding:48px 0">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><div class="sec-ja">支援料金</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><h2 class="sec-ja">支援料金</h2></div>
       <div class="price-grid">
         <div class="price-card rv"><div class="ttl">基本料金</div><div class="val" style="font-size:24px">お見積り</div><div class="cap">税別・ご依頼時のみ（相談・診断は無料）</div></div>
         <div class="price-card hot rv"><div class="ttl">成功報酬（採択時）</div><div class="val num">10<small>〜</small>15<small>%</small></div><div class="cap">従業員数による（最低成功報酬50万円・税別）</div></div>
@@ -1730,7 +1347,7 @@
 
   <section style="padding:24px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>F</b>AQ</div><div class="sec-ja">よくあるご質問</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>F</b>AQ</div><h2 class="sec-ja">よくあるご質問</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>Q. どの枠が自社に合いますか？</h3><p>A. 事業内容や目的（新製品開発・新事業進出・海外展開）に応じて最適な枠をご提案します。まずは無料診断・相談をご利用ください。</p></div>
         <div class="value rv"><h3>Q. 賃上げ特例とは何ですか？</h3><p>A. 一定の賃上げを行う事業者は補助上限額が引き上げられる特例です。要件の該当性から確認します。</p></div>
@@ -1770,7 +1387,7 @@
 
   <section style="padding:56px 0 8px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>A</b>bout</div><div class="sec-ja">成長加速化補助金とは</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>A</b>bout</div><h2 class="sec-ja">成長加速化補助金とは</h2></div>
       <div class="cat-grid trio rv" style="margin-top:0">
         <div class="cat-card"><span class="nm">補助上限</span><span class="mx" style="font-size:20px">最大5億円</span></div>
         <div class="cat-card"><span class="nm">補助率</span><span class="mx" style="font-size:20px">補助率1/2</span></div>
@@ -1781,7 +1398,7 @@
 
   <section style="padding:32px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><div class="sec-ja">こんな使い方ができます</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><h2 class="sec-ja">こんな使い方ができます</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>工場の新増設</h3><p>生産能力の拡大に向けた大型の設備投資。</p></div>
         <div class="value rv"><h3>大規模設備導入</h3><p>売上拡大を実現する基幹設備の刷新。</p></div>
@@ -1792,7 +1409,7 @@
 
   <section class="price-section" style="padding:48px 0">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><div class="sec-ja">成長加速化補助金の支援料金</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><h2 class="sec-ja">成長加速化補助金の支援料金</h2></div>
       <div class="price-grid">
         <div class="price-card rv"><div class="ttl">基本料金</div><div class="val" style="font-size:24px">お見積り</div><div class="cap">税別・ご依頼時のみ（相談・診断は無料）</div></div>
         <div class="price-card hot rv"><div class="ttl">成功報酬（採択時）</div><div class="val num">10<small>〜</small>15<small>%</small></div><div class="cap">従業員数による（最低成功報酬50万円・税別）</div></div>
@@ -1803,7 +1420,7 @@
 
   <section style="padding:24px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>F</b>AQ</div><div class="sec-ja">よくあるご質問</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>F</b>AQ</div><h2 class="sec-ja">よくあるご質問</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>Q. どんな企業が対象ですか？</h3><p>A. 明確な成長計画を持ち、大規模投資を行う中小企業が対象です。</p></div>
         <div class="value rv"><h3>Q. 自己負担はどのくらいですか？</h3><p>A. 補助率1/2が目安のため、投資額の半分程度の自己資金・融資が必要です。融資支援も併せて設計します。</p></div>
@@ -1843,7 +1460,7 @@
 
   <section style="padding:56px 0 8px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>A</b>bout</div><div class="sec-ja">事業承継・M&A補助金とは</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>A</b>bout</div><h2 class="sec-ja">事業承継・M&A補助金とは</h2></div>
       <div class="cat-grid trio rv" style="margin-top:0">
         <div class="cat-card"><span class="nm">補助上限</span><span class="mx" style="font-size:20px">最大2,000万円</span></div>
         <div class="cat-card"><span class="nm">補助率</span><span class="mx" style="font-size:20px">補助率1/2〜2/3</span></div>
@@ -1854,7 +1471,7 @@
 
   <section style="padding:32px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><div class="sec-ja">こんな使い方ができます</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>U</b>se Case</div><h2 class="sec-ja">こんな使い方ができます</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>承継後の新たな挑戦</h3><p>引き継いだ事業での設備投資・販路開拓。</p></div>
         <div class="value rv"><h3>M&Aの専門家費用</h3><p>デューデリジェンス・仲介など専門家活用費用。</p></div>
@@ -1865,7 +1482,7 @@
 
   <section class="price-section" style="padding:48px 0">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><div class="sec-ja">事業承継・M&A補助金の支援料金</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><h2 class="sec-ja">事業承継・M&A補助金の支援料金</h2></div>
       <div class="price-grid">
         <div class="price-card rv"><div class="ttl">基本料金</div><div class="val" style="font-size:24px">お見積り</div><div class="cap">税別・ご依頼時のみ（相談・診断は無料）</div></div>
         <div class="price-card hot rv"><div class="ttl">成功報酬（採択時）</div><div class="val num">10<small>〜</small>15<small>%</small></div><div class="cap">従業員数による（最低成功報酬50万円・税別）</div></div>
@@ -1876,7 +1493,7 @@
 
   <section style="padding:24px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>F</b>AQ</div><div class="sec-ja">よくあるご質問</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>F</b>AQ</div><h2 class="sec-ja">よくあるご質問</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>Q. 承継予定でも申請できますか？</h3><p>A. 承継やM&Aを前提とした取り組みが対象です。タイミングも含めてご相談ください。</p></div>
         <div class="value rv"><h3>Q. M&Aの相手探しもできますか？</h3><p>A. 提携する専門家と連携し、承継・M&A全体をサポートします。</p></div>
@@ -1920,7 +1537,7 @@
 
   <section style="padding:56px 0 8px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>F</b>or</div><div class="sec-ja">こんな企業様におすすめ</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>F</b>or</div><h2 class="sec-ja">こんな企業様におすすめ</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>継続的に補助金を使いたい</h3><p>毎年、何かしらの制度を活用して投資や販路開拓を続けたい企業様。</p></div>
         <div class="value rv"><h3>複数の制度を組み合わせたい</h3><p>補助金・融資・助成金を組み合わせ、資金を最適に設計したい企業様。</p></div>
@@ -1931,7 +1548,7 @@
 
   <section style="padding:32px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>S</b>ervice</div><div class="sec-ja">サポート内容</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>S</b>ervice</div><h2 class="sec-ja">サポート内容</h2></div>
       <div class="cat-grid">
         <div class="cat-card rv"><span class="nm">年間補助金カレンダー</span><span class="mx">狙える制度と締切を可視化</span></div>
         <div class="cat-card rv"><span class="nm">制度選定・戦略設計</span><span class="mx">事業計画に沿った活用設計</span></div>
@@ -1943,7 +1560,7 @@
 
   <section class="price-section" style="padding:48px 0">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><div class="sec-ja">料金</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><h2 class="sec-ja">料金</h2></div>
       <div class="price-grid">
         <div class="price-card rv"><div class="ttl">ご相談・診断</div><div class="val num">0<small>円</small></div><div class="cap">まずは無料でご相談ください</div></div>
         <div class="price-card hot rv"><div class="ttl">サポート料金</div><div class="val" style="font-size:26px">ご相談</div><div class="cap">事業規模・支援内容に応じて個別にお見積り</div></div>
@@ -1987,14 +1604,14 @@
 
   <section style="padding:64px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>A</b>bout</div><div class="sec-ja">融資支援とは</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>A</b>bout</div><h2 class="sec-ja">融資支援とは</h2></div>
       <p class="lede rv" style="font-size:17px;max-width:44em">融資支援とは、日本政策金融公庫や金融機関からの資金調達を、事業計画の作成から申請・交渉まで一貫してサポートするサービスです。とくに創業期は「事業計画書の説得力」が融資可否を大きく左右します。Saludは補助金申請で培った計画づくりのノウハウを活かし、金融機関に評価される資金調達プランを設計します。</p>
     </div>
   </section>
 
   <section style="padding:32px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>F</b>or</div><div class="sec-ja">こんな方へ</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>F</b>or</div><h2 class="sec-ja">こんな方へ</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>これから起業する方</h3><p>創業融資の手続きが複雑で、何から手をつければよいか分からない方。</p></div>
         <div class="value rv"><h3>事業計画書に悩む方</h3><p>金融機関に評価される計画書の書き方が分からず、不安を感じている方。</p></div>
@@ -2005,7 +1622,7 @@
 
   <section style="padding:32px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>S</b>ervice</div><div class="sec-ja">支援内容</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>S</b>ervice</div><h2 class="sec-ja">支援内容</h2></div>
       <div class="cat-grid">
         <div class="cat-card rv"><span class="nm">創業融資支援</span><span class="mx">日本政策金融公庫・制度融資</span></div>
         <div class="cat-card rv"><span class="nm">事業計画書の作成支援</span><span class="mx">評価される計画に</span></div>
@@ -2019,7 +1636,7 @@
 
   <section style="padding:32px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>F</b>low</div><div class="sec-ja">ご相談から融資獲得までの流れ</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>F</b>low</div><h2 class="sec-ja">ご相談から融資獲得までの流れ</h2></div>
       <div class="cat-grid">
         <div class="cat-card rv"><span class="mx" style="color:var(--teal)">STEP 01</span><span class="nm">ご相談</span><span class="go" style="color:var(--ink-2)">Zoomで約30分の無料相談。融資の種類・流れ・費用をご説明します。</span></div>
         <div class="cat-card rv"><span class="mx" style="color:var(--teal)">STEP 02</span><span class="nm">ご依頼</span><span class="go" style="color:var(--ink-2)">申込書・ヒアリングシート（事業内容・資金使途）をご記入いただきます。</span></div>
@@ -2032,7 +1649,7 @@
 
   <section style="padding:32px 0 24px">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>W</b>hy</div><div class="sec-ja">選ばれる3つの理由</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>W</b>hy</div><h2 class="sec-ja">選ばれる3つの理由</h2></div>
       <div class="value-grid" style="margin-top:0">
         <div class="value rv"><h3>① 専門家による的確な支援</h3><p>補助金申請と創業融資支援の豊富な実績を持つ専門家が、一社ごとに丁寧にアドバイスします。</p></div>
         <div class="value rv"><h3>② 起業から成長まで伴走</h3><p>創業準備から成長段階まで、資金面のパートナーとして継続的にサポートします。</p></div>
@@ -2043,7 +1660,7 @@
 
   <section class="price-section" style="padding:48px 0">
     <div class="wrap">
-      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><div class="sec-ja">料金</div></div>
+      <div class="sec-head rv"><div class="sec-en"><b>P</b>rice</div><h2 class="sec-ja">料金</h2></div>
       <div class="price-grid">
         <div class="price-card rv"><div class="ttl">ご相談・診断</div><div class="val num">0<small>円</small></div><div class="cap">オンライン無料相談。融資の種類・流れをご説明します</div></div>
         <div class="price-card hot rv"><div class="ttl">サポート費用</div><div class="val" style="font-size:26px">ヒアリング後<br>お見積り</div><div class="cap">資金調達の内容を伺い、正式にお見積りします</div></div>
@@ -2079,7 +1696,7 @@
         <tbody>
           <tr><th>会社名</th><td>株式会社Salud（サルー）</td></tr>
           <tr><th>設立</th><td>2023年1月17日</td></tr>
-          <tr><th>代表者</th><td>代表取締役　堂本 拓央</td></tr>
+          <tr><th>代表者</th><td>代表取締役　<a href="<?php echo esc_url( home_url( '/ceo/' ) ); ?>">堂本 拓央</a></td></tr>
           <tr><th>所在地</th><td>〒150-0043　東京都渋谷区道玄坂1丁目10番8号</td></tr>
           <tr><th>電話番号</th><td><a href="tel:05068696588">050-6869-6588</a>（平日 10:00–18:00）</td></tr>
           <tr><th>認定</th><td>中小企業庁認定　経営革新等支援機関（認定ID：109713007312）</td></tr>
@@ -2102,107 +1719,5 @@
     </div>
   </section>
 </div><!-- /page-company -->
-
-<footer>
-  <div class="wrap">
-    <div class="ft-grid">
-      <div class="ft-brand">
-        <span class="logo"><img src="data:image/png;base64,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" alt=""><span class="lg-txt">株式会社Salud</span></span>
-        <p>中小企業庁認定 経営革新等支援機関。補助金申請から実行支援まで、資金を整え、Web・AI・プロダクトの実装で事業を前に進めます。</p>
-        <a class="ft-diag" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">▶ 無料補助金診断はこちら</a>
-      </div>
-      <div class="ft-col">
-        <h4>Funding</h4>
-        <ul>
-          <li><a href="#">融資支援</a></li>
-          <li><a href="#">新事業進出・ものづくり補助金</a></li>
-          <li><a href="#">持続化補助金</a></li>
-          <li><a href="#">IT導入補助金</a></li>
-          <li><a href="#">省力化投資補助金</a></li>
-          <li><a href="#">成長加速化補助金</a></li>
-          <li><a href="#">事業承継・M&A補助金</a></li>
-        </ul>
-      </div>
-      <div class="ft-col">
-        <h4>Web</h4>
-        <ul>
-          <li><a href="#">ホームページ制作</a></li>
-          <li><a href="#">LP制作</a></li>
-          <li><a href="#">SEO対策</a></li>
-          <li><a href="#">Webマーケティング</a></li>
-          <li><a href="#">プロダクト初期実装</a></li>
-          <li><a href="#">AI活用・業務効率化</a></li>
-        </ul>
-      </div>
-      <div class="ft-col">
-        <h4>Company</h4>
-        <ul>
-          <li><a href="#">導入事例</a></li>
-          <li><a href="#">セミナー</a></li>
-          <li><a href="#">ブログ</a></li>
-          <li><a href="#/company">会社概要</a></li>
-          <li><a href="#">採用情報</a></li>
-          <li><a href="#/agency">代理店募集</a></li>
-          <li><a href="#/partner">専門家パートナー募集</a></li>
-          <li><a href="#/faq">よくあるご質問</a></li>
-          <li><a href="#">お問い合わせ</a></li>
-          <li><a href="#">顧客ポータル（ログイン）</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="ft-bottom">
-      <span>© 2026 Salud Inc. — 東京都渋谷区道玄坂1-10-8</span>
-      <div class="ft-sns"><a href="#">X</a><a href="#">Instagram</a><a href="#">YouTube</a><a href="#">LINE</a></div>
-    </div>
-  </div>
-</footer>
-
-<div class="follow-cta">
-  <a class="fc-line" href="#" aria-label="公式LINEで相談する">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.9 3 2.8 6.4 2.8 10.6c0 3.8 3.3 6.9 7.8 7.5.3.1.7.2.8.5.1.2.1.6 0 .9l-.1.8c0 .2-.2.9.8.5s5.2-3.1 7.1-5.3c1.3-1.4 1.9-2.9 1.9-4.9C21.2 6.4 17.1 3 12 3z"/></svg>
-    公式LINEで相談
-  </a>
-  <a class="fc-diag" href="#diag">補助金相談はこちら →</a>
-</div>
-
-<div class="mobile-bar" id="mobileBar">
-  <a class="btn btn-yellow" href="https://hojokin-app.vercel.app/" target="_blank" rel="noopener">30秒で無料診断</a>
-  <a class="btn btn-line" href="https://line.me/R/ti/p/@388rsdlz">LINEで相談</a>
-</div>
-
-<script>
-  document.getElementById('heroCopy').classList.add('on');
-  document.getElementById('heroVisual').classList.add('on');
-
-  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var els = document.querySelectorAll('.rv');
-  if (reduce || !('IntersectionObserver' in window)) {
-    els.forEach(function (el) { el.classList.add('on'); });
-  } else {
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) {
-        if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); }
-      });
-    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
-    els.forEach(function (el) { io.observe(el); });
-  }
-
-  var hd = document.getElementById('hd');
-  var bar = document.getElementById('mobileBar');
-  window.addEventListener('scroll', function () {
-    hd.classList.toggle('scrolled', window.scrollY > 60);
-    bar.classList.toggle('show', window.scrollY > 480);
-  }, { passive: true });
-
-  // 簡易ページ切替（#/xxx で下層サンプルへ、#/ でTOPへ）
-  var pages = document.querySelectorAll('.page');
-  function route() {
-    var h = location.hash;
-    var id = h.indexOf('#/') === 0 ? h.slice(2) : 'home';
-    var target = document.getElementById('page-' + id) || document.getElementById('page-home');
-    pages.forEach(function (p) { p.hidden = (p !== target); });
-    window.scrollTo(0, 0);
-  }
-  window.addEventListener('hashchange', route);
-  route();
-</script>
+<?php
+get_footer();

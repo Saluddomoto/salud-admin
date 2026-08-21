@@ -1,0 +1,779 @@
+<title>Salud｜TOPデザイン案 v2（親しみ・伴走型）</title>
+<style>
+  :root {
+    --ink: #353333;
+    --ink-2: #5e6b70;
+    --ink-3: #8a979c;
+    --ground: #ffffff;
+    --cream: #fbfdfe;
+    --tint: #eef7f9;
+    --tint-2: #e0f0f4;
+    --line: #dde8eb;
+    --teal: #2795ab;
+    --teal-deep: #0d6b7d;
+    --teal-soft: #87bfcc;
+    --yellow: #ffe67a;
+    --orange: #f0a03c;
+    --line-green: #06c755;
+    --radius: 20px;
+    --shadow-sm: 0 2px 10px rgba(13, 107, 125, .07);
+    --shadow-md: 0 6px 24px rgba(13, 107, 125, .13);
+    --font-jp: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", YuGothic, "Noto Sans JP", Meiryo, sans-serif;
+    --font-serif: "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif JP", serif;
+    --font-script: "Segoe Script", "Bradley Hand", "Comic Sans MS", cursive;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--font-jp); font-feature-settings: "palt";
+    font-size: 16px; line-height: 1.95; letter-spacing: .03em;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .rv, .hero-copy, .hero-visual { transition: none !important; animation: none !important; opacity: 1 !important; transform: none !important; }
+    .wiggle { animation: none !important; }
+  }
+  a { color: inherit; text-decoration: none; }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 6px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 110px 0; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---------- section headings (SoLabo style) ---------- */
+  .sec-en {
+    font-size: clamp(30px, 4vw, 42px); font-weight: 800; letter-spacing: .04em;
+    line-height: 1.2; margin: 0 0 6px;
+    font-family: "Avenir Next", "Segoe UI", Verdana, sans-serif;
+  }
+  .sec-en b { color: var(--teal); font-weight: 800; }
+  .sec-ja { font-size: 13.5px; font-weight: 700; color: var(--ink-2); display: flex; align-items: center; gap: 10px; }
+  .sec-ja::before { content: ""; width: 26px; height: 2px; border-radius: 2px; background: var(--teal); }
+  .sec-head { margin-bottom: 52px; }
+  .sec-head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  .script { font-family: var(--font-script); color: var(--teal-soft); font-size: 19px; letter-spacing: .02em; }
+  .lede { font-size: 16px; color: var(--ink-2); max-width: 42em; margin: 14px 0 0; }
+  .marker { background: linear-gradient(transparent 62%, var(--yellow) 62%, var(--yellow) 94%, transparent 94%); font-weight: inherit; }
+  .more-link { font-size: 14px; font-weight: 700; color: var(--teal); white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; }
+  .more-link::after { content: "→"; transition: transform .2s ease; }
+  .more-link:hover::after { transform: translateX(4px); }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 16px 32px; border-radius: 999px;
+    font-size: 15px; font-weight: 700; letter-spacing: .05em;
+    border: 0; cursor: pointer; font-family: inherit;
+    transition: transform .18s ease, box-shadow .18s ease;
+    position: relative;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-primary { background: var(--teal); color: #fff; box-shadow: 0 5px 0 var(--teal-deep); }
+  .btn-primary:hover { box-shadow: 0 7px 0 var(--teal-deep); }
+  .btn-primary:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--teal-deep); }
+  .btn-yellow { background: var(--yellow); color: #4a3c07; box-shadow: 0 5px 0 #e0c14a; }
+  .btn-yellow:hover { box-shadow: 0 7px 0 #e0c14a; }
+  .btn-ghost { background: #fff; color: var(--teal-deep); border: 2px solid var(--tint-2); box-shadow: 0 4px 0 var(--tint-2); }
+  .btn-line { background: var(--line-green); color: #fff; box-shadow: 0 5px 0 #05a648; }
+  @keyframes wiggle { 0%,100% { transform: rotate(0); } 20% { transform: rotate(-2.5deg); } 40% { transform: rotate(2.5deg); } 60% { transform: rotate(-1.5deg); } 80% { transform: rotate(1.5deg); } }
+  .wiggle { animation: wiggle 2.6s ease-in-out infinite; animation-delay: 1.2s; }
+
+  /* ---------- header ---------- */
+  header {
+    position: fixed; inset: 0 0 auto 0; z-index: 100;
+    background: rgba(255,255,255,.9);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(221, 232, 235, .7);
+  }
+  .nav { display: flex; align-items: center; gap: 32px; height: 72px; }
+  .logo { font-size: 22px; font-weight: 800; letter-spacing: -.01em; font-family: "Avenir Next", "Segoe UI", sans-serif; }
+  .logo b { color: var(--teal); }
+  .logo small { display: block; font-size: 10px; font-weight: 600; color: var(--ink-3); letter-spacing: .14em; line-height: 1; margin-top: 2px; }
+  .nav-links { display: flex; gap: 26px; margin: 0 auto; padding: 0; list-style: none; }
+  .nav-links a { font-size: 14px; font-weight: 600; color: var(--ink-2); }
+  .nav-links a:hover { color: var(--teal); }
+  .nav-cta { display: flex; align-items: center; gap: 18px; }
+  .nav-login { font-size: 13.5px; font-weight: 700; color: var(--ink-2); }
+  .nav-cta .btn { padding: 11px 24px; font-size: 13.5px; }
+  @media (max-width: 900px) { .nav-links, .nav-login { display: none; } }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 168px 0 90px; position: relative; overflow: hidden; background: linear-gradient(180deg, var(--cream), #fff); }
+  .blob { position: absolute; border-radius: 50%; pointer-events: none; }
+  .blob-1 { width: 560px; height: 560px; right: -140px; top: -160px; background: radial-gradient(circle, var(--tint) 0%, transparent 68%); }
+  .blob-2 { width: 380px; height: 380px; left: -160px; bottom: -120px; background: radial-gradient(circle, #fdf6dd 0%, transparent 66%); }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 48px; align-items: center; position: relative; }
+  .hero-copy { opacity: 0; transform: translateY(14px); transition: opacity .7s ease .1s, transform .7s ease .1s; }
+  .hero-copy.on { opacity: 1; transform: none; }
+  .hero-script { font-family: var(--font-script); font-size: 24px; color: var(--teal); margin-bottom: 14px; }
+  h1 {
+    font-family: var(--font-serif);
+    font-size: clamp(34px, 5vw, 52px); font-weight: 700;
+    line-height: 1.55; letter-spacing: .04em; margin: 0 0 24px;
+    text-wrap: balance;
+  }
+  .hero-sub { font-size: 16.5px; color: var(--ink-2); margin: 0 0 38px; max-width: 30em; }
+  .hero-ctas { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+  .hero-note { font-size: 12.5px; color: var(--ink-3); margin-top: 20px; }
+
+  .hero-visual { position: relative; height: 470px; opacity: 0; transform: translateY(20px); transition: opacity .8s ease .35s, transform .8s ease .35s; }
+  .hero-visual.on { opacity: 1; transform: none; }
+  .fcard {
+    position: absolute; background: #fff; border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow-md); padding: 22px 24px;
+  }
+  .fcard .cap { font-size: 11px; font-weight: 800; letter-spacing: .14em; color: var(--teal); margin-bottom: 10px; }
+  .fc-1 { top: 26px; left: 2%; width: 300px; transform: rotate(-2deg); z-index: 3; }
+  .fc-1 .row { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; font-weight: 700; }
+  .fc-1 .pct { color: var(--teal); font-size: 22px; font-weight: 800; }
+  .fc-1 .bar { height: 8px; border-radius: 99px; background: var(--tint); margin: 8px 0 14px; overflow: hidden; }
+  .fc-1 .bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--teal), var(--teal-soft)); }
+  .fc-2 { top: 208px; right: 0; width: 280px; transform: rotate(2deg); z-index: 2; }
+  .fc-2 .amount { font-size: 28px; font-weight: 800; }
+  .fc-2 .chip-ok { display: inline-block; font-size: 11.5px; font-weight: 700; color: #0c7a43; background: #e7f7ee; border-radius: 99px; padding: 4px 14px; margin-bottom: 10px; }
+  .fc-3 { bottom: 12px; left: 10%; width: 272px; z-index: 4; transform: rotate(-1deg); }
+  .fc-3 .bubble { background: #eef8ee; border-radius: 4px 16px 16px 16px; padding: 13px 15px; font-size: 13px; line-height: 1.75; }
+  .fc-3 .meta { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .fc-3 .dot { width: 28px; height: 28px; border-radius: 50%; background: var(--line-green); display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 800; }
+  .fc-3 .who { font-size: 12px; font-weight: 700; color: var(--ink-2); }
+  .hero-deco { position: absolute; font-family: var(--font-script); color: var(--teal-soft); font-size: 17px; transform: rotate(-6deg); top: -6px; right: 8%; }
+  @media (max-width: 900px) {
+    .hero { padding-top: 130px; }
+    .hero-grid { grid-template-columns: 1fr; }
+    .hero-visual { height: 410px; max-width: 480px; }
+  }
+
+  /* ---------- stats ---------- */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 74px; position: relative; }
+  .stat {
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow-sm); text-align: center; padding: 28px 12px 24px;
+  }
+  .stat .v { font-size: clamp(26px, 3vw, 34px); font-weight: 800; color: var(--teal-deep); }
+  .stat .v small { font-size: .55em; font-weight: 700; margin-left: 2px; }
+  .stat .k { font-size: 12.5px; color: var(--ink-2); font-weight: 700; margin-top: 2px; }
+  @media (max-width: 720px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
+
+  /* ---------- reveal ---------- */
+  .rv { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+  .rv.on { opacity: 1; transform: none; }
+
+  /* ---------- value ---------- */
+  .intro-catch { font-family: var(--font-serif); font-size: clamp(24px, 3.4vw, 34px); font-weight: 700; line-height: 1.7; letter-spacing: .05em; margin: 0 0 18px; text-wrap: balance; }
+  .value-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 56px; }
+  .value {
+    background: var(--cream); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 34px 30px; box-shadow: var(--shadow-sm);
+  }
+  .value .ic { width: 58px; height: 58px; border-radius: 50%; background: var(--tint); display: grid; place-items: center; margin-bottom: 18px; }
+  .value .ic svg { stroke: var(--teal); }
+  .value h3 { font-size: 18.5px; font-weight: 700; margin: 0 0 10px; }
+  .value p { font-size: 14px; color: var(--ink-2); margin: 0; }
+  @media (max-width: 820px) { .value-grid { grid-template-columns: 1fr; } }
+
+  /* ---------- services ---------- */
+  .sv-section { background: var(--tint); border-radius: 48px 48px 0 0; }
+  .sv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .sv-card {
+    background: #fff; border-radius: var(--radius); padding: 30px 28px;
+    display: flex; flex-direction: column; gap: 8px;
+    box-shadow: var(--shadow-sm); transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .sv-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+  .sv-card .sv-ic { width: 50px; height: 50px; border-radius: 14px; background: var(--tint); display: grid; place-items: center; margin-bottom: 6px; }
+  .sv-card .sv-ic svg { stroke: var(--teal); }
+  .sv-card h3 { font-size: 17px; font-weight: 700; margin: 0; }
+  .sv-card p { font-size: 13.5px; color: var(--ink-2); margin: 0; flex: 1; }
+  .sv-card .go { font-size: 13px; font-weight: 700; color: var(--teal); margin-top: 10px; }
+  .sv-feature {
+    grid-column: span 3; display: grid; grid-template-columns: 1.25fr 1fr; gap: 32px; align-items: center;
+    background: linear-gradient(115deg, var(--teal-deep), var(--teal)); color: #fff;
+    padding: 44px 46px; position: relative; overflow: hidden;
+  }
+  .sv-feature::after { content: ""; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,.07); right: -80px; bottom: -140px; }
+  .sv-feature h3 { font-size: 23px; }
+  .sv-feature p { color: #d3ecf1; font-size: 14.5px; }
+  .sv-feature .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .sv-feature .tag { font-size: 12px; font-weight: 700; background: rgba(255,255,255,.16); border-radius: 99px; padding: 4px 14px; }
+  .sv-feature-cta { text-align: right; position: relative; z-index: 1; }
+  .sv-feature-cta .btn { background: #fff; color: var(--teal-deep); box-shadow: 0 5px 0 rgba(0,0,0,.18); }
+  @media (max-width: 900px) {
+    .sv-grid { grid-template-columns: 1fr 1fr; }
+    .sv-feature { grid-column: span 2; grid-template-columns: 1fr; }
+    .sv-feature-cta { text-align: left; }
+  }
+  @media (max-width: 600px) { .sv-grid { grid-template-columns: 1fr; } .sv-feature { grid-column: span 1; padding: 34px 28px; } }
+
+  /* ---------- diagnostic band ---------- */
+  .diag { background: var(--tint); padding: 0 0 110px; }
+  .diag-card {
+    background: #fff; border-radius: 28px; box-shadow: var(--shadow-md);
+    padding: 60px 56px; display: grid; grid-template-columns: 1.4fr 1fr; gap: 40px; align-items: center;
+    position: relative; overflow: hidden;
+  }
+  .diag-card::before { content: ""; position: absolute; width: 240px; height: 240px; border-radius: 50%; background: #fdf3cf; left: -90px; top: -110px; }
+  .diag-inner-copy { position: relative; }
+  .diag-script { font-family: var(--font-script); font-size: 21px; color: var(--orange); margin-bottom: 8px; }
+  .diag-card h2 { font-family: var(--font-serif); font-size: clamp(24px, 3.4vw, 34px); font-weight: 700; line-height: 1.6; margin: 0 0 14px; }
+  .diag-card p { color: var(--ink-2); font-size: 14.5px; margin: 0; }
+  .diag-cta { display: flex; flex-direction: column; gap: 14px; align-items: flex-end; position: relative; }
+  .diag-cta .note { font-size: 12px; color: var(--ink-3); }
+  @media (max-width: 820px) { .diag-card { grid-template-columns: 1fr; padding: 40px 30px; } .diag-cta { align-items: flex-start; } }
+
+  /* ---------- works ---------- */
+  .works-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .work {
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 30px 28px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 14px;
+  }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { font-size: 11.5px; font-weight: 700; border-radius: 99px; padding: 4px 13px; background: var(--tint); color: var(--teal-deep); }
+  .chip-ind { background: #f4f1e8; color: #7a6a35; }
+  .work .big { font-size: 30px; font-weight: 800; line-height: 1.2; color: var(--teal-deep); }
+  .work .big small { display: block; font-size: 12px; font-weight: 700; color: var(--ink-3); margin-bottom: 6px; }
+  .work .quote { font-size: 13.5px; color: var(--ink-2); background: var(--cream); border-radius: 12px; padding: 14px 16px; flex: 1; }
+  .work .co { font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
+  @media (max-width: 820px) { .works-grid { grid-template-columns: 1fr; } }
+
+  /* ---------- voices ---------- */
+  .voices { background: var(--cream); }
+  .voice-rail { display: grid; grid-auto-flow: column; grid-auto-columns: min(340px, 78vw); gap: 20px; overflow-x: auto; padding: 4px 4px 20px; scroll-snap-type: x mandatory; }
+  .voice { scroll-snap-align: start; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow-sm); }
+  .voice .stars { color: var(--orange); font-size: 14px; letter-spacing: 3px; margin-bottom: 12px; }
+  .voice p { font-size: 14px; color: var(--ink-2); margin: 0 0 18px; }
+  .voice .who { display: flex; align-items: center; gap: 12px; }
+  .voice .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--tint-2); display: grid; place-items: center; font-size: 13px; font-weight: 800; color: var(--teal-deep); }
+  .voice .who b { display: block; font-size: 13.5px; line-height: 1.5; }
+  .voice .who span { font-size: 12px; color: var(--ink-3); }
+
+  /* ---------- hojokin ---------- */
+  .hj-list { display: grid; gap: 14px; }
+  .hj-row {
+    display: grid; grid-template-columns: auto 1fr auto auto auto; gap: 24px; align-items: center;
+    padding: 22px 28px; background: #fff; border: 1px solid var(--line); border-radius: 16px;
+    box-shadow: var(--shadow-sm); transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .hj-row:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .hj-row .name { font-size: 16px; font-weight: 700; }
+  .hj-row .amt { font-size: 15px; font-weight: 800; color: var(--teal-deep); }
+  .hj-row .amt small, .hj-row .due small { display: block; font-size: 10.5px; font-weight: 700; color: var(--ink-3); }
+  .hj-row .due { font-size: 15px; font-weight: 700; color: var(--ink-2); }
+  .hj-row .go { color: var(--teal); font-weight: 700; font-size: 14px; }
+  .chip-open { background: #e7f7ee; color: #0c7a43; }
+  @media (max-width: 720px) { .hj-row { grid-template-columns: 1fr auto; row-gap: 8px; } .hj-row .go { display: none; } }
+
+  /* ---------- seminar ---------- */
+  .sem-section { background: var(--tint); border-radius: 48px; }
+  .sem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .sem { display: flex; gap: 26px; background: #fff; border-radius: var(--radius); padding: 30px; box-shadow: var(--shadow-sm); }
+  .sem .date { text-align: center; min-width: 74px; background: var(--cream); border-radius: 14px; padding: 14px 10px; align-self: flex-start; }
+  .sem .date .d { font-size: 28px; font-weight: 800; line-height: 1.1; color: var(--teal-deep); }
+  .sem .date .m { font-size: 11px; font-weight: 800; color: var(--teal); letter-spacing: .12em; }
+  .sem .date .w { font-size: 11px; color: var(--ink-3); }
+  .sem h3 { font-size: 16px; font-weight: 700; margin: 8px 0; line-height: 1.7; }
+  .sem .meta { font-size: 12.5px; color: var(--ink-3); }
+  .sem .apply { font-size: 13px; font-weight: 700; color: var(--teal); }
+  @media (max-width: 820px) { .sem-grid { grid-template-columns: 1fr; } }
+
+  /* ---------- blog ---------- */
+  .blog-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .post { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); transition: transform .2s ease, box-shadow .2s ease; }
+  .post:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+  .post .thumb { aspect-ratio: 16/9; background: linear-gradient(135deg, var(--tint), var(--tint-2)); display: grid; place-items: center; }
+  .post .thumb span { font-family: var(--font-script); font-size: 17px; color: var(--teal-soft); }
+  .post .body { padding: 22px 24px 26px; }
+  .post .meta { display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--ink-3); margin-bottom: 10px; }
+  .post h3 { font-size: 15px; font-weight: 700; line-height: 1.7; margin: 0; }
+  @media (max-width: 820px) { .blog-grid { grid-template-columns: 1fr; } }
+
+  /* ---------- FAQ ---------- */
+  .faq-list { max-width: 780px; margin: 0 auto; display: grid; gap: 14px; }
+  details { background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-sm); }
+  summary {
+    list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    gap: 20px; padding: 22px 26px; font-size: 15.5px; font-weight: 700;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary .q { color: var(--teal); font-weight: 800; margin-right: 4px; font-family: "Avenir Next", "Segoe UI", sans-serif; }
+  summary .pm { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--tint); display: grid; place-items: center; font-size: 15px; color: var(--teal-deep); transition: transform .2s ease; }
+  details[open] .pm { transform: rotate(45deg); }
+  details .a { padding: 0 56px 24px 26px; font-size: 14px; color: var(--ink-2); }
+
+  /* ---------- final CTA ---------- */
+  .final { text-align: center; padding: 140px 0; background: linear-gradient(180deg, #fff, var(--cream)); }
+  .final .hero-script { margin-bottom: 10px; }
+  .final h2 { font-family: var(--font-serif); font-size: clamp(28px, 4.4vw, 42px); font-weight: 700; line-height: 1.6; margin: 0 0 14px; }
+  .final .lede { margin: 0 auto 42px; text-align: center; }
+  .final-ctas { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
+  .final .tel { font-size: 14px; color: var(--ink-2); }
+  .final .tel b { font-size: 22px; font-weight: 800; margin: 0 6px; color: var(--teal-deep); }
+
+  /* ---------- footer ---------- */
+  footer { background: var(--teal-deep); color: #cfe6ec; padding: 76px 0 0; font-size: 13.5px; }
+  .ft-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 48px; padding-bottom: 60px; }
+  .ft-brand .logo { color: #fff; }
+  .ft-brand p { margin: 14px 0 22px; max-width: 24em; }
+  .ft-col h4 { color: #fff; font-size: 12px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; margin: 0 0 18px; }
+  .ft-col ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .ft-col a:hover { color: #fff; }
+  .ft-diag { display: inline-flex; align-items: center; gap: 8px; color: var(--yellow); font-weight: 700; }
+  .ft-bottom { border-top: 1px solid rgba(255,255,255,.14); padding: 22px 0; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #9cc4cf; }
+  .ft-sns { display: flex; gap: 18px; }
+  @media (max-width: 820px) { .ft-grid { grid-template-columns: 1fr 1fr; } }
+
+  /* ---------- fixed ---------- */
+  .line-fab {
+    position: fixed; right: 22px; bottom: 22px; z-index: 90;
+    width: 62px; height: 62px; border-radius: 50%;
+    background: var(--line-green); color: #fff; display: grid; place-items: center;
+    box-shadow: 0 10px 28px rgba(6, 199, 85, .35); transition: transform .2s ease;
+  }
+  .line-fab:hover { transform: scale(1.07); }
+  .line-fab span { position: absolute; top: -32px; right: 0; background: var(--ink); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 99px; white-space: nowrap; opacity: 0; transition: opacity .2s ease; }
+  .line-fab:hover span { opacity: 1; }
+  .mobile-bar {
+    position: fixed; inset: auto 0 0 0; z-index: 95; display: none;
+    background: rgba(255,255,255,.95); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line); padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); gap: 10px;
+  }
+  .mobile-bar .btn { flex: 1; padding: 13px 10px; font-size: 13.5px; }
+  @media (max-width: 720px) {
+    .mobile-bar.show { display: flex; }
+    .line-fab { bottom: 80px; }
+    section { padding: 80px 0; }
+  }
+</style>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="#">Salud<b>.</b><small>中小企業のDXパートナー</small></a>
+    <ul class="nav-links">
+      <li><a href="#services">サービス</a></li>
+      <li><a href="#works">導入事例</a></li>
+      <li><a href="#seminar">セミナー</a></li>
+      <li><a href="#hojokin">補助金情報</a></li>
+      <li><a href="#blog">ブログ</a></li>
+      <li><a href="#">会社概要</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a class="nav-login" href="#">ログイン</a>
+      <a class="btn btn-primary" href="#">無料相談</a>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy" id="heroCopy">
+      <div class="hero-script">Grow together!</div>
+      <h1>挑戦する会社の、<br>いちばん近くに。</h1>
+      <p class="hero-sub">補助金による資金調達から、Web集客、AI・DX導入まで。<span class="marker">中小企業の成長に、Saludがワンストップで伴走</span>します。</p>
+      <div class="hero-ctas">
+        <a class="btn btn-yellow wiggle" href="#">30秒で無料診断 →</a>
+        <a class="btn btn-primary" href="#">無料相談を予約</a>
+      </div>
+      <p class="hero-note">診断・相談は無料。しつこい営業は一切ありません。</p>
+    </div>
+    <div class="hero-visual" id="heroVisual" aria-hidden="true">
+      <div class="hero-deco">Your best partner ♪</div>
+      <div class="fcard fc-1">
+        <div class="cap">補助金マッチング診断</div>
+        <div class="row"><span>ものづくり補助金</span><span class="pct num">92%</span></div>
+        <div class="bar"><i style="width:92%"></i></div>
+        <div class="row"><span>IT導入補助金</span><span class="pct num" style="color:var(--ink-3);font-size:16px">74%</span></div>
+        <div class="bar"><i style="width:74%;opacity:.45"></i></div>
+      </div>
+      <div class="fcard fc-2">
+        <div class="cap">申請結果</div>
+        <span class="chip-ok">採択されました 🎉</span>
+        <div class="amount num">¥10,000,000</div>
+        <div style="font-size:12px;color:var(--ink-3)">交付決定額（設備投資・製造業）</div>
+      </div>
+      <div class="fcard fc-3">
+        <div class="meta"><span class="dot">S</span><span class="who">Salud サポート</span></div>
+        <div class="bubble">申請書類を確認しました。修正案をお送りしますので、来週の面談でご説明しますね。</div>
+      </div>
+    </div>
+  </div>
+  <div class="wrap stats-grid">
+    <div class="stat rv"><div class="v num">500<small>件+</small></div><div class="k">累計無料診断</div></div>
+    <div class="stat rv"><div class="v num">200<small>件+</small></div><div class="k">訪問サポート</div></div>
+    <div class="stat rv"><div class="v num">17<small>業種+</small></div><div class="k">支援実績業種</div></div>
+    <div class="stat rv"><div class="v num">6<small>制度+</small></div><div class="k">対応補助金</div></div>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="sec-en"><b>W</b>hy Salud</div>
+      <div class="sec-ja">Saludが選ばれる理由</div>
+    </div>
+    <p class="intro-catch rv">補助金、<span class="marker">使えていますか？</span></p>
+    <p class="lede rv">国や自治体の補助金は年間数千種類。「自社に合う制度がわからない」「申請書類が複雑」——そんな理由で、本来受け取れるはずの資金を逃している中小企業がほとんどです。Saludは資金調達から活用まで、成長のすべての段階を支えます。</p>
+    <div class="value-grid">
+      <div class="value rv">
+        <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div>
+        <h3>資金調達</h3>
+        <p>AIマッチング診断と専門家の知見で最適な補助金を選定。書類作成から採択後の報告まで、成功報酬型で伴走します。</p>
+      </div>
+      <div class="value rv">
+        <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.7 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.7-3.8-9S9.5 5.6 12 3z"/></svg></div>
+        <h3>デジタル集客</h3>
+        <p>成果につながるホームページ・LP制作、SEO、Web広告運用まで。作って終わりではなく、集客の仕組みごと設計します。</p>
+      </div>
+      <div class="value rv">
+        <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.2L19 10l-5.1 1.8L12 17l-1.9-5.2L5 10l5.1-1.8L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg></div>
+        <h3>AI・DX導入</h3>
+        <p>AIツールの選定・導入から業務フローの再設計まで。IT導入補助金を活用し、負担を抑えたDXを実現します。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sv-section" id="services">
+  <div class="wrap">
+    <div class="sec-head sec-head-row rv">
+      <div>
+        <div class="sec-en"><b>S</b>ervice</div>
+        <div class="sec-ja">サービス</div>
+      </div>
+      <a class="more-link" href="#">サービス一覧を見る</a>
+    </div>
+    <div class="sv-grid">
+      <a class="sv-card sv-feature rv" href="#">
+        <div>
+          <h3>補助金申請支援</h3>
+          <p>最適な制度の選定から事業計画書の作成、採択後の実績報告まで。行政書士等の専門家と連携し、採択の可能性を最大化します。</p>
+          <div class="tags">
+            <span class="tag">成功報酬型</span><span class="tag">ものづくり</span><span class="tag">持続化</span><span class="tag">IT導入</span><span class="tag">省力化</span>
+          </div>
+        </div>
+        <div class="sv-feature-cta"><span class="btn">詳しく見る →</span></div>
+      </a>
+      <a class="sv-card rv" href="#"><span class="sv-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18M8 21h8"/></svg></span><h3>ホームページ制作</h3><p>信頼を伝え、問い合わせを生むコーポレートサイトを設計から。</p><span class="go">詳しく見る →</span></a>
+      <a class="sv-card rv" href="#"><span class="sv-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M13 2L4.5 13.5H11L9.5 22 19 10h-6.5L13 2z" stroke-linejoin="round"/></svg></span><h3>LP制作</h3><p>広告と連動し、成約率にこだわったランディングページ。</p><span class="go">詳しく見る →</span></a>
+      <a class="sv-card rv" href="#"><span class="sv-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></span><h3>SEO対策</h3><p>検索から継続的に顧客を集める、資産型の集客基盤を構築。</p><span class="go">詳しく見る →</span></a>
+      <a class="sv-card rv" href="#"><span class="sv-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.2L19 10l-5.1 1.8L12 17l-1.9-5.2L5 10l5.1-1.8L12 3z"/></svg></span><h3>AI導入支援</h3><p>業務に合ったAI活用を選定・導入。社内定着までサポート。</p><span class="go">詳しく見る →</span></a>
+      <a class="sv-card rv" href="#"><span class="sv-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg></span><h3>Webマーケティング</h3><p>広告運用・SNS・分析まで、集客全体を一気通貫で改善。</p><span class="go">詳しく見る →</span></a>
+      <a class="sv-card rv" href="#"><span class="sv-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M14.7 6.3a4.5 4.5 0 0 0-6.4 6.4l-4 4L3 20l3.3-1.3 4-4a4.5 4.5 0 0 0 6.4-6.4z"/><path d="M15 9l6-6"/></svg></span><h3>DX支援</h3><p>業務フローの見直しとツール導入で、生産性を底上げ。</p><span class="go">詳しく見る →</span></a>
+    </div>
+  </div>
+</section>
+
+<div class="diag" id="diag">
+  <div class="wrap">
+    <div class="diag-card rv">
+      <div class="diag-inner-copy">
+        <div class="diag-script">Free check!</div>
+        <h2>使える補助金、<br><span class="marker">30秒</span>でわかります。</h2>
+        <p>会社の情報を入力するだけで、AIが数千の制度から最適な補助金をマッチング。診断後は、そのまま専門家との無料相談をご予約いただけます。</p>
+      </div>
+      <div class="diag-cta">
+        <a class="btn btn-yellow wiggle" href="#">無料で診断する →</a>
+        <span class="note">登録不要・30秒で完了・結果はその場で表示</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section id="works">
+  <div class="wrap">
+    <div class="sec-head sec-head-row rv">
+      <div>
+        <div class="sec-en"><b>W</b>orks</div>
+        <div class="sec-ja">導入事例</div>
+      </div>
+      <a class="more-link" href="#">導入事例をすべて見る</a>
+    </div>
+    <div class="works-grid">
+      <article class="work rv">
+        <div class="chips"><span class="chip chip-ind">製造業</span><span class="chip">ものづくり補助金</span></div>
+        <div class="big num"><small>交付決定額</small>¥12,500,000</div>
+        <p class="quote">最新設備の導入で生産能力が1.8倍に。自社だけでは書類の壁を越えられませんでした。</p>
+        <span class="co">和楽器製造 A社（東京都）</span>
+      </article>
+      <article class="work rv">
+        <div class="chips"><span class="chip chip-ind">飲食業</span><span class="chip">持続化補助金 + HP制作</span></div>
+        <div class="big num"><small>Web経由の予約</small>+240%</div>
+        <p class="quote">補助金でサイトを刷新し、予約導線を整備。広告に頼らず新規客が増え続けています。</p>
+        <span class="co">レストラン運営 B社（神奈川県）</span>
+      </article>
+      <article class="work rv">
+        <div class="chips"><span class="chip chip-ind">広告・看板業</span><span class="chip">IT導入補助金 + AI導入</span></div>
+        <div class="big num"><small>見積作成時間</small>−70%</div>
+        <p class="quote">AIによる見積・提案書の自動化で、営業が本来の仕事に集中できるようになりました。</p>
+        <span class="co">看板製作 C社（埼玉県）</span>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="voices">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="sec-en"><b>V</b>oice</div>
+      <div class="sec-ja">お客様の声</div>
+    </div>
+    <div class="voice-rail">
+      <div class="voice rv">
+        <div class="stars">★★★★★</div>
+        <p>「補助金は難しそう」という思い込みが変わりました。診断から採択まで、次に何をすべきかを常に示してくれたのが心強かったです。</p>
+        <div class="who"><span class="avatar">T</span><div><b>田中様</b><span>製造業・代表取締役</span></div></div>
+      </div>
+      <div class="voice rv">
+        <div class="stars">★★★★★</div>
+        <p>ホームページ制作と補助金申請を同時に任せられる会社は初めて。費用面の負担が大きく減り、想定より早く投資回収できました。</p>
+        <div class="who"><span class="avatar">S</span><div><b>佐藤様</b><span>飲食業・店舗オーナー</span></div></div>
+      </div>
+      <div class="voice rv">
+        <div class="stars">★★★★☆</div>
+        <p>ITが苦手な私たちにもわかる言葉で説明してくれます。LINEですぐ相談できる距離感が、他社にはない魅力だと思います。</p>
+        <div class="who"><span class="avatar">K</span><div><b>木村様</b><span>建設業・専務</span></div></div>
+      </div>
+      <div class="voice rv">
+        <div class="stars">★★★★★</div>
+        <p>AI導入は半信半疑でしたが、見積業務が数分で終わるようになり社内の空気が変わりました。次はDX全体をお願いする予定です。</p>
+        <div class="who"><span class="avatar">Y</span><div><b>山本様</b><span>広告業・営業部長</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="hojokin">
+  <div class="wrap">
+    <div class="sec-head sec-head-row rv">
+      <div>
+        <div class="sec-en"><b>S</b>ubsidy Info</div>
+        <div class="sec-ja">いま申請できる補助金</div>
+      </div>
+      <a class="more-link" href="#">診断で自社に合う制度を探す</a>
+    </div>
+    <div class="hj-list rv">
+      <a class="hj-row" href="#">
+        <span class="chip chip-open">公募中</span>
+        <span class="name">ものづくり補助金</span>
+        <span class="amt num"><small>上限額</small>4,000万円</span>
+        <span class="due num"><small>締切</small>2026/8/22</span>
+        <span class="go">詳細 →</span>
+      </a>
+      <a class="hj-row" href="#">
+        <span class="chip chip-open">公募中</span>
+        <span class="name">中小企業省力化投資補助金</span>
+        <span class="amt num"><small>上限額</small>1億円</span>
+        <span class="due num"><small>締切</small>2026/9/10</span>
+        <span class="go">詳細 →</span>
+      </a>
+      <a class="hj-row" href="#">
+        <span class="chip chip-open">公募中</span>
+        <span class="name">IT導入補助金 2026</span>
+        <span class="amt num"><small>上限額</small>450万円</span>
+        <span class="due num"><small>締切</small>2026/8/29</span>
+        <span class="go">詳細 →</span>
+      </a>
+      <a class="hj-row" href="#">
+        <span class="chip chip-open">公募中</span>
+        <span class="name">小規模事業者持続化補助金</span>
+        <span class="amt num"><small>上限額</small>250万円</span>
+        <span class="due num"><small>締切</small>2026/10/2</span>
+        <span class="go">詳細 →</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="sem-section" id="seminar" style="margin:0 12px">
+  <div class="wrap">
+    <div class="sec-head sec-head-row rv">
+      <div>
+        <div class="sec-en"><b>S</b>eminar</div>
+        <div class="sec-ja">セミナー・勉強会</div>
+      </div>
+      <a class="more-link" href="#">過去のアーカイブを見る</a>
+    </div>
+    <div class="sem-grid">
+      <article class="sem rv">
+        <div class="date"><div class="m">JUL</div><div class="d num">24</div><div class="w">金 14:00</div></div>
+        <div>
+          <span class="chip">オンライン・無料</span>
+          <h3>2026年下半期 補助金活用戦略セミナー — 御社が今すぐ狙える制度</h3>
+          <div class="meta">Zoom開催 / 定員50名</div>
+          <a class="apply" href="#">申し込む →</a>
+        </div>
+      </article>
+      <article class="sem rv">
+        <div class="date"><div class="m">AUG</div><div class="d num">7</div><div class="w">金 15:00</div></div>
+        <div>
+          <span class="chip">オンライン・無料</span>
+          <h3>中小企業のためのAI導入はじめの一歩 — 明日から使える実践例</h3>
+          <div class="meta">Zoom開催 / 定員50名</div>
+          <a class="apply" href="#">申し込む →</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="blog">
+  <div class="wrap">
+    <div class="sec-head sec-head-row rv">
+      <div>
+        <div class="sec-en"><b>B</b>log</div>
+        <div class="sec-ja">補助金・集客の最新情報</div>
+      </div>
+      <a class="more-link" href="#">ブログ一覧を見る</a>
+    </div>
+    <div class="blog-grid">
+      <a class="post rv" href="#">
+        <div class="thumb"><span>Article</span></div>
+        <div class="body">
+          <div class="meta"><span class="chip">補助金</span><span class="num">2026.07.01</span></div>
+          <h3>【2026年最新】ものづくり補助金の採択率を上げる事業計画書の書き方</h3>
+        </div>
+      </a>
+      <a class="post rv" href="#">
+        <div class="thumb"><span>Article</span></div>
+        <div class="body">
+          <div class="meta"><span class="chip">AI活用</span><span class="num">2026.06.24</span></div>
+          <h3>中小企業のAI導入、最初の一歩は「議事録」と「見積」から始めるべき理由</h3>
+        </div>
+      </a>
+      <a class="post rv" href="#">
+        <div class="thumb"><span>Article</span></div>
+        <div class="body">
+          <div class="meta"><span class="chip">Web集客</span><span class="num">2026.06.18</span></div>
+          <h3>ホームページ制作に補助金は使える？対象になる制度と申請の流れ</h3>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--cream)">
+  <div class="wrap">
+    <div class="sec-head rv" style="text-align:center">
+      <div class="sec-en"><b>F</b>AQ</div>
+      <div class="sec-ja" style="justify-content:center">よくあるご質問</div>
+    </div>
+    <div class="faq-list rv">
+      <details>
+        <summary><span><span class="q">Q.</span>相談や診断に費用はかかりますか？</span><span class="pm">＋</span></summary>
+        <div class="a">いいえ、補助金診断・初回相談はすべて無料です。補助金申請支援は成功報酬型のため、採択されなかった場合に成功報酬は発生しません。</div>
+      </details>
+      <details>
+        <summary><span><span class="q">Q.</span>自社に合う補助金がわかりません。何から始めればいいですか？</span><span class="pm">＋</span></summary>
+        <div class="a">まずは30秒の無料診断をお試しください。会社の基本情報を入力するだけで、AIが最適な制度を提案します。その結果をもとに専門家が詳しくご案内します。</div>
+      </details>
+      <details>
+        <summary><span><span class="q">Q.</span>地方の会社ですが対応してもらえますか？</span><span class="pm">＋</span></summary>
+        <div class="a">はい、全国対応しています。オンライン（Zoom・LINE）でのお打ち合わせを基本とし、必要に応じて訪問もいたします（累計訪問実績200件以上）。</div>
+      </details>
+      <details>
+        <summary><span><span class="q">Q.</span>ホームページ制作に補助金は使えますか？</span><span class="pm">＋</span></summary>
+        <div class="a">制度によっては対象になります。小規模事業者持続化補助金やIT導入補助金など、Web制作と組み合わせられる制度のご提案から申請まで一括でサポートできるのがSaludの強みです。</div>
+      </details>
+      <details>
+        <summary><span><span class="q">Q.</span>ITに詳しい社員がいなくてもAI導入はできますか？</span><span class="pm">＋</span></summary>
+        <div class="a">問題ありません。ツールの選定から初期設定、社内向けの使い方レクチャーまで含めて支援します。導入後もLINEで気軽にご質問いただけます。</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap rv">
+    <div class="hero-script">Let's talk!</div>
+    <h2>まずは、話を聞かせてください。</h2>
+    <p class="lede">課題が明確でなくても大丈夫です。現状を伺い、いま打てる最善の一手をご提案します。</p>
+    <div class="final-ctas">
+      <a class="btn btn-primary" href="#">無料相談を予約 →</a>
+      <a class="btn btn-line" href="#">LINEで相談する</a>
+      <a class="btn btn-ghost" href="#">30秒で無料診断</a>
+    </div>
+    <p class="tel">お電話でのご相談<b class="num">050-6869-6588</b>平日 10:00–18:00</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="ft-grid">
+      <div class="ft-brand">
+        <span class="logo">Salud<b>.</b></span>
+        <p>中小企業の成長を支えるDXパートナー。補助金・Web・AIで、挑戦する企業に伴走します。</p>
+        <a class="ft-diag" href="#">▶ 無料補助金診断はこちら</a>
+      </div>
+      <div class="ft-col">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="#">補助金申請支援</a></li>
+          <li><a href="#">ホームページ制作</a></li>
+          <li><a href="#">LP制作</a></li>
+          <li><a href="#">SEO対策</a></li>
+          <li><a href="#">AI導入支援</a></li>
+          <li><a href="#">Webマーケティング</a></li>
+          <li><a href="#">DX支援</a></li>
+        </ul>
+      </div>
+      <div class="ft-col">
+        <h4>Contents</h4>
+        <ul>
+          <li><a href="#">導入事例</a></li>
+          <li><a href="#">セミナー</a></li>
+          <li><a href="#">補助金情報</a></li>
+          <li><a href="#">ブログ</a></li>
+          <li><a href="#">お知らせ</a></li>
+        </ul>
+      </div>
+      <div class="ft-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#">会社概要</a></li>
+          <li><a href="#">採用情報</a></li>
+          <li><a href="#">お問い合わせ</a></li>
+          <li><a href="#">顧客ポータル（ログイン）</a></li>
+          <li><a href="#">プライバシーポリシー</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="ft-bottom">
+      <span>© 2026 Salud Inc. — 東京都渋谷区道玄坂1-10-8</span>
+      <div class="ft-sns"><a href="#">X</a><a href="#">Instagram</a><a href="#">YouTube</a><a href="#">LINE</a></div>
+    </div>
+  </div>
+</footer>
+
+<a class="line-fab" href="#" aria-label="LINEで相談する">
+  <span>LINEで相談</span>
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.9 3 2.8 6.4 2.8 10.6c0 3.8 3.3 6.9 7.8 7.5.3.1.7.2.8.5.1.2.1.6 0 .9l-.1.8c0 .2-.2.9.8.5s5.2-3.1 7.1-5.3c1.3-1.4 1.9-2.9 1.9-4.9C21.2 6.4 17.1 3 12 3zM8.4 12.9H6.5c-.3 0-.5-.2-.5-.5V8.9c0-.3.2-.5.5-.5s.5.2.5.5v3h1.4c.3 0 .5.2.5.5s-.2.5-.5.5zm1.8-.5c0 .3-.2.5-.5.5s-.5-.2-.5-.5V8.9c0-.3.2-.5.5-.5s.5.2.5.5v3.5zm4.5 0c0 .2-.1.4-.3.5h-.2c-.2 0-.3-.1-.4-.2l-1.9-2.6v2.3c0 .3-.2.5-.5.5s-.5-.2-.5-.5V8.9c0-.2.1-.4.3-.5h.2c.2 0 .3.1.4.2l1.9 2.6V8.9c0-.3.2-.5.5-.5s.5.2.5.5v3.5zm3-2.3c.3 0 .5.2.5.5s-.2.5-.5.5h-1.4v.9h1.4c.3 0 .5.2.5.5s-.2.5-.5.5h-1.9c-.3 0-.5-.2-.5-.5V8.9c0-.3.2-.5.5-.5h1.9c.3 0 .5.2.5.5s-.2.5-.5.5h-1.4v.7h1.4z"/></svg>
+</a>
+
+<div class="mobile-bar" id="mobileBar">
+  <a class="btn btn-yellow" href="#">30秒で無料診断</a>
+  <a class="btn btn-primary" href="#">無料相談</a>
+</div>
+
+<script>
+  document.getElementById('heroCopy').classList.add('on');
+  document.getElementById('heroVisual').classList.add('on');
+
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var els = document.querySelectorAll('.rv');
+  if (reduce || !('IntersectionObserver' in window)) {
+    els.forEach(function (el) { el.classList.add('on'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+    els.forEach(function (el) { io.observe(el); });
+  }
+
+  var bar = document.getElementById('mobileBar');
+  window.addEventListener('scroll', function () {
+    bar.classList.toggle('show', window.scrollY > 480);
+  }, { passive: true });
+</script>

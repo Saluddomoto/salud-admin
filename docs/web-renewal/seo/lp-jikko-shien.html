@@ -1,0 +1,201 @@
+<!--
+ 実行支援ページ：補助金を成果に変える Web・AI・プロダクト
+ スラッグ：jikko-shien → https://salud-web.jp/jikko-shien/
+ SEOタイトル：実行支援｜補助金を成果に変えるWeb・AI・プロダクト開発｜株式会社Salud
+ メタ：補助金・融資で調達した資金を、Web制作・AI開発・プロダクト実装まで一気通貫で「成果」に変える実行支援。中小企業庁認定の経営革新等支援機関が、申請から実装まで伴走します。
+-->
+<style>
+.jk{max-width:960px;margin:0 auto;padding:0 4px;color:#1f2937;line-height:1.9;font-size:16.5px}
+.jk .eyecatch{width:100%;height:auto;border-radius:18px;margin:0 0 30px;display:block;box-shadow:0 10px 30px rgba(13,148,136,.15)}
+.jk h2{font-size:clamp(21px,3vw,27px);font-weight:800;margin:2.4em 0 .8em;padding-left:.6em;border-left:6px solid #0ea5a4;line-height:1.4}
+.jk h3{font-size:18px;font-weight:800;margin:0 0 .4em;color:#0f766e}
+.jk p{margin:.7em 0}
+.jk .lead{font-size:17.5px;color:#334155}
+.jk .lead .mk{background:linear-gradient(transparent 62%,#fde68a 62%);padding:0 .1em;font-weight:800}
+.jk-crumb{max-width:960px;margin:0 auto 20px;padding:0 4px;font-size:13px;color:#64748b;display:flex;flex-wrap:wrap;gap:7px;align-items:center;line-height:1.6}
+.jk-crumb a{color:#0d9488;text-decoration:none}
+.jk-crumb a:hover{text-decoration:underline}
+.jk-crumb .sep{color:#cbd5e1}
+.jk-crumb .cur{color:#475569;font-weight:700}
+.jk .svc{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:1.4em 0}
+.jk .svc .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:22px 18px;box-shadow:0 4px 14px rgba(15,118,110,.06)}
+.jk .svc .ic{width:46px;height:46px;border-radius:12px;background:#e2f3f0;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.jk .svc .ic svg{width:26px;height:26px}
+.jk .svc .tag{display:inline-block;font-size:11.5px;font-weight:800;color:#0f766e;background:#f0fdfa;border:1px solid #ccfbf1;border-radius:999px;padding:3px 9px;margin-top:10px}
+.jk .svc p{font-size:14px;color:#475569;margin:.5em 0 0}
+.jk ul.check{list-style:none;padding:0;margin:1em 0}
+.jk ul.check li{position:relative;padding:9px 0 9px 34px;border-bottom:1px dashed #e2e8f0;color:#334155}
+.jk ul.check li:before{content:"✓";position:absolute;left:4px;top:9px;color:#0d9488;font-weight:900}
+.jk ul.check li b{color:#0f172a}
+.jk .tablewrap{overflow-x:auto;border:1px solid #e5e7eb;border-radius:14px;margin:1.2em 0}
+.jk table{border-collapse:collapse;width:100%;min-width:520px;background:#fff}
+.jk th,.jk td{text-align:left;padding:12px 15px;border-bottom:1px solid #eef2f2;font-size:14px}
+.jk thead th{background:#f0fdfa;color:#0b5f5a;font-size:12.5px;font-weight:800}
+.jk tbody tr:last-child td{border-bottom:none}
+.jk .price{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:1.2em 0}
+.jk .price .pc{border:1px solid #e5e7eb;border-radius:14px;padding:20px 16px;text-align:center;background:#fff}
+.jk .price .pc.hot{border:2px solid #0d9488;background:#f0fdfa}
+.jk .price .pc .t{font-size:13px;color:#64748b;font-weight:700}
+.jk .price .pc .n{font-size:30px;font-weight:800;color:#0f172a;margin:4px 0}
+.jk .price .pc .n small{font-size:15px}
+.jk .price .pc .c{font-size:12px;color:#64748b}
+.jk .flow{counter-reset:s;list-style:none;padding:0;margin:1em 0}
+.jk .flow li{counter-increment:s;position:relative;padding:14px 16px 14px 62px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin:10px 0}
+.jk .flow li:before{content:counter(s);position:absolute;left:16px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:#0d9488;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center}
+.jk .flow li b{display:block;color:#0f172a}
+.jk .works{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:1.2em 0}
+.jk .works .w{background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:18px}
+.jk .works .w .chip{display:inline-block;font-size:11px;font-weight:800;color:#0f766e;background:#e2f3f0;border-radius:6px;padding:2px 8px;margin:0 4px 8px 0}
+.jk .works .w .ttl{font-weight:800;color:#0f172a;font-size:15px;margin:2px 0 6px}
+.jk .works .w p{font-size:13px;color:#475569;margin:0}
+.jk-author{max-width:960px;margin:36px auto 0;padding:22px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;display:flex;gap:18px;align-items:flex-start}
+.jk-author img{width:84px;height:84px;border-radius:50%;flex-shrink:0;object-fit:cover}
+.jk-author .role{font-size:12.5px;color:#0f766e;font-weight:800}
+.jk-author .name{font-size:19px;font-weight:800;color:#0f172a;margin:2px 0 6px}
+.jk-author .name .sup{font-size:11px;color:#94a3b8;font-weight:700;margin-left:6px}
+.jk-author p{margin:0;font-size:14px;line-height:1.8;color:#475569}
+.jk .cta{background:linear-gradient(135deg,#0f766e,#0d9488);border-radius:20px;padding:40px 24px;text-align:center;color:#fff;margin:2.4em 0 1em}
+.jk .cta h2{color:#fff;border:none;padding:0;margin:0 0 .5em;font-size:clamp(22px,3.4vw,30px)}
+.jk .cta p{color:#d1fae5;margin:.3em 0 1.2em}
+.jk .btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.jk .btn{display:inline-block;padding:15px 28px;border-radius:999px;font-weight:800;text-decoration:none;font-size:16px}
+.jk .btn.y{background:#facc15;color:#1f2937}
+.jk .btn.l{background:#06c755;color:#fff}
+.jk .tel{margin-top:16px;color:#ecfeff;font-size:15px}
+.jk .tel b{font-size:22px}
+.jk .note{font-size:13px;color:#64748b}
+@media(max-width:680px){.jk .svc,.jk .price,.jk .works{grid-template-columns:1fr}.jk-author{flex-direction:column;align-items:center;text-align:center}}
+</style>
+
+<nav class="jk-crumb" aria-label="パンくずリスト">
+  <a href="https://salud-web.jp/">ホーム</a>
+  <span class="sep">›</span>
+  <a href="https://salud-web.jp/#services">サービス</a>
+  <span class="sep">›</span>
+  <span class="cur" aria-current="page">実行支援</span>
+</nav>
+
+<div class="jk">
+
+  <img class="eyecatch" src="https://salud-web.jp/wp-content/uploads/2026/07/jikko-shien-hero.png" alt="実行支援 補助金を成果に変える Web制作・AI開発・プロダクト実装">
+
+  <p class="lead">補助金や融資で資金を整えても、<mark class="mk">「実装」まで進めなければ成果は生まれません。</mark>Saludは、中小企業庁認定の経営革新等支援機関として、補助金の申請だけで終わらせず——採択後の<strong>Web制作・AI開発・プロダクト実装</strong>まで一気通貫で伴走します。「補助金を、成果に変える」実行支援です。</p>
+
+  <h2>なぜ「実行支援」が必要なのか</h2>
+  <p>補助金を「取ること」がゴールになりがちですが、本当の価値は<strong>採択後にどう使い、成果につなげるか</strong>にあります。ところが、資金調達を頼む会社（補助金・融資）と、実装を頼む会社（Web・AI・開発）が別々だと、戦略が分断され、せっかくの資金が成果に結びつきません。</p>
+  <p>Saludは<strong>資金設計から実装までをひとつのチーム</strong>で担います。だから「この補助金で、この設備・このWeb・このAIを導入し、こう成果を出す」という一本の線でご支援できます。</p>
+
+  <h2>3つの実行支援</h2>
+  <div class="svc">
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 8h18M8 21h8"/></svg></div>
+      <h3>Web制作・LP・EC</h3>
+      <p>集客・販路開拓につながるホームページ、ランディングページ、ネットショップを制作。見た目だけでなく、問い合わせ・売上につながる導線とSEOを設計します。</p>
+      <span class="tag">小規模事業者持続化補助金 対応</span>
+    </div>
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><rect x="5" y="7" width="14" height="12" rx="2"/><path d="M9 7V4h6v3M9 12h6M2 12h3M19 12h3"/></svg></div>
+      <h3>AI開発・AI導入</h3>
+      <p>生成AIの業務活用、問い合わせ対応の自動化、社内業務の効率化まで。人手不足の解消と生産性向上を、補助金を活用して負担を抑えながら実装します。</p>
+      <span class="tag">省力化投資補助金 対応</span>
+    </div>
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><path d="M12 2c3 3 4 6 4 9a4 4 0 0 1-8 0c0-3 1-6 4-9zM8 20l-2 2M16 20l2 2M12 20v2"/></svg></div>
+      <h3>プロダクト初期実装</h3>
+      <p>新規事業の構想を、動くかたち（MVP・試作・システム）に。アイデア段階から、補助金を活用した初期開発・検証まで伴走し、事業化を後押しします。</p>
+      <span class="tag">新事業進出補助金 対応</span>
+    </div>
+  </div>
+
+  <h2>補助金とセットだから、負担を抑えて実装できる</h2>
+  <p>「やりたいが予算が…」を、補助金で乗り越えます。申請支援と実装を同じ会社に任せられるので、<strong>対象になる経費の見極め・書類・段取りで迷いません。</strong></p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>やりたいこと</th><th>活用できる主な補助金</th><th>補助率の目安</th></tr></thead>
+      <tbody>
+        <tr><td>ホームページ・LP制作</td><td>小規模事業者持続化補助金</td><td>2/3</td></tr>
+        <tr><td>ネットショップ・EC構築</td><td>小規模事業者持続化補助金</td><td>2/3</td></tr>
+        <tr><td>AI・業務効率化ツール導入</td><td>省力化投資補助金</td><td>1/2〜</td></tr>
+        <tr><td>AI・自動化設備の開発</td><td>新事業進出・ものづくり商業サービス補助金</td><td>1/2〜2/3</td></tr>
+        <tr><td>新規事業のプロダクト開発</td><td>新事業進出・ものづくり商業サービス補助金</td><td>1/2〜</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">※補助率・上限・対象経費は制度や公募回、事業者の規模により異なります。最新の公募要領に沿ってご提案します。</p>
+
+  <h2>費用イメージ（持続化補助金でHP＋広告を行う場合）</h2>
+  <p>2025年の制度改正で、<strong>ウェブサイト関連費の「補助金額の1/4まで」という上限が撤廃</strong>されました。ホームページ制作と広告を組み合わせ、「新規顧客の獲得・売上アップ」を目的とした事業計画が申請しやすくなっています。</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>経費区分</th><th>組み合わせ例（第20回）</th><th>上限</th></tr></thead>
+      <tbody>
+        <tr><td>広報費</td><td>チラシ・パンフレット・看板＋インターネット広告・SNS広告</td><td>30万円（税込）</td></tr>
+        <tr><td>ウェブサイト関連費</td><td>自社サイト制作・更新／SEO対策／ECサイト構築／販促用の画像・動画制作</td><td>30万円（税込）</td></tr>
+        <tr><td><b>合算</b></td><td>広い意味での「広報」全体に投下できる総額</td><td><b>最大60万円</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>例えば「新サービスの認知拡大」を目的に、ホームページ制作（ウェブサイト関連費）と広告運用（広報費）を組み合わせた計画（通常枠・補助率2/3）：</p>
+  <div class="price">
+    <div class="pc"><div class="t">対象経費 合計</div><div class="n">60<small>万円</small></div><div class="c">HP制作＋広告運用</div></div>
+    <div class="pc"><div class="t">補助金（2/3）</div><div class="n">−40<small>万円</small></div><div class="c">小規模事業者持続化補助金</div></div>
+    <div class="pc hot"><div class="t">実質のご負担</div><div class="n">20<small>万円</small></div><div class="c">※通常枠の例・採択状況等により変動</div></div>
+  </div>
+  <p class="note">以前はHP中心の計画は申請しづらく、チラシや看板などを別途組む必要がありました。改正後は「HP制作＝ウェブサイト関連費」「広告運用＝広報費」として整理でき、<strong>「HPと広告を組み合わせて新規顧客を獲得し、売上を伸ばす」事業計画</strong>として申請できます。</p>
+
+  <h2>Saludに任せる強み</h2>
+  <ul class="check">
+    <li><b>申請から実装までワンストップ</b>：資金設計（補助金・融資）とWeb・AI・開発を同じチームで。</li>
+    <li><b>成果につながる設計</b>：作って終わりにせず、集客・問い合わせ・業務効率という「成果」から逆算。</li>
+    <li><b>公開・導入後も伴走</b>：交付申請・実績報告に加え、運用・改善・集客まで継続支援。</li>
+    <li><b>中小企業庁認定の経営革新等支援機関</b>：制度に精通した専門家が計画から関与。</li>
+  </ul>
+
+  <h2>実装の採択事例</h2>
+  <div class="works">
+    <div class="w"><span class="chip">小売・EC</span><span class="chip">持続化補助金</span><div class="ttl">ネットショップ構築・モール出店</div><p>ECサイト構築とモール出店を支援。制作から販路開拓まで一括で対応。</p></div>
+    <div class="w"><span class="chip">教育・スクール</span><span class="chip">持続化補助金</span><div class="ttl">オンラインサービスの立ち上げ</div><p>オンライン化に向けたWeb整備を補助金で。新しい収益の柱に。</p></div>
+    <div class="w"><span class="chip">サービス業</span><span class="chip">省力化投資</span><div class="ttl">問い合わせ対応のAI自動化</div><p>定型対応をAIで自動化し、人手不足の中でも対応品質を維持。</p></div>
+  </div>
+
+  <h2>ご依頼の流れ</h2>
+  <ol class="flow">
+    <li><b>無料相談・お問い合わせ</b>やりたいことと予算感を伺います。フォーム・LINE・お電話でどうぞ。</li>
+    <li><b>補助金の活用診断・企画</b>対象になる補助金と、実装内容・成果目標をセットでご提案します。</li>
+    <li><b>補助金申請のサポート</b>審査目線で事業計画書を作成。採択の可能性を高めます。</li>
+    <li><b>採択後の実装（Web・AI・プロダクト）</b>設計・開発・制作を実行。交付申請・実績報告も伴走。</li>
+    <li><b>公開・導入後の運用改善</b>成果につながるまで、更新・改善・集客を継続支援します。</li>
+  </ol>
+
+  <aside class="jk-author">
+    <img src="https://salud-web.jp/wp-content/uploads/2026/07/domoto-takuo.png" alt="株式会社Salud 代表 堂本拓央">
+    <div>
+      <div class="role">監修｜株式会社Salud 代表</div>
+      <div class="name">堂本 拓央<span class="sup">DOMOTO TAKUO</span></div>
+      <p>中小企業庁認定「経営革新等支援機関」の代表。資金調達（補助金・融資）から、Web・AI・プロダクトの実装までを一貫して支援。「補助金は取って終わりではなく、成果に変えるもの」という考えのもと、実行までを見据えた伴走を大切にしています。</p>
+    </div>
+  </aside>
+
+  <div class="cta">
+    <h2>そのWeb・AI・開発、<br>補助金が使えるかもしれません。</h2>
+    <p>「やりたいこと」と「予算」をお聞かせください。相談・診断は無料です。</p>
+    <div class="btns">
+      <a class="btn y" href="https://salud-web.jp/contact/">無料で相談する →</a>
+      <a class="btn l" href="https://line.me/R/ti/p/@388rsdlz">LINEで相談する</a>
+    </div>
+    <p class="tel">お電話でのご相談 <b>050-6869-6588</b>（平日 10:00–18:00）</p>
+  </div>
+
+</div>
+
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"Service",
+  "serviceType":"補助金活用の実行支援（Web制作・AI開発・プロダクト実装）",
+  "provider":{"@type":"Organization","name":"株式会社Salud","url":"https://salud-web.jp/"},
+  "areaServed":"JP",
+  "description":"補助金・融資で調達した資金を、Web制作・AI開発・プロダクト実装まで一気通貫で成果に変える実行支援。中小企業庁認定の経営革新等支援機関が申請から実装まで伴走します。",
+  "offers":{"@type":"Offer","priceCurrency":"JPY","description":"相談・診断は無料。補助金活用で実質負担を抑えて実装可能。"}
+}
+</script>
