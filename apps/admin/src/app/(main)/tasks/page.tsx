@@ -63,7 +63,16 @@ export default function TasksPage() {
   const [notice,     setNotice]     = useState('')
   const [isRoutineForm, setIsRoutineForm] = useState(false)
   const [todayCompletions, setTodayCompletions] = useState<DbTaskCompletion[]>([])
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const today = toISODate(new Date())
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
   const canAssignOthers = me?.role === 'admin' || me?.role === 'manager'
   const isDraft = (t: DbTask) => t.source === 'ai_line' && !t.reviewed_at
@@ -316,6 +325,7 @@ export default function TasksPage() {
                   const pr = PRIORITY_META[t.priority]
                   const editable = canEditTask(t)
                   const ac = assigneeColor(t.profiles?.full_name)
+                  const isExpanded = expandedIds.has(t.id)
                   return (
                     <div
                       key={t.id}
@@ -323,48 +333,59 @@ export default function TasksPage() {
                       className={`card border-l-4 ${ac.bar} p-2.5 transition-shadow hover:shadow-md ${editable ? 'cursor-pointer' : ''}`}
                       title={editable ? 'クリックして編集' : undefined}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className={`text-sm font-medium leading-snug ${t.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={`min-w-0 truncate text-sm font-medium ${t.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
                           {t.title}
                         </p>
-                        <span className={`badge flex-shrink-0 text-xs ${pr.cls}`}>{pr.label}</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); toggleExpanded(t.id) }}
+                          title={isExpanded ? '閉じる' : '詳細を表示'}
+                          className="flex-shrink-0 rounded p-0.5 text-xs text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                        >
+                          {isExpanded ? '▲' : '▾'}
+                        </button>
                       </div>
-                      {t.description && (
-                        <p className="mt-1 line-clamp-2 text-xs leading-snug text-slate-500">{t.description}</p>
-                      )}
-                      <div
-                        className="mt-2 flex items-center justify-between gap-2 border-t border-slate-50 pt-2"
-                        title={t.projects?.title ?? undefined}
-                      >
-                        <span className={`inline-flex min-w-0 items-center gap-1 text-xs font-medium ${ac.text}`}>
-                          <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${ac.dot}`} />
-                          <span className="truncate">{t.profiles?.full_name ?? '—'}</span>
-                          <span className="flex-shrink-0 text-slate-400">・〆{formatDate(t.due_date)}</span>
-                        </span>
-                        <div className="flex flex-shrink-0 gap-1" onClick={e => e.stopPropagation()}>
-                          {colIdx > 0 && (
-                          <button
-                            onClick={() => moveStatus(t.id, COLUMNS[colIdx - 1]!.key)}
-                            title={`${COLUMNS[colIdx - 1]!.label}に戻す`}
-                            className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-50"
-                          >←</button>
-                        )}
-                        {colIdx < COLUMNS.length - 1 && (
-                          <button
-                            onClick={() => moveStatus(t.id, COLUMNS[colIdx + 1]!.key)}
-                            title={`${COLUMNS[colIdx + 1]!.label}へ進める`}
-                            className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-50"
-                          >→</button>
-                        )}
-                        {canDeleteTask(t) && (
-                          <button
-                            onClick={() => handleDelete(t.id)}
-                            title="削除"
-                            className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-rose-500 hover:bg-rose-50"
-                          >×</button>
-                        )}
+
+                      {isExpanded && (
+                        <div className="mt-2 space-y-1.5 border-t border-slate-50 pt-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`inline-flex min-w-0 items-center gap-1 text-xs font-medium ${ac.text}`}>
+                              <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${ac.dot}`} />
+                              <span className="truncate">{t.profiles?.full_name ?? '—'}</span>
+                            </span>
+                            <span className={`badge flex-shrink-0 text-xs ${pr.cls}`}>{pr.label}</span>
+                          </div>
+                          <div className="text-xs text-slate-400">
+                            {t.projects?.title ? `${t.projects.title} ・ ` : ''}〆{formatDate(t.due_date)}
+                          </div>
+                          {t.description && (
+                            <p className="whitespace-pre-wrap text-xs leading-relaxed text-slate-500">{t.description}</p>
+                          )}
+                          <div className="flex justify-end gap-1 pt-0.5" onClick={e => e.stopPropagation()}>
+                            {colIdx > 0 && (
+                              <button
+                                onClick={() => moveStatus(t.id, COLUMNS[colIdx - 1]!.key)}
+                                title={`${COLUMNS[colIdx - 1]!.label}に戻す`}
+                                className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-50"
+                              >←</button>
+                            )}
+                            {colIdx < COLUMNS.length - 1 && (
+                              <button
+                                onClick={() => moveStatus(t.id, COLUMNS[colIdx + 1]!.key)}
+                                title={`${COLUMNS[colIdx + 1]!.label}へ進める`}
+                                className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-50"
+                              >→</button>
+                            )}
+                            {canDeleteTask(t) && (
+                              <button
+                                onClick={() => handleDelete(t.id)}
+                                title="削除"
+                                className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-rose-500 hover:bg-rose-50"
+                              >×</button>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )
                 })}
