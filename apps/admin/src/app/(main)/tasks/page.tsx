@@ -28,6 +28,9 @@ const PRIORITY_META = {
   low:    { label: '低', cls: 'bg-slate-100 text-slate-500' },
 } as const
 
+// カード表示順: 優先度の高いタスクが上に来るように（同優先度内は元の並び=期限順を維持）
+const PRIORITY_RANK = { high: 2, medium: 1, low: 0 } as const
+
 // 担当者名から決定的に色を割り当てる（DBに色は持たせず、名前のハッシュ値でパレットを選ぶ）
 const ASSIGNEE_COLORS = [
   { bar: 'border-l-sky-400',     dot: 'bg-sky-500',     text: 'text-sky-700' },
@@ -312,7 +315,9 @@ export default function TasksPage() {
 
       <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
         {COLUMNS.map((col, colIdx) => {
-          const items = kanbanTasks.filter(t => t.status === col.key)
+          const items = kanbanTasks
+            .filter(t => t.status === col.key)
+            .sort((a, b) => PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority])
           return (
             <div key={col.key} className="flex flex-col rounded-2xl bg-slate-50/80 p-3">
               <div className="mb-3 flex items-center gap-2 px-1">
