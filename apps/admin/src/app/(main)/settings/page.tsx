@@ -63,6 +63,9 @@ export default function SettingsPage() {
   const [inviting,      setInviting]      = useState(false)
   const [inviteResult,  setInviteResult]  = useState<{ email: string; tempPassword: string } | null>(null)
 
+  const [resetPwBusyId, setResetPwBusyId] = useState<string | null>(null)
+  const [resetPwResult, setResetPwResult] = useState<{ name: string; tempPassword: string } | null>(null)
+
   const [prefs,         setPrefs]         = useState<NotificationPrefs | null>(null)
   const [prefsSaving,   setPrefsSaving]   = useState(false)
   const [prefsSaved,    setPrefsSaved]    = useState(false)
@@ -185,6 +188,25 @@ export default function SettingsPage() {
   const closeInviteModal = () => {
     setInviteOpen(false)
     setInviteResult(null)
+  }
+
+  const handleResetPassword = async (m: DbProfile) => {
+    if (!confirm(`${m.full_name || 'このメンバー'} のパスワードをリセットしますか？\n新しい一時パスワードが発行され、本人の現在のパスワードは使えなくなります。`)) return
+    setResetPwBusyId(m.id)
+    try {
+      const res = await fetch('/api/admin/reset-member-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: m.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'リセットに失敗しました')
+      setResetPwResult({ name: m.full_name || 'このメンバー', tempPassword: data.tempPassword })
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e))
+    } finally {
+      setResetPwBusyId(null)
+    }
   }
 
   const handleToggleTasksSharing = async (id: string, shared: boolean) => {
@@ -424,6 +446,16 @@ export default function SettingsPage() {
                       <span className={`badge text-xs ${role.cls}`}>{role.label}</span>
                       {isAdmin && m.id !== me?.id && (
                         <button
+                          onClick={() => handleResetPassword(m)}
+                          disabled={resetPwBusyId === m.id}
+                          title="本人の代わりに新しい一時パスワードを発行します"
+                          className="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-50"
+                        >
+                          {resetPwBusyId === m.id ? 'リセット中...' : 'パスワードをリセット'}
+                        </button>
+                      )}
+                      {isAdmin && m.id !== me?.id && (
+                        <button
                           onClick={() => handleToggleActive(m)}
                           className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
                             m.is_active
@@ -660,6 +692,24 @@ export default function SettingsPage() {
               </button>
             </div>
           </form>
+        )}
+      </Modal>
+
+      {/* パスワードリセット結果 */}
+      <Modal title="パスワードをリセットしました" open={!!resetPwResult} onClose={() => setResetPwResult(null)}>
+        {resetPwResult && (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-700">
+              {resetPwResult.name} さんの新しい一時パスワードです。本人に直接共有してください（このパスワードは今だけ表示されます）。
+              受け取ったら本人に「設定 → セキュリティ」で好きなパスワードに変更してもらってください。
+            </p>
+            <div className="space-y-2 rounded-xl bg-slate-50 p-4 text-sm">
+              <p><span className="text-slate-500">新しい一時パスワード: </span><code className="font-mono">{resetPwResult.tempPassword}</code></p>
+            </div>
+            <div className="flex justify-end border-t border-slate-100 pt-4">
+              <button type="button" className="btn-primary text-sm" onClick={() => setResetPwResult(null)}>閉じる</button>
+            </div>
+          </div>
         )}
       </Modal>
     </div>
