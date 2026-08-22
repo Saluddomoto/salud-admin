@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import holiday_jp from '@holiday-jp/holiday_jp'
 import { linePush } from '@salud/line'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { syncGoogleCalendars } from '@/lib/google'
@@ -9,6 +10,7 @@ export const dynamic = 'force-dynamic'
 // 毎朝の LINE ダイジェスト（Vercel Cron から毎日 08:00 JST に起動）。
 // 各メンバー（profiles.line_user_id 登録者）に、本人の今日の予定・期限タスク・
 // 全体の要返信メッセージ数を送る。
+// 土日・日本の祝日は配信を行わない。
 export async function GET(req: Request) {
   const cronSecret  = process.env.CRON_SECRET
   const accessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN
@@ -19,13 +21,21 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'LINE_CHANNEL_ACCESS_TOKEN が未設定です' }, { status: 503 })
   }
 
+  // サーバーは UTC で動くため JST の「今日」を明示的に計算する
+  const today = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
+  const todayJst = new Date(today)
+  const dow = todayJst.getUTCDay() // 0=日, 6=土
+  const isWeekend = dow === 0 || dow === 6
+  const isHoliday = holiday_jp.isHoliday(todayJst)
+  if (isWeekend || isHoliday) {
+    return NextResponse.json({ ok: true, skipped: true, reason: isHoliday ? 'holiday' : 'weekend', sent: 0 })
+  }
+
   // 配信前に Google カレンダーを最新化（失敗しても配信は続行）
   if (process.env.GOOGLE_CLIENT_ID) {
     await syncGoogleCalendars({ force: true }).catch(e => console.error('digest: google sync failed', e))
   }
 
-  // サーバーは UTC で動くため JST の「今日」を明示的に計算する
-  const today = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
   const admin = createAdminClient()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
 
