@@ -416,7 +416,12 @@ export default function RevenuePage() {
             </thead>
             <tbody>
               {rows.map(r => (
-                <tr key={r.id} className="border-b border-slate-50 hover:bg-slate-50/60">
+                <tr
+                  key={r.id}
+                  className={`border-b border-slate-50 hover:bg-slate-50/60 ${r.source === 'project' && r.projectId ? 'cursor-pointer' : ''}`}
+                  onClick={r.source === 'project' && r.projectId ? () => router.push(`/projects/${r.projectId}`) : undefined}
+                  title={r.source === 'project' && r.projectId ? '案件の詳細・編集を開く' : undefined}
+                >
                   <td className="px-3 py-2.5 whitespace-nowrap">{r.entry_date || '—'}</td>
                   <td className="px-3 py-2.5">{r.payer_name}</td>
                   <td className="px-3 py-2.5">{r.category}</td>
@@ -456,8 +461,12 @@ export default function RevenuePage() {
                           onClick={() => handleDelete(r.id)}>削除</button>
                       </>
                     ) : (
-                      <a href={`/projects/${r.projectId}`} className="text-xs font-medium text-slate-400 hover:text-brand-600 hover:underline">
-                        案件由来
+                      <a
+                        href={`/projects/${r.projectId}`}
+                        onClick={e => e.stopPropagation()}
+                        className="text-xs font-medium text-brand-600 hover:underline"
+                      >
+                        詳細・編集
                       </a>
                     )}
                   </td>
