@@ -73,34 +73,75 @@ export function deriveProjectRows(projects: DbProject[]): Row[] {
       // 申請準備中・申請済みの案件は「採択されたらもらえる満額」を下書き（見込み）として台帳に出す。
       // 採択率での加重はしない（それは月次集計側の別枠 = derivePipelineForecastRows が担う。
       // in_progress/submitted はここで下書き行を出すぶん、そちらでは対象外にして二重計上を避ける）。
-      // 基本料金・成功報酬率が未入力（契約条件が後決めのケース）でも下書きが出るよう、
-      // その場合はカテゴリの平均単価（目標設定タブの単価）を暫定額として使う。
-      // 後から成功報酬率を入力すれば、そちらの実額計算に自動で置き換わる。
+      //
+      // 基本料金は契約時点で入金される実額なので、案件に「基本料金 入金日」が入っていれば
+      // その分だけ確定行として切り出す（WEB案件のpayment_received_dateと同じ考え方）。
+      // 成功報酬は採択が決まるまで金額も入金時期も不確定なので、常に見込み行として別出しする。
+      // 基本料金・成功報酬とも未入力（契約条件が後決めのケース）なら、
+      // カテゴリの平均単価（目標設定タブの単価）を1行の暫定額として出す。
       const cat = matchRevenueCategoryFromSubsidyName(p.subsidy_name ?? '')
       const baseFee = p.base_fee ?? 0
       const successFee = (p.subsidy_amount ?? p.applied_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100)
-      const preciseAmount = baseFee + successFee
-      const isEstimate = preciseAmount <= 0
-      const amount = isEstimate ? (cat?.unitPrice ?? 0) : preciseAmount
-      // 採択発表日が入力されていればその月に、無ければ申請期限の月に暫定計上する。
-      const date = p.result_at ?? p.deadline
-      if (amount <= 0 || !date) continue
       const stageLabel = p.status === 'submitted' ? '申請中' : '申請準備中'
-      rows.push({
-        id: `project-${p.id}`,
-        entry_date: date,
-        payer_name: payer,
-        category: cat?.name ?? 'その他',
-        amount_excl_tax: amount,
-        status: 'forecast',
-        payment_due_date: null,
-        payment_received_date: null,
-        memo: isEstimate ? `${stageLabel}の下書き（金額未定・カテゴリ平均額で暫定計算）` : `${stageLabel}の下書き`,
-        source: 'project',
-        projectId: p.id,
-        // 金額未定でカテゴリ平均額を暫定計上した行は基本料金/成功報酬の内訳を出せないため未設定のまま
-        ...(isEstimate ? {} : { baseFee, successFee }),
-      })
+      // 採択発表日が入力されていればその月に、無ければ申請期限の月に暫定計上する。
+      const resultDate = p.result_at ?? p.deadline
+
+      if (baseFee <= 0 && successFee <= 0) {
+        const amount = cat?.unitPrice ?? 0
+        if (amount > 0 && resultDate) {
+          rows.push({
+            id: `project-${p.id}`,
+            entry_date: resultDate,
+            payer_name: payer,
+            category: cat?.name ?? 'その他',
+            amount_excl_tax: amount,
+            status: 'forecast',
+            payment_due_date: null,
+            payment_received_date: null,
+            memo: `${stageLabel}の下書き（金額未定・カテゴリ平均額で暫定計算）`,
+            source: 'project',
+            projectId: p.id,
+          })
+        }
+        continue
+      }
+
+      if (baseFee > 0) {
+        const baseDate = p.payment_received_date ?? p.payment_due_date ?? resultDate
+        if (baseDate) {
+          rows.push({
+            id: `project-${p.id}-base`,
+            entry_date: baseDate,
+            payer_name: payer,
+            category: cat?.name ?? 'その他',
+            amount_excl_tax: baseFee,
+            status: p.payment_received_date ? 'confirmed' : 'forecast',
+            payment_due_date: p.payment_due_date,
+            payment_received_date: p.payment_received_date,
+            memo: p.payment_received_date ? '基本料金（入金済み）' : `${stageLabel}の下書き（基本料金）`,
+            source: 'project',
+            projectId: p.id,
+            baseFee,
+          })
+        }
+      }
+
+      if (successFee > 0 && resultDate) {
+        rows.push({
+          id: `project-${p.id}-success`,
+          entry_date: resultDate,
+          payer_name: payer,
+          category: cat?.name ?? 'その他',
+          amount_excl_tax: successFee,
+          status: 'forecast',
+          payment_due_date: null,
+          payment_received_date: null,
+          memo: `${stageLabel}の下書き（成功報酬）`,
+          source: 'project',
+          projectId: p.id,
+          successFee,
+        })
+      }
     }
   }
   return rows

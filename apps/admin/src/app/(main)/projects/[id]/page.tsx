@@ -92,8 +92,8 @@ export default function ProjectDetailPage() {
         base_fee:          projectType === 'web' ? null : (f.get('base_fee') ? Number(f.get('base_fee')) : null),
         success_fee_rate:  projectType === 'web' ? null : (f.get('success_fee_rate') ? Number(f.get('success_fee_rate')) : null),
         web_fee_excl_tax:  projectType === 'web' ? (f.get('web_fee_excl_tax') ? Number(f.get('web_fee_excl_tax')) : null) : null,
-        payment_due_date:      projectType === 'web' ? (f.get('payment_due_date') as string) || null : null,
-        payment_received_date: projectType === 'web' ? (f.get('payment_received_date') as string) || null : null,
+        payment_due_date:      (f.get('payment_due_date') as string) || null,
+        payment_received_date: (f.get('payment_received_date') as string) || null,
         deadline:          projectType === 'web' ? null : (f.get('deadline') as string) || null,
         result_at:         projectType === 'web' ? null : (f.get('result_at') as string) || null,
         notes:             (f.get('notes') as string) || null,
@@ -251,6 +251,8 @@ export default function ProjectDetailPage() {
               { label: '成功報酬',   value: project.success_fee_rate != null ? `${project.success_fee_rate}%` : '—' },
               { label: '申請期限',   value: project.deadline ?? '—' },
               { label: '採択発表日', value: project.result_at ?? '—' },
+              { label: '基本料金 入金予定日', value: project.payment_due_date ?? '—' },
+              { label: '基本料金 入金日',     value: project.payment_received_date ?? '—' },
               { label: '社内担当',   value: [project.profiles?.full_name, project.assignee2?.full_name].filter(Boolean).join('・') || '—' },
             ]).map(row => (
               <div key={row.label} className="flex gap-3">
@@ -433,6 +435,15 @@ export default function ProjectDetailPage() {
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">採択発表日</label>
                   <input name="result_at" type="date" className="input" defaultValue={project.result_at ?? ''} />
                   <p className="mt-1 text-xs text-slate-400">未定でも入力しておくと、売上予測（見込み）の計上月に反映されます</p>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">基本料金 入金予定日</label>
+                  <input name="payment_due_date" type="date" className="input" defaultValue={project.payment_due_date ?? ''} />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">基本料金 入金日（実績）</label>
+                  <input name="payment_received_date" type="date" className="input" defaultValue={project.payment_received_date ?? ''} />
+                  <p className="mt-1 text-xs text-slate-400">入力すると、売上台帳の下書き行のうち基本料金分が自動で「確定」になります</p>
                 </div>
               </>
             ) : (

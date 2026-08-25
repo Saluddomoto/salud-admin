@@ -429,6 +429,8 @@ export default function RevenuePage() {
                   <td className="px-3 py-2.5 whitespace-nowrap text-xs text-slate-500">
                     {r.baseFee != null && r.successFee != null
                       ? `基本 ${formatAmount(r.baseFee)} + 成功報酬 ${formatAmount(r.successFee)}`
+                      : r.baseFee != null ? '基本料金'
+                      : r.successFee != null ? '成功報酬'
                       : r.fee_type === 'base_fee' ? '基本料金'
                       : r.fee_type === 'success_fee' ? '成功報酬'
                       : '—'}
