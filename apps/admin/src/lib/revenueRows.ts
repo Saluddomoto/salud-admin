@@ -69,9 +69,10 @@ export function deriveProjectRows(projects: DbProject[]): Row[] {
         baseFee,
         successFee,
       })
-    } else if (p.status === 'submitted') {
-      // 申請済み案件は「採択されたらもらえる満額」を見込み（下書き）として台帳に出す。
-      // 採択率での加重はしない（それは月次集計側の別枠 = derivePipelineForecastRows が担う）。
+    } else if (p.status === 'submitted' || p.status === 'in_progress') {
+      // 申請準備中・申請済みの案件は「採択されたらもらえる満額」を下書き（見込み）として台帳に出す。
+      // 採択率での加重はしない（それは月次集計側の別枠 = derivePipelineForecastRows が担う。
+      // in_progress/submitted はここで下書き行を出すぶん、そちらでは対象外にして二重計上を避ける）。
       // 基本料金・成功報酬率が未入力（契約条件が後決めのケース）でも下書きが出るよう、
       // その場合はカテゴリの平均単価（目標設定タブの単価）を暫定額として使う。
       // 後から成功報酬率を入力すれば、そちらの実額計算に自動で置き換わる。
@@ -84,6 +85,7 @@ export function deriveProjectRows(projects: DbProject[]): Row[] {
       // 採択発表日が入力されていればその月に、無ければ申請期限の月に暫定計上する。
       const date = p.result_at ?? p.deadline
       if (amount <= 0 || !date) continue
+      const stageLabel = p.status === 'submitted' ? '申請中' : '申請準備中'
       rows.push({
         id: `project-${p.id}`,
         entry_date: date,
@@ -93,7 +95,7 @@ export function deriveProjectRows(projects: DbProject[]): Row[] {
         status: 'forecast',
         payment_due_date: null,
         payment_received_date: null,
-        memo: isEstimate ? '申請中の見込み（金額未定・カテゴリ平均額で暫定計算）' : '申請中の見込み（下書き）',
+        memo: isEstimate ? `${stageLabel}の下書き（金額未定・カテゴリ平均額で暫定計算）` : `${stageLabel}の下書き`,
         source: 'project',
         projectId: p.id,
         // 金額未定でカテゴリ平均額を暫定計上した行は基本料金/成功報酬の内訳を出せないため未設定のまま
@@ -104,11 +106,11 @@ export function deriveProjectRows(projects: DbProject[]): Row[] {
   return rows
 }
 
-// 補助金パイプライン(見込み〜申請準備中、まだ申請していない案件)を
+// 補助金パイプライン(見込み、まだ申請準備にも入っていない案件)を
 // カテゴリの採択率で加重し、売上予測(見込み)にのみ計上する。
 // 実際の入金が発生したわけではないため売上台帳の一覧には出さない。
-// 申請済み(submitted)はここでは扱わない — deriveProjectRows が満額の下書き行として
-// 売上台帳に直接出すため、ここに含めると月次集計が二重計上になる。
+// 申請準備中(in_progress)・申請済み(submitted)はここでは扱わない — deriveProjectRows が
+// 満額の下書き行として売上台帳に直接出すため、ここに含めると月次集計が二重計上になる。
 //
 // 申請額(applied_amount)はクライアントが国に申請する補助金額であり
 // Saludの売上ではない。Saludの売上は「基本料金＋採択額×成功報酬率」
@@ -124,7 +126,7 @@ export function derivePipelineForecastRows(projects: DbProject[], ledger: DbReve
   const rows: Row[] = []
   for (const p of projects) {
     if (p.project_type !== 'subsidy') continue
-    if (!['planning', 'in_progress'].includes(p.status)) continue
+    if (p.status !== 'planning') continue
     const cat = matchRevenueCategoryFromSubsidyName(p.subsidy_name ?? '')
     if (!cat) continue
     const rate = resolveAcceptanceRate(cat.acceptanceRate, acceptanceStats.get(cat.name))

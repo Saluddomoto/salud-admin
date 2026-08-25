@@ -31,6 +31,7 @@ export const REVENUE_CATEGORIES: RevenueCategory[] = [
   { name: '省力化補助金',       annualTargetCount: 10, unitPrice: 750_000,   costRate: 0.2,   acceptanceRate: 0.6, businessLine: 'subsidy' },
   { name: '新事業進出補助金',   annualTargetCount: 6,  unitPrice: 2_200_000, costRate: 0.25,  acceptanceRate: 0.4, businessLine: 'subsidy' },
   { name: 'ものづくり補助金',   annualTargetCount: 3,  unitPrice: 500_000,   costRate: 0.2,   acceptanceRate: 0.5, businessLine: 'subsidy' },
+  { name: 'その他補助金',       annualTargetCount: 0,  unitPrice: 0,         costRate: 0.2, memo: '上記4種以外の補助金の売上入力用', businessLine: 'subsidy' },
   { name: 'HP制作',            annualTargetCount: 6,  unitPrice: 750_000,   costRate: 0.4, businessLine: 'web' },
   { name: '伴走',              annualTargetCount: 10, unitPrice: 15_000,    costRate: 0.6, isMonthly: true, memo: '持続化補助金経由の顧客は15,000円/月、それ以外は30,000円/月と幅あり（単価は加重平均目安）', businessLine: 'web' },
   { name: '保守',              annualTargetCount: 4,  unitPrice: 7_000,     costRate: 0.1, isMonthly: true, businessLine: 'web' },
