@@ -45,9 +45,15 @@ export default function InboxPage() {
     const onFocus = () => { if (document.visibilityState === 'visible') fetchMessages().then(setMessages).catch(() => {}) }
     document.addEventListener('visibilitychange', onFocus)
     window.addEventListener('focus', onFocus)
+    // スマホ等でバックボタン／アプリ切替から戻るとブラウザがページをbfcacheから
+    // そのまま復元することがあり、その場合visibilitychange/focusが発火せず
+    // 削除・既読などの操作が古いまま表示され続ける。pageshowでその復元を検知して再取得する。
+    const onPageShow = (e: PageTransitionEvent) => { if (e.persisted) fetchMessages().then(setMessages).catch(() => {}) }
+    window.addEventListener('pageshow', onPageShow)
     return () => {
       document.removeEventListener('visibilitychange', onFocus)
       window.removeEventListener('focus', onFocus)
+      window.removeEventListener('pageshow', onPageShow)
     }
   }, [])
 
