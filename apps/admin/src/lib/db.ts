@@ -1070,6 +1070,38 @@ export async function deleteInvoice(id: string) {
   if (error) throw error
 }
 
+export type DbInvoiceNoteTemplate = {
+  id: string
+  label: string
+  body: string
+  created_at: string
+}
+
+export async function fetchInvoiceNoteTemplates(): Promise<DbInvoiceNoteTemplate[]> {
+  const { data, error } = await db()
+    .from('invoice_note_templates')
+    .select('id, label, body, created_at')
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as DbInvoiceNoteTemplate[]
+}
+
+export async function insertInvoiceNoteTemplate(input: { label: string; body: string }): Promise<DbInvoiceNoteTemplate> {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { data, error } = await client.from('invoice_note_templates')
+    .insert({ ...input, created_by: user?.id ?? null })
+    .select('id, label, body, created_at')
+    .single()
+  if (error) throw error
+  return data as DbInvoiceNoteTemplate
+}
+
+export async function deleteInvoiceNoteTemplate(id: string) {
+  const { error } = await db().from('invoice_note_templates').delete().eq('id', id)
+  if (error) throw error
+}
+
 /* ─── 役員月報（相互閲覧可能な月次活動報告）───────────── */
 export type DbMonthlyReport = {
   id: string

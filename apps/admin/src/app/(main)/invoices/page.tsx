@@ -6,7 +6,9 @@ import { Modal } from '@/components/Modal'
 import { useAuth } from '@/hooks/useAuth'
 import {
   fetchInvoices, insertInvoice, updateInvoice, deleteInvoice, fetchCustomers,
+  fetchInvoiceNoteTemplates, insertInvoiceNoteTemplate, deleteInvoiceNoteTemplate,
   type DbInvoice, type DbCustomer, type InvoiceItem, type InvoiceInput, type InvoiceDocType,
+  type DbInvoiceNoteTemplate,
 } from '@/lib/db'
 import {
   DEFAULT_NOTES, DOC_TYPE_LABELS, computeTotals, formatYen, formatJaDate, openInvoiceWindow,
@@ -23,6 +25,16 @@ function todayIso(): string {
   return new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
 }
 
+function jstNow(): { y: number; m: number } {
+  const d = new Date(Date.now() + 9 * 3600_000)
+  return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1 }
+}
+
+function isInMonth(isoDate: string, y: number, m: number): boolean {
+  const [dy, dm] = isoDate.split('-').map(Number)
+  return dy === y && dm === m
+}
+
 type FormState = {
   doc_type: InvoiceDocType
   customer_id: string | null
@@ -34,9 +46,9 @@ type FormState = {
   notes: string
 }
 
-function emptyForm(): FormState {
+function emptyForm(docType: InvoiceDocType = 'invoice'): FormState {
   return {
-    doc_type: 'invoice',
+    doc_type: docType,
     customer_id: null,
     billing_name: '',
     issue_date: todayIso(),
@@ -157,10 +169,72 @@ function TotalsSummary({ items, taxRate }: { items: InvoiceItem[]; taxRate: numb
   )
 }
 
-function InvoiceForm({ form, setForm, customers }: {
+function NoteTemplatesBar({ templates, notes, setNotes, onChanged }: {
+  templates: DbInvoiceNoteTemplate[]
+  notes: string
+  setNotes: (notes: string) => void
+  onChanged: () => void
+}) {
+  const [saving, setSaving] = useState(false)
+  const [label, setLabel] = useState('')
+
+  const append = (body: string) => {
+    setNotes(notes.trim() ? `${notes}\n\n${body}` : body)
+  }
+
+  const save = async () => {
+    if (!label.trim() || !notes.trim()) return
+    await insertInvoiceNoteTemplate({ label: label.trim(), body: notes })
+    setLabel('')
+    setSaving(false)
+    onChanged()
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs text-slate-400">定型文:</span>
+        {templates.map(t => (
+          <span key={t.id} className="inline-flex items-center gap-1 rounded-full bg-slate-100 py-1 pl-2.5 pr-1.5 text-xs text-slate-600">
+            <button type="button" onClick={() => append(t.body)} className="hover:text-brand-600">{t.label}</button>
+            <button
+              type="button"
+              onClick={async () => { if (confirm(`定型文「${t.label}」を削除しますか？`)) { await deleteInvoiceNoteTemplate(t.id); onChanged() } }}
+              className="text-slate-300 hover:text-rose-500"
+              aria-label="削除"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        {!saving && (
+          <button type="button" onClick={() => setSaving(true)} className="text-xs font-medium text-brand-600 hover:underline">
+            ＋ 現在の内容を定型文として保存
+          </button>
+        )}
+      </div>
+      {saving && (
+        <div className="flex items-center gap-2">
+          <input
+            value={label}
+            onChange={e => setLabel(e.target.value)}
+            placeholder="定型文の名前（例：GMOあおぞら銀行）"
+            className="input text-sm"
+          />
+          <button type="button" onClick={save} className="btn-secondary shrink-0 text-xs">保存</button>
+          <button type="button" onClick={() => { setSaving(false); setLabel('') }} className="shrink-0 text-xs text-slate-400 hover:text-slate-600">キャンセル</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InvoiceForm({ form, setForm, customers, noteTemplates, onNoteTemplatesChanged }: {
   form: FormState
   setForm: (updater: (prev: FormState) => FormState) => void
   customers: DbCustomer[]
+  noteTemplates: DbInvoiceNoteTemplate[]
+  onNoteTemplatesChanged: () => void
 }) {
   const fillFromCustomer = (customer: DbCustomer) => {
     setForm(prev => ({ ...prev, customer_id: customer.id, billing_name: `${customer.company_name}　御中` }))
@@ -230,8 +304,14 @@ function InvoiceForm({ form, setForm, customers }: {
 
       <TotalsSummary items={form.items} taxRate={form.tax_rate} />
 
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">備考（振込先・契約条件など）</label>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-slate-700">備考（振込先・契約条件など）</label>
+        <NoteTemplatesBar
+          templates={noteTemplates}
+          notes={form.notes}
+          setNotes={notes => setForm(prev => ({ ...prev, notes }))}
+          onChanged={onNoteTemplatesChanged}
+        />
         <textarea
           value={form.notes}
           onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
@@ -255,10 +335,14 @@ export default function InvoicesPage() {
   const { role } = useAuth()
   const canDelete = role === 'admin' || role === 'manager'
 
-  const [invoices, setInvoices]   = useState<DbInvoice[]>([])
-  const [customers, setCustomers] = useState<DbCustomer[]>([])
-  const [loading, setLoading]     = useState(true)
-  const [error, setError]         = useState('')
+  const [invoices, setInvoices]           = useState<DbInvoice[]>([])
+  const [customers, setCustomers]         = useState<DbCustomer[]>([])
+  const [noteTemplates, setNoteTemplates] = useState<DbInvoiceNoteTemplate[]>([])
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState('')
+
+  const [activeType, setActiveType] = useState<InvoiceDocType>('invoice')
+  const [{ y, m }, setYm] = useState(jstNow)
 
   const [addOpen, setAddOpen]   = useState(false)
   const [detail, setDetail]     = useState<DbInvoice | null>(null)
@@ -270,22 +354,84 @@ export default function InvoicesPage() {
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
   }
+  const loadNoteTemplates = () => {
+    fetchInvoiceNoteTemplates().then(setNoteTemplates).catch(() => setNoteTemplates([]))
+  }
   useEffect(load, [])
+  useEffect(loadNoteTemplates, [])
+
+  const shiftMonth = (delta: number) => {
+    setYm(prev => {
+      const total = (prev.y * 12 + (prev.m - 1)) + delta
+      return { y: Math.floor(total / 12), m: (total % 12) + 1 }
+    })
+  }
+
+  const visible = useMemo(
+    () => invoices.filter(inv => inv.doc_type === activeType && isInMonth(inv.issue_date, y, m)),
+    [invoices, activeType, y, m]
+  )
+  const monthTotal = useMemo(
+    () => visible.reduce((sum, inv) => sum + computeTotals(inv.items, inv.tax_rate).total, 0),
+    [visible]
+  )
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="請求書・見積書発行" description="明細を入力して請求書・見積書を作成・プレビュー・印刷/PDF化します">
-        <button className="btn-primary text-sm" onClick={() => setAddOpen(true)}>＋ 新規作成</button>
+        <button className="btn-primary text-sm" onClick={() => setAddOpen(true)}>＋ {DOC_TYPE_LABELS[activeType]}を作成</button>
       </PageHeader>
 
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       )}
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex rounded-xl border border-slate-200 p-1">
+          {DOC_TYPES.map(t => (
+            <button
+              key={t}
+              onClick={() => setActiveType(t)}
+              className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition-colors ${
+                activeType === t ? 'bg-brand-600 text-white' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {DOC_TYPE_LABELS[t]}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1 rounded-xl border border-slate-200 p-1">
+          <button
+            onClick={() => shiftMonth(-1)}
+            className="rounded-lg px-2 py-1 text-slate-500 transition-colors hover:bg-slate-100"
+            aria-label="前の月"
+          >
+            ‹
+          </button>
+          <span className="min-w-[6rem] text-center text-sm font-semibold text-slate-800">
+            {y}年{m}月
+          </span>
+          <button
+            onClick={() => shiftMonth(1)}
+            className="rounded-lg px-2 py-1 text-slate-500 transition-colors hover:bg-slate-100"
+            aria-label="次の月"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+
+      {!loading && visible.length > 0 && (
+        <p className="text-xs text-slate-400">
+          {y}年{m}月の{DOC_TYPE_LABELS[activeType]} {visible.length}件・合計 {formatYen(monthTotal)}
+        </p>
+      )}
+
       <div className="flex flex-col gap-2.5">
         {loading && <p className="p-12 text-center text-sm text-slate-400">読み込み中...</p>}
 
-        {!loading && invoices.map(inv => {
+        {!loading && visible.map(inv => {
           const { total } = computeTotals(inv.items, inv.tax_rate)
           return (
             <button
@@ -295,9 +441,6 @@ export default function InvoicesPage() {
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={`badge text-xs ${inv.doc_type === 'estimate' ? 'bg-amber-50 text-amber-700' : 'bg-brand-50 text-brand-700'}`}>
-                    {DOC_TYPE_LABELS[inv.doc_type]}
-                  </span>
                   <span className="text-xs text-slate-400">{inv.invoice_no}</span>
                   <p className="text-sm font-semibold text-slate-900">{inv.billing_name}</p>
                 </div>
@@ -310,9 +453,9 @@ export default function InvoicesPage() {
           )
         })}
 
-        {!loading && invoices.length === 0 && (
+        {!loading && visible.length === 0 && (
           <div className="card p-12 text-center text-sm text-slate-400">
-            請求書・見積書はまだ作成されていません。「＋新規作成」からどうぞ。
+            {y}年{m}月の{DOC_TYPE_LABELS[activeType]}はまだありません。「＋{DOC_TYPE_LABELS[activeType]}を作成」からどうぞ。
           </div>
         )}
       </div>
@@ -320,6 +463,9 @@ export default function InvoicesPage() {
       {addOpen && (
         <AddModal
           customers={customers}
+          noteTemplates={noteTemplates}
+          onNoteTemplatesChanged={loadNoteTemplates}
+          initialDocType={activeType}
           onClose={() => setAddOpen(false)}
           onSaved={(inv) => { setAddOpen(false); load(); setDetail(inv) }}
         />
@@ -340,6 +486,8 @@ export default function InvoicesPage() {
         <EditModal
           invoice={editing}
           customers={customers}
+          noteTemplates={noteTemplates}
+          onNoteTemplatesChanged={loadNoteTemplates}
           onClose={() => setEditing(null)}
           onSaved={(inv) => { setEditing(null); setDetail(inv); load() }}
         />
@@ -406,12 +554,15 @@ function DetailView({ invoice, canDelete, onEdit, onDeleted }: {
   )
 }
 
-function AddModal({ customers, onClose, onSaved }: {
+function AddModal({ customers, noteTemplates, onNoteTemplatesChanged, initialDocType, onClose, onSaved }: {
   customers: DbCustomer[]
+  noteTemplates: DbInvoiceNoteTemplate[]
+  onNoteTemplatesChanged: () => void
+  initialDocType: InvoiceDocType
   onClose: () => void
   onSaved: (inv: DbInvoice) => void
 }) {
-  const [form, setForm] = useState<FormState>(emptyForm)
+  const [form, setForm] = useState<FormState>(() => emptyForm(initialDocType))
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
 
@@ -433,7 +584,10 @@ function AddModal({ customers, onClose, onSaved }: {
   return (
     <Modal title={`${DOC_TYPE_LABELS[form.doc_type]}を作成`} open onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <InvoiceForm form={form} setForm={updater => setForm(updater)} customers={customers} />
+        <InvoiceForm
+          form={form} setForm={updater => setForm(updater)} customers={customers}
+          noteTemplates={noteTemplates} onNoteTemplatesChanged={onNoteTemplatesChanged}
+        />
         {err && <p className="text-sm text-rose-600">{err}</p>}
         <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
           <button type="button" className="btn-secondary text-sm" onClick={onClose}>キャンセル</button>
@@ -444,9 +598,11 @@ function AddModal({ customers, onClose, onSaved }: {
   )
 }
 
-function EditModal({ invoice, customers, onClose, onSaved }: {
+function EditModal({ invoice, customers, noteTemplates, onNoteTemplatesChanged, onClose, onSaved }: {
   invoice: DbInvoice
   customers: DbCustomer[]
+  noteTemplates: DbInvoiceNoteTemplate[]
+  onNoteTemplatesChanged: () => void
   onClose: () => void
   onSaved: (inv: DbInvoice) => void
 }) {
@@ -479,7 +635,10 @@ function EditModal({ invoice, customers, onClose, onSaved }: {
   return (
     <Modal title={`${invoice.invoice_no} を編集`} open onClose={onClose}>
       <div className="space-y-4">
-        <InvoiceForm form={form} setForm={updater => setForm(updater)} customers={customers} />
+        <InvoiceForm
+          form={form} setForm={updater => setForm(updater)} customers={customers}
+          noteTemplates={noteTemplates} onNoteTemplatesChanged={onNoteTemplatesChanged}
+        />
         {err && <p className="text-sm text-rose-600">{err}</p>}
         <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
           <button type="button" className="btn-secondary text-sm" onClick={onClose}>キャンセル</button>

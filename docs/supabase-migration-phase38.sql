@@ -46,8 +46,6 @@ CREATE TRIGGER trg_invoices_updated_at
   BEFORE UPDATE ON public.invoices
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
--- 種別・発行日の年ごとに INV-YYYY-0001 / EST-YYYY-0001 形式で自動採番
--- （手入力・欠番は許容する簡易実装）
 CREATE OR REPLACE FUNCTION public.set_invoice_no()
 RETURNS TRIGGER AS $$
 DECLARE

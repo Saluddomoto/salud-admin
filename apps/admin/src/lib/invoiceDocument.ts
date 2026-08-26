@@ -2,6 +2,7 @@
 // 元になったGoogleスプレッドシートのひな形と同じレイアウト
 // （発行者/請求先ヘッダー・明細テーブル・小計/消費税/合計・振込先などのフッター）を再現する。
 import type { InvoiceDocType, InvoiceItem } from '@/lib/db'
+import { SEAL_IMAGE_DATA_URI } from '@/lib/assets/sealImage'
 
 export const DOC_TYPE_LABELS: Record<InvoiceDocType, string> = {
   invoice: '請求書',
@@ -33,7 +34,7 @@ export const ISSUER = {
   representative: '代表取締役　堂本　拓央',
   addressLine1: '東京都渋谷区道玄坂1丁目10番8号',
   addressLine2: '渋谷道玄坂東急ビル2F−C',
-  tel: '090-5305-3903',
+  tel: '050-6869-6588',
   mail: 'domoto@salud-web.jp',
   invoiceRegistrationNo: 'T6011001152105',
 }
@@ -103,7 +104,10 @@ export function buildInvoiceHtml(invoice: InvoiceLike): string {
       <h1>${meta.title}</h1>
       <div class="head">
         <div class="issuer">
-          <div class="issuer-name">${escapeHtml(ISSUER.name)}</div>
+          <div class="issuer-name-row">
+            <div class="issuer-name">${escapeHtml(ISSUER.name)}</div>
+            <img class="seal" src="${SEAL_IMAGE_DATA_URI}" alt="" />
+          </div>
           <div>${escapeHtml(ISSUER.representative)}</div>
           <div>${escapeHtml(ISSUER.addressLine1)}</div>
           <div>${escapeHtml(ISSUER.addressLine2)}</div>
@@ -140,23 +144,29 @@ export function buildInvoiceHtml(invoice: InvoiceLike): string {
   `
 }
 
+const BRAND = '#4f46e5'
+
 const PRINT_STYLE = `
   @page { size: A4; margin: 16mm 18mm; }
   html, body { width: 100%; }
-  body { font-family: "Yu Mincho", "MS Mincho", serif; line-height: 1.5; width: 740px; max-width: 100%; margin: 0 auto; padding: 2rem 0; color: #1e293b; }
-  h1 { text-align: center; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; margin: 0 0 1.5rem; }
-  .head { display: flex; justify-content: space-between; gap: 2rem; font-size: 12px; margin-bottom: 1.5rem; }
+  body { font-family: "Yu Mincho", "MS Mincho", serif; line-height: 1.5; width: 740px; max-width: 100%; margin: 0 auto; padding: 2rem 0 3rem; color: #1e293b; }
+  .doc { border-top: 4px solid ${BRAND}; padding-top: 1.5rem; }
+  h1 { text-align: center; font-size: 22px; font-weight: 700; letter-spacing: 0.25em; margin: 0 0 1.75rem; color: ${BRAND}; }
+  .head { display: flex; justify-content: space-between; gap: 2rem; font-size: 12px; margin-bottom: 1.75rem; }
   .issuer, .billing { flex: 1; }
-  .issuer-name, .billing-name { font-size: 14px; font-weight: 700; margin-bottom: 0.25rem; }
+  .issuer-name-row { display: flex; align-items: center; gap: 10px; margin-bottom: 0.25rem; }
+  .issuer-name, .billing-name { font-size: 14px; font-weight: 700; }
+  .billing-name { border-bottom: 2px solid #1e293b; padding-bottom: 0.35rem; margin-bottom: 0.5rem; display: inline-block; }
+  .seal { width: 52px; height: 52px; opacity: 0.9; flex-shrink: 0; }
   .invoice-no { font-size: 11px; color: #64748b; margin-bottom: 0.75rem; }
   .greeting { margin-top: 0.75rem; }
   table.items { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 0.5rem; }
-  table.items th, table.items td.cell { border: 1px solid #94a3b8; padding: 6px 8px; }
-  table.items thead th { background: #f1f5f9; font-weight: 700; }
+  table.items th, table.items td.cell { border: 1px solid #cbd5e1; padding: 7px 9px; }
+  table.items thead th { background: #eef2ff; color: ${BRAND}; font-weight: 700; border-color: ${BRAND}; }
   table.items td.num, table.items th.num { text-align: right; }
-  table.items tfoot td { padding: 4px 8px; border: none; }
+  table.items tfoot td { padding: 4px 9px; border: none; }
   table.items tfoot td.label { text-align: right; font-weight: 700; }
-  table.items tfoot td.total { font-size: 14px; border-top: 2px solid #1e293b; }
+  table.items tfoot td.total { font-size: 15px; color: ${BRAND}; border-top: 2px solid ${BRAND}; }
   p.due { text-align: right; font-size: 12px; margin: 0 0 1rem; }
   .notes { font-size: 11px; white-space: normal; border-top: 1px solid #cbd5e1; padding-top: 0.75rem; }
   @media print { body { padding: 0; } }
