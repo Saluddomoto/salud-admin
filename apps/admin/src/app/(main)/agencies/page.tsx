@@ -96,6 +96,20 @@ export default function AgenciesPage() {
     [agencies, currentYear])
   const progressPct = Math.min(100, Math.round((yearCount / paceTarget) * 100))
 
+  // 月ごとの内訳（フォーム回答は form_timestamp、それ以外は登録日を基準に月を判定）
+  const monthlyBreakdown = useMemo(() => {
+    const startMonth = currentYear === PACE_START_YEAR ? PACE_START_MONTH : 1
+    const months: { year: number; month: number; count: number }[] = []
+    for (let month = startMonth; month <= now.getMonth() + 1; month++) {
+      const count = agencies.filter(a => {
+        const d = registeredDate(a)
+        return d.getFullYear() === currentYear && d.getMonth() + 1 === month
+      }).length
+      months.push({ year: currentYear, month, count })
+    }
+    return months.reverse()
+  }, [agencies, currentYear, now])
+
   const handleSync = async () => {
     setSyncing(true)
     setSyncMsg('')
@@ -171,6 +185,28 @@ export default function AgenciesPage() {
                 style={{ width: `${progressPct}%` }}
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {!loading && (
+        <div className="card p-4">
+          <p className="mb-3 text-xs text-slate-400">月別の達成状況（月{MONTHLY_PACE_TARGET}件ペース目標・登録日はフォーム回答日を優先）</p>
+          <div className="flex flex-col gap-1.5">
+            {monthlyBreakdown.map(({ year, month, count }) => {
+              const achieved = count >= MONTHLY_PACE_TARGET
+              return (
+                <div key={`${year}-${month}`} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                  <span className="text-slate-600">{year}年{month}月</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-500">{count}件 / 目標{MONTHLY_PACE_TARGET}件</span>
+                    <span className={`badge text-xs ${achieved ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'}`}>
+                      {achieved ? '達成' : '未達成'}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
