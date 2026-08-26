@@ -122,6 +122,14 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
+    href: '/invoices',
+    label: '請求書発行',
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M9 12h6m-6 3h4m-7 5h8a2 2 0 002-2V6.828a2 2 0 00-.586-1.414l-2.828-2.828A2 2 0 0012.172 2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+    ),
+  },
+  {
     href: '/agencies',
     label: '代理店管理',
     icon: (

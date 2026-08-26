@@ -996,6 +996,80 @@ export async function updateContractTemplate(id: string, patch: {
   if (error) throw error
 }
 
+/* ─── 請求書発行 ───────────────────────────── */
+export type InvoiceItem = {
+  name: string
+  work: string
+  quantity: number
+  unit_price: number
+}
+
+export type InvoiceDocType = 'invoice' | 'estimate'
+
+export type DbInvoice = {
+  id: string
+  invoice_no: string
+  doc_type: InvoiceDocType
+  customer_id: string | null
+  billing_name: string
+  issue_date: string
+  due_date: string | null
+  items: InvoiceItem[]
+  tax_rate: number
+  notes: string
+  created_by: string | null
+  created_at: string
+  author: { full_name: string } | null
+}
+
+export type InvoiceInput = {
+  doc_type: InvoiceDocType
+  customer_id: string | null
+  billing_name: string
+  issue_date: string
+  due_date: string | null
+  items: InvoiceItem[]
+  tax_rate: number
+  notes: string
+}
+
+const INVOICE_SELECT = 'id, invoice_no, doc_type, customer_id, billing_name, issue_date, due_date, items, tax_rate, notes, created_by, created_at, author:profiles!invoices_created_by_fkey(full_name)'
+
+export async function fetchInvoices(): Promise<DbInvoice[]> {
+  const { data, error } = await db()
+    .from('invoices')
+    .select(INVOICE_SELECT)
+    .order('issue_date', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as unknown as DbInvoice[]
+}
+
+export async function insertInvoice(input: InvoiceInput): Promise<DbInvoice> {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { data, error } = await client.from('invoices')
+    .insert({ ...input, created_by: user?.id ?? null })
+    .select(INVOICE_SELECT)
+    .single()
+  if (error) throw error
+  return data as unknown as DbInvoice
+}
+
+export async function updateInvoice(id: string, patch: InvoiceInput): Promise<DbInvoice> {
+  const { data, error } = await db().from('invoices')
+    .update(patch)
+    .eq('id', id)
+    .select(INVOICE_SELECT)
+    .single()
+  if (error) throw error
+  return data as unknown as DbInvoice
+}
+
+export async function deleteInvoice(id: string) {
+  const { error } = await db().from('invoices').delete().eq('id', id)
+  if (error) throw error
+}
+
 /* ─── 役員月報（相互閲覧可能な月次活動報告）───────────── */
 export type DbMonthlyReport = {
   id: string
