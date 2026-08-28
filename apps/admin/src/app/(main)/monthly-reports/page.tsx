@@ -471,15 +471,8 @@ export default function MonthlyReportsPage() {
                     <p className="mt-0.5 text-xs text-slate-400">{block.description}</p>
                   )}
                   {block.heading === '目標への進捗' && (
-                    <div className="mb-4 mt-3 rounded-xl bg-white p-3.5">
-                      <p className="mb-1 text-xs font-semibold text-slate-400">{y}年の目標（事前シート③より）</p>
-                      {myPrepSheet?.this_year_contribution ? (
-                        <p className="whitespace-pre-wrap text-sm text-slate-700">{myPrepSheet.this_year_contribution}</p>
-                      ) : (
-                        <p className="text-sm text-slate-400">
-                          上の「役員会議 事前シート」の③（今年、自分がSaludにもたらしたいこと）が未記入です。
-                        </p>
-                      )}
+                    <div className="mb-4 mt-3">
+                      <GoalPanel year={y} goal={myPrepSheet?.this_year_contribution ?? null} />
                     </div>
                   )}
                   <div className="mt-4 space-y-4">
@@ -529,10 +522,15 @@ export default function MonthlyReportsPage() {
                 </button>
               </div>
             </div>
-          ) : myReport ? (
-            <ReportBody report={myReport} annualGoal={myPrepSheet?.this_year_contribution ?? null} year={y} />
           ) : (
-            <p className="text-sm text-slate-400">この月の報告はまだありません。</p>
+            <div className="space-y-5">
+              <GoalPanel year={y} goal={myPrepSheet?.this_year_contribution ?? null} />
+              {myReport ? (
+                <ReportBody report={myReport} />
+              ) : (
+                <p className="text-sm text-slate-400">この月の報告はまだありません。</p>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -546,8 +544,8 @@ export default function MonthlyReportsPage() {
             const r = reports.find(rep => rep.user_id === ex.id) ?? null
             const exPrep = prepSheets.find(sh => sh.user_id === ex.id) ?? null
             return (
-              <div key={ex.id} className="card p-5">
-                <div className="mb-3 flex items-center justify-between gap-3">
+              <div key={ex.id} className="card space-y-5 p-5">
+                <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">
                       {ex.full_name?.[0] ?? '?'}
@@ -555,7 +553,8 @@ export default function MonthlyReportsPage() {
                     <p className="font-semibold text-slate-900">{ex.full_name}</p>
                   </div>
                 </div>
-                {r ? <ReportBody report={r} annualGoal={exPrep?.this_year_contribution ?? null} year={y} /> : (
+                <GoalPanel year={y} goal={exPrep?.this_year_contribution ?? null} />
+                {r ? <ReportBody report={r} /> : (
                   <p className="text-sm text-slate-400">この月の報告はまだありません。</p>
                 )}
               </div>
@@ -570,22 +569,33 @@ export default function MonthlyReportsPage() {
   )
 }
 
-function ReportBody({ report, annualGoal, year }: { report: DbMonthlyReport; annualGoal?: string | null; year?: number }) {
+// 事前シート③（今年、自分がSaludにもたらしたいこと）を「年間目標」として表示するパネル。
+// その月の月報がまだ書かれていなくても、目標は独立して常に見えるようにする
+// （月報カードの有無に紐づけると、月報未記入者の目標だけ一緒に隠れてしまうため）。
+function GoalPanel({ year, goal }: { year: number; goal: string | null }) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3.5">
+      <p className="mb-1 text-xs font-semibold text-slate-400">{year}年の目標（事前シート③より）</p>
+      {goal ? (
+        <p className="whitespace-pre-wrap text-sm text-slate-700">{goal}</p>
+      ) : (
+        <p className="text-sm text-slate-400">
+          「役員会議 事前シート」の③（今年、自分がSaludにもたらしたいこと）が未記入です。
+        </p>
+      )}
+    </div>
+  )
+}
+
+function ReportBody({ report }: { report: DbMonthlyReport }) {
   return (
     <div className="space-y-5">
       {REPORT_BLOCKS.map(block => {
-        const isGoalBlock = block.heading === '目標への進捗'
         const visibleFields = block.fields.filter(f => report[f.key])
-        if (visibleFields.length === 0 && !(isGoalBlock && annualGoal)) return null
+        if (visibleFields.length === 0) return null
         return (
           <div key={block.heading}>
             <p className="mb-2 text-xs font-bold text-slate-400">{block.heading}</p>
-            {isGoalBlock && annualGoal && (
-              <div className="mb-3">
-                <p className="mb-1 text-xs font-semibold text-slate-400">{year}年の目標</p>
-                <p className="whitespace-pre-wrap text-sm text-slate-700">{annualGoal}</p>
-              </div>
-            )}
             <div className="space-y-3">
               {visibleFields.map(f => (
                 <div key={f.key}>
