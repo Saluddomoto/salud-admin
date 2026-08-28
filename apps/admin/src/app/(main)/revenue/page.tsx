@@ -363,6 +363,14 @@ export default function RevenuePage() {
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="売上管理" description="売上台帳・月次実績・売上予測（補助金案件・WEB制作案件から自動反映）">
+        <a
+          href="https://claude.ai/code/routines/trig_01G5bRGxZmeWvTDmXh1s6Rzi"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-secondary text-sm"
+        >
+          📊 営業・経営分析レポートを更新
+        </a>
         {tab === 'ledger' && (
           <button className="btn-primary text-sm" onClick={openCreate}>+ 売上を追加</button>
         )}
