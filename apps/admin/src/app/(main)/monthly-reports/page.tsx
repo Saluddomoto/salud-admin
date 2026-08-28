@@ -5,11 +5,11 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { useAuth } from '@/hooks/useAuth'
 import {
   fetchMyProfile, fetchExecutiveProfiles, fetchMonthlyReports, upsertMonthlyReport, fetchTasks,
-  fetchBoardPrepSheets, upsertBoardPrepSheet, fetchMonthlyReportAiSummary,
+  fetchBoardPrepSheets, upsertBoardPrepSheet, fetchMonthlyReportAiSummary, fetchAnnualReportAiSummary,
   type DbProfile, type DbMonthlyReport, type MonthlyReportInput, type DbTask,
   type DbBoardPrepSheet, type BoardPrepSheetInput,
 } from '@/lib/db'
-import type { MonthlyReportSummary } from '@salud/ai'
+import type { MonthlyReportSummary, AnnualReportSummary } from '@salud/ai'
 
 const PREP_FIELDS: { key: keyof BoardPrepSheetInput; label: string; hint: string }[] = [
   {
@@ -193,6 +193,13 @@ export default function MonthlyReportsPage() {
   const [aiFetching,   setAiFetching]   = useState(true)
   const [aiError,      setAiError]      = useState<string | null>(null)
 
+  // 年間の振り返り（1〜12月分の月報をまとめてAI分析。年に1件保存、選択中の年が変わると読み直す）
+  const [annualSummary,   setAnnualSummary]   = useState<AnnualReportSummary | null>(null)
+  const [annualUpdatedAt, setAnnualUpdatedAt] = useState<string | null>(null)
+  const [annualLoading,   setAnnualLoading]   = useState(false)
+  const [annualFetching,  setAnnualFetching]  = useState(true)
+  const [annualError,     setAnnualError]     = useState<string | null>(null)
+
   const period = useMemo(() => `${y}-${pad(m)}-01`, [y, m])
   const periodEnd = useMemo(() => {
     const total = y * 12 + (m - 1) + 1
@@ -243,6 +250,26 @@ export default function MonthlyReportsPage() {
       .finally(() => setAiFetching(false))
   }, [period])
 
+  // 選択中の年に保存済みの年間AI分析結果があれば読み込んで表示する
+  useEffect(() => {
+    setAnnualFetching(true)
+    setAnnualError(null)
+    fetchAnnualReportAiSummary(y)
+      .then(saved => {
+        if (!saved) { setAnnualSummary(null); setAnnualUpdatedAt(null); return }
+        setAnnualSummary({
+          overview: saved.overview ?? '',
+          highlights: saved.highlights,
+          risks: saved.risks,
+          discussionAgenda: saved.discussion_agenda,
+          advice: saved.advice,
+        })
+        setAnnualUpdatedAt(saved.updated_at)
+      })
+      .catch(() => { setAnnualSummary(null); setAnnualUpdatedAt(null) })
+      .finally(() => setAnnualFetching(false))
+  }, [y])
+
   const isExecutive = me?.is_executive === true
   const canAccess = isExecutive
 
@@ -281,6 +308,27 @@ export default function MonthlyReportsPage() {
       setAiError(e instanceof Error ? e.message : String(e))
     } finally {
       setAiLoading(false)
+    }
+  }
+
+  const handleRunAnnualAi = async () => {
+    setAnnualLoading(true)
+    setAnnualError(null)
+    try {
+      const res = await fetch('/api/monthly-reports/annual-ai-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year: y }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'AI分析に失敗しました')
+      const { updatedAt, ...summary } = data as AnnualReportSummary & { updatedAt: string | null }
+      setAnnualSummary(summary)
+      setAnnualUpdatedAt(updatedAt)
+    } catch (e) {
+      setAnnualError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setAnnualLoading(false)
     }
   }
 
@@ -548,6 +596,35 @@ export default function MonthlyReportsPage() {
             <p className="mt-4 text-sm text-slate-400">読み込み中...</p>
           ) : aiSummary ? (
             <AiSummaryBody summary={aiSummary} />
+          ) : null}
+        </div>
+      )}
+
+      {/* 年間の振り返り（1〜12月分の月報をまとめてAIに分析させる） */}
+      {isExecutive && (
+        <div className="card p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">年間の振り返り</p>
+              <p className="text-xs text-slate-400">
+                {y}年の役員月報（1〜12月分）をまとめてAIに読ませ、年間の総括・主な成果・
+                通年の課題・来年に向けた議論テーマ・提言を生成します。
+              </p>
+            </div>
+            <button className="btn-primary text-sm whitespace-nowrap" onClick={handleRunAnnualAi} disabled={annualLoading}>
+              {annualLoading ? '分析中...' : annualSummary ? '再分析する' : '年間分析を実行'}
+            </button>
+          </div>
+          {annualUpdatedAt && !annualLoading && (
+            <p className="mt-2 text-xs text-slate-400">
+              最終生成: {new Date(annualUpdatedAt).toLocaleString('ja-JP')}
+            </p>
+          )}
+          {annualError && <p className="mt-3 text-sm text-rose-600">{annualError}</p>}
+          {annualFetching ? (
+            <p className="mt-4 text-sm text-slate-400">読み込み中...</p>
+          ) : annualSummary ? (
+            <AiSummaryBody summary={annualSummary} agendaLabel="来年に向けた議論テーマ" />
           ) : null}
         </div>
       )}
@@ -848,7 +925,7 @@ const AI_SUMMARY_LISTS: {
   { key: 'advice',           label: 'アドバイス',           cls: 'border-brand-100 bg-brand-50',      markerCls: 'text-brand-400' },
 ]
 
-function AiSummaryBody({ summary }: { summary: MonthlyReportSummary }) {
+function AiSummaryBody({ summary, agendaLabel }: { summary: MonthlyReportSummary; agendaLabel?: string }) {
   return (
     <div className="mt-4 space-y-4 border-t border-slate-100 pt-4">
       {summary.overview && (
@@ -858,7 +935,8 @@ function AiSummaryBody({ summary }: { summary: MonthlyReportSummary }) {
         </div>
       )}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {AI_SUMMARY_LISTS.map(({ key, label, cls, markerCls }) => {
+        {AI_SUMMARY_LISTS.map(({ key, label: defaultLabel, cls, markerCls }) => {
+          const label = key === 'discussionAgenda' && agendaLabel ? agendaLabel : defaultLabel
           const items = summary[key]
           if (!items || items.length === 0) return null
           return (

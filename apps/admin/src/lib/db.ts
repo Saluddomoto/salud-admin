@@ -1226,6 +1226,29 @@ export async function fetchMonthlyReportAiSummary(period: string): Promise<DbMon
   return data as DbMonthlyReportAiSummary | null
 }
 
+/* ─── 役員月報 年間AI分析（年に1件、/api/monthly-reports/annual-ai-summary が生成・保存） ─── */
+export type DbAnnualReportAiSummary = {
+  year: number
+  overview: string | null
+  highlights: string[]
+  risks: string[]
+  discussion_agenda: string[]
+  advice: string[]
+  generated_by: string | null
+  updated_at: string
+}
+
+/** 指定年に保存済みの年間AI分析結果を返す（無ければ null）。RLS で役員本人・管理者のみ取得可 */
+export async function fetchAnnualReportAiSummary(year: number): Promise<DbAnnualReportAiSummary | null> {
+  const { data, error } = await db()
+    .from('annual_report_ai_summaries')
+    .select('year, overview, highlights, risks, discussion_agenda, advice, generated_by, updated_at')
+    .eq('year', year)
+    .maybeSingle()
+  if (error) throw error
+  return data as DbAnnualReportAiSummary | null
+}
+
 /* ─── 売上台帳（堂本さんのみ・RLSでも制限）─────────────────── */
 export type DbRevenueEntry = {
   id: string

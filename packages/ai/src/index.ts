@@ -18,3 +18,4 @@
 export { analyzeMeetingMinutes, type MeetingAnalysis } from './minutes'
 export { classifyLineMessageForTask, type LineTaskCandidate } from './line-task'
 export { summarizeMonthlyReports, type MonthlyReportPerson, type MonthlyReportSummary } from './monthly-report-summary'
+export { summarizeAnnualReports, type AnnualReportPerson, type AnnualReportSummary } from './annual-report-summary'
