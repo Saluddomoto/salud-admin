@@ -836,30 +836,38 @@ function ReportText({ text }: { text: string }) {
   )
 }
 
-const AI_SUMMARY_LISTS: { key: keyof Pick<MonthlyReportSummary, 'highlights' | 'risks' | 'discussionAgenda' | 'advice'>; label: string }[] = [
-  { key: 'highlights',       label: '好調な点・進捗' },
-  { key: 'risks',            label: '共通の課題' },
-  { key: 'discussionAgenda', label: '月末会議のアジェンダ' },
-  { key: 'advice',           label: 'アドバイス' },
+const AI_SUMMARY_LISTS: {
+  key: keyof Pick<MonthlyReportSummary, 'highlights' | 'risks' | 'discussionAgenda' | 'advice'>
+  label: string
+  cls: string
+  markerCls: string
+}[] = [
+  { key: 'highlights',       label: '好調な点・進捗',       cls: 'border-emerald-100 bg-emerald-50',  markerCls: 'text-emerald-400' },
+  { key: 'risks',            label: '共通の課題',           cls: 'border-amber-100 bg-amber-50',      markerCls: 'text-amber-400' },
+  { key: 'discussionAgenda', label: '月末会議のアジェンダ', cls: 'border-indigo-100 bg-indigo-50',    markerCls: 'text-indigo-400' },
+  { key: 'advice',           label: 'アドバイス',           cls: 'border-brand-100 bg-brand-50',      markerCls: 'text-brand-400' },
 ]
 
 function AiSummaryBody({ summary }: { summary: MonthlyReportSummary }) {
   return (
     <div className="mt-4 space-y-4 border-t border-slate-100 pt-4">
       {summary.overview && (
-        <p className="whitespace-pre-wrap text-sm text-slate-700">{summary.overview}</p>
+        <div className="rounded-xl bg-slate-50 p-3.5">
+          <p className="mb-1 text-xs font-semibold text-slate-500">全体まとめ</p>
+          <p className="whitespace-pre-wrap text-sm text-slate-700">{summary.overview}</p>
+        </div>
       )}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {AI_SUMMARY_LISTS.map(({ key, label }) => {
+        {AI_SUMMARY_LISTS.map(({ key, label, cls, markerCls }) => {
           const items = summary[key]
           if (!items || items.length === 0) return null
           return (
-            <div key={key} className="rounded-xl bg-slate-50 p-3.5">
-              <p className="mb-1.5 text-xs font-semibold text-brand-600">{label}</p>
+            <div key={key} className={`rounded-xl border p-3.5 ${cls}`}>
+              <p className="mb-1.5 text-xs font-semibold text-slate-600">{label}</p>
               <ul className="space-y-1">
                 {items.map((item, i) => (
                   <li key={i} className="flex gap-1.5 text-sm text-slate-700">
-                    <span className="shrink-0 text-slate-300">・</span>
+                    <span className={`shrink-0 ${markerCls}`}>・</span>
                     <span>{item}</span>
                   </li>
                 ))}
