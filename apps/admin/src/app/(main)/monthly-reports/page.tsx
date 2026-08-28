@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { useAuth } from '@/hooks/useAuth'
 import {
   fetchMyProfile, fetchExecutiveProfiles, fetchMonthlyReports, upsertMonthlyReport, fetchTasks,
-  fetchBoardPrepSheets, upsertBoardPrepSheet,
+  fetchBoardPrepSheets, upsertBoardPrepSheet, fetchMonthlyReportAiSummary,
   type DbProfile, type DbMonthlyReport, type MonthlyReportInput, type DbTask,
   type DbBoardPrepSheet, type BoardPrepSheetInput,
 } from '@/lib/db'
@@ -185,10 +185,13 @@ export default function MonthlyReportsPage() {
   const [prepForm,    setPrepForm]    = useState<BoardPrepSheetInput>(EMPTY_PREP_INPUT)
   const [prepSaving,  setPrepSaving]  = useState(false)
 
-  // 月報のAI横断分析（クリックしたときだけ実行。DBには保存せずその場で表示するだけ）
-  const [aiSummary, setAiSummary] = useState<MonthlyReportSummary | null>(null)
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiError,   setAiError]   = useState<string | null>(null)
+  // 月報のAI横断分析（クリックして生成。その月に1件だけ保存され、次にこの月を開いたときは
+  // 保存済みの結果を自動で読み込んで表示する。再度ボタンを押すと再生成して上書きする）
+  const [aiSummary,   setAiSummary]   = useState<MonthlyReportSummary | null>(null)
+  const [aiUpdatedAt, setAiUpdatedAt] = useState<string | null>(null)
+  const [aiLoading,    setAiLoading]    = useState(false)
+  const [aiFetching,   setAiFetching]   = useState(true)
+  const [aiError,      setAiError]      = useState<string | null>(null)
 
   const period = useMemo(() => `${y}-${pad(m)}-01`, [y, m])
   const periodEnd = useMemo(() => {
@@ -220,6 +223,26 @@ export default function MonthlyReportsPage() {
 
   useEffect(load, [load])
 
+  // 選択中の月に保存済みのAI分析結果があれば読み込んで表示する
+  useEffect(() => {
+    setAiFetching(true)
+    setAiError(null)
+    fetchMonthlyReportAiSummary(period)
+      .then(saved => {
+        if (!saved) { setAiSummary(null); setAiUpdatedAt(null); return }
+        setAiSummary({
+          overview: saved.overview ?? '',
+          highlights: saved.highlights,
+          risks: saved.risks,
+          discussionAgenda: saved.discussion_agenda,
+          advice: saved.advice,
+        })
+        setAiUpdatedAt(saved.updated_at)
+      })
+      .catch(() => { setAiSummary(null); setAiUpdatedAt(null) })
+      .finally(() => setAiFetching(false))
+  }, [period])
+
   const isExecutive = me?.is_executive === true
   const canAccess = isExecutive
 
@@ -238,9 +261,6 @@ export default function MonthlyReportsPage() {
       const total = (prev.y * 12 + (prev.m - 1)) + delta
       return { y: Math.floor(total / 12), m: (total % 12) + 1 }
     })
-    // 月を切り替えたら、前の月のAI分析結果を出しっぱなしにしない
-    setAiSummary(null)
-    setAiError(null)
   }
 
   const handleRunAi = async () => {
@@ -254,7 +274,9 @@ export default function MonthlyReportsPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'AI分析に失敗しました')
-      setAiSummary(data as MonthlyReportSummary)
+      const { updatedAt, ...summary } = data as MonthlyReportSummary & { updatedAt: string | null }
+      setAiSummary(summary)
+      setAiUpdatedAt(updatedAt)
     } catch (e) {
       setAiError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -516,8 +538,17 @@ export default function MonthlyReportsPage() {
               {aiLoading ? '分析中...' : aiSummary ? '再分析する' : 'AI分析を実行'}
             </button>
           </div>
+          {aiUpdatedAt && !aiLoading && (
+            <p className="mt-2 text-xs text-slate-400">
+              最終生成: {new Date(aiUpdatedAt).toLocaleString('ja-JP')}
+            </p>
+          )}
           {aiError && <p className="mt-3 text-sm text-rose-600">{aiError}</p>}
-          {aiSummary && <AiSummaryBody summary={aiSummary} />}
+          {aiFetching ? (
+            <p className="mt-4 text-sm text-slate-400">読み込み中...</p>
+          ) : aiSummary ? (
+            <AiSummaryBody summary={aiSummary} />
+          ) : null}
         </div>
       )}
 

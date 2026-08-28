@@ -93,11 +93,37 @@ export async function POST(req: Request) {
     }
   })
 
+  let summary
   try {
-    const summary = await summarizeMonthlyReports(period, people)
-    return NextResponse.json(summary)
+    summary = await summarizeMonthlyReports(period, people)
   } catch (e) {
     console.error('月報AI分析に失敗', e)
-    return NextResponse.json({ error: 'AI分析に失敗しました' }, { status: 500 })
+    const message = e instanceof Error ? e.message : 'AI分析に失敗しました'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
+
+  // 生成結果はその月に1件だけ保存し、あとから同じ月を開いたときに再生成せず見返せるようにする
+  const { data: saved, error: saveError } = await admin
+    .from('monthly_report_ai_summaries')
+    .upsert(
+      {
+        period,
+        overview: summary.overview,
+        highlights: summary.highlights,
+        risks: summary.risks,
+        discussion_agenda: summary.discussionAgenda,
+        advice: summary.advice,
+        generated_by: user.id,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'period' },
+    )
+    .select('updated_at')
+    .single()
+  if (saveError) {
+    // 保存に失敗しても、生成した分析結果自体はユーザーに返す（保存できないだけで分析は成功している）
+    console.error('AI分析結果の保存に失敗', saveError)
+  }
+
+  return NextResponse.json({ ...summary, updatedAt: saved?.updated_at ?? null })
 }

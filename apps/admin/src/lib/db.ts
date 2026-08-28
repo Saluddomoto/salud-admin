@@ -1203,6 +1203,29 @@ export async function upsertBoardPrepSheet(input: BoardPrepSheetInput) {
   if (error) throw error
 }
 
+/* ─── 役員月報 AI横断分析（月に1件、/api/monthly-reports/ai-summary が生成・保存） ─── */
+export type DbMonthlyReportAiSummary = {
+  period: string
+  overview: string | null
+  highlights: string[]
+  risks: string[]
+  discussion_agenda: string[]
+  advice: string[]
+  generated_by: string | null
+  updated_at: string
+}
+
+/** 指定月に保存済みのAI分析結果を返す（無ければ null）。RLS で役員本人・管理者のみ取得可 */
+export async function fetchMonthlyReportAiSummary(period: string): Promise<DbMonthlyReportAiSummary | null> {
+  const { data, error } = await db()
+    .from('monthly_report_ai_summaries')
+    .select('period, overview, highlights, risks, discussion_agenda, advice, generated_by, updated_at')
+    .eq('period', period)
+    .maybeSingle()
+  if (error) throw error
+  return data as DbMonthlyReportAiSummary | null
+}
+
 /* ─── 売上台帳（堂本さんのみ・RLSでも制限）─────────────────── */
 export type DbRevenueEntry = {
   id: string

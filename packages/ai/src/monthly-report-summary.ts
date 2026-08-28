@@ -53,7 +53,7 @@ export async function summarizeMonthlyReports(
 
   const response = await getClient().messages.create({
     model: 'claude-opus-5',
-    max_tokens: 2048,
+    max_tokens: 4096,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userContent }],
   })
@@ -63,13 +63,25 @@ export async function summarizeMonthlyReports(
     throw new Error('AI分析の結果を取得できませんでした')
   }
 
+  // 万が一 max_tokens で途中切れした場合、JSON.parse がcrypticなエラーになるので
+  // 原因が分かるようにしておく（response.stop_reason は 'max_tokens' | 'end_turn' 等）
+  if (response.stop_reason === 'max_tokens') {
+    throw new Error('AIの応答が長すぎて途中で切れました。もう一度お試しください')
+  }
+
   const jsonText = textBlock.text
     .trim()
     .replace(/^```(json)?/, '')
     .replace(/```$/, '')
     .trim()
 
-  const parsed = JSON.parse(jsonText) as Partial<MonthlyReportSummary>
+  let parsed: Partial<MonthlyReportSummary>
+  try {
+    parsed = JSON.parse(jsonText) as Partial<MonthlyReportSummary>
+  } catch {
+    throw new Error('AIの応答を解析できませんでした')
+  }
+
   return {
     overview: parsed.overview ?? '',
     highlights: parsed.highlights ?? [],
