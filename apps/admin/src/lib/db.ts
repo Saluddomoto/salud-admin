@@ -118,6 +118,7 @@ export type DbProfile = {
   chatwork_account_id: string | null
   is_executive: boolean
   annual_target_amount: number | null
+  annual_goal: string | null // 今年の目標（質的テキスト。売上KGIの annual_target_amount とは別物）
 }
 
 export type DbEvent = {
@@ -640,7 +641,7 @@ export async function fetchNeedsReplyCount(): Promise<number> {
 export async function fetchProfiles(): Promise<DbProfile[]> {
   const { data, error } = await db()
     .from('profiles')
-    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount, annual_goal')
     .order('created_at')
   if (error) throw error
   return data as DbProfile[]
@@ -650,7 +651,7 @@ export async function fetchProfiles(): Promise<DbProfile[]> {
 export async function fetchExecutiveProfiles(): Promise<DbProfile[]> {
   const { data, error } = await db()
     .from('profiles')
-    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount, annual_goal')
     .eq('is_executive', true)
     .eq('is_active', true)
     .order('created_at')
@@ -664,14 +665,14 @@ export async function fetchMyProfile(): Promise<DbProfile | null> {
   if (!user) return null
   const { data, error } = await client
     .from('profiles')
-    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount, annual_goal')
     .eq('id', user.id)
     .single()
   if (error) throw error
   return data as DbProfile
 }
 
-export async function updateMyProfile(input: { full_name: string; department: string | null }) {
+export async function updateMyProfile(input: { full_name: string; department: string | null; annual_goal?: string | null }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
   if (!user) throw new Error('not signed in')
@@ -1107,10 +1108,16 @@ export type DbMonthlyReport = {
   id: string
   user_id: string
   period: string // 'YYYY-MM-01'
-  actions: string | null      // 行動
-  sales: string | null        // 営業
-  tasks: string | null        // タスク（完了タスクの箇条書きを反映できる）
-  initiatives: string | null  // 取り組んだこと
+  actions: string | null              // 行動
+  sales: string | null                // 営業
+  tasks: string | null                // タスク（完了タスクの箇条書きを反映できる）
+  initiatives: string | null          // 取り組んだこと
+  goal_progress: string | null        // 年間目標に対する今月の進捗
+  challenges: string | null           // 現在の課題
+  discussion_topics: string | null    // 月末会議で議論したいこと
+  next_month_actions: string | null   // 来月取り組むこと
+  next_month_outcome: string | null   // 来月の成果（状態）
+  support_needed: string | null       // 必要なサポート
   updated_at: string
   profiles: { full_name: string } | null
 }
@@ -1120,13 +1127,22 @@ export type MonthlyReportInput = {
   sales: string
   tasks: string
   initiatives: string
+  goal_progress: string
+  challenges: string
+  discussion_topics: string
+  next_month_actions: string
+  next_month_outcome: string
+  support_needed: string
 }
+
+const MONTHLY_REPORT_SELECT =
+  'id, user_id, period, actions, sales, tasks, initiatives, goal_progress, challenges, discussion_topics, next_month_actions, next_month_outcome, support_needed, updated_at, profiles(full_name)'
 
 /** 指定月（'YYYY-MM-01'）の役員月報を全件返す。RLS で役員本人・管理者のみ取得可 */
 export async function fetchMonthlyReports(period: string): Promise<DbMonthlyReport[]> {
   const { data, error } = await db()
     .from('monthly_reports')
-    .select('id, user_id, period, actions, sales, tasks, initiatives, updated_at, profiles(full_name)')
+    .select(MONTHLY_REPORT_SELECT)
     .eq('period', period)
   if (error) throw error
   return (data ?? []) as unknown as DbMonthlyReport[]

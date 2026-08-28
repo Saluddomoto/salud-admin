@@ -37,34 +37,123 @@ const EMPTY_PREP_INPUT: BoardPrepSheetInput = {
   ideal_future: '', why_involved: '', this_year_contribution: '', year_end_reflection: '',
 }
 
-const FIELDS: { key: keyof MonthlyReportInput; label: string; hint: string; example: string }[] = [
+type ReportField = { key: keyof MonthlyReportInput; label: string; question: string; hint: string; example: string }
+
+// 【A】今月の振り返り
+const REVIEW_FIELDS: ReportField[] = [
   {
     key: 'actions',
-    label: '行動',
-    hint: '今月、主体的に動いたこと・意思決定したこと',
-    example: '例）スタッフの案件対応が滞っていたので進め方を一緒に整理した／新規顧客A社との商談前に業界動向を調べて提案資料を作り直した',
+    label: '① 行動',
+    question: '今月、主体的に動いたこと・意思決定したことは？',
+    hint: '自分で考え、行動したことを振り返ります。',
+    example: '例）スタッフの案件対応の進め方を整理した／新規顧客への提案方法を変更した',
   },
   {
     key: 'sales',
-    label: '営業',
-    hint: '商談・提案・新規開拓の動き',
-    example: '例）B社と初回商談、ものづくり補助金を提案／税理士C氏からの紹介案件を2件フォロー／セミナーで名刺交換した5社に個別フォロー',
-  },
-  {
-    key: 'tasks',
-    label: 'タスク',
-    hint: 'この月に完了したタスク（下のボタンでタスク管理から箇条書きを読み込めます）',
-    example: '例）・A社 持続化補助金の申請書を提出\n・B社 見積書を送付\n・月次の請求書取りまとめ',
+    label: '② 営業',
+    question: '今月の営業・商談・新規開拓の動きは？',
+    hint: '売上につながる活動の進捗を確認します。',
+    example: '例）新規商談5件／代理店候補3社と商談／士業からの紹介案件2件',
   },
   {
     key: 'initiatives',
-    label: '取り組んだこと',
-    hint: '新しく始めた取り組み・改善・学び',
-    example: '例）LINE問い合わせ対応マニュアルを整備した／新しい補助金情報のキャッチアップ会を月1で開始した／申請書のひな形を見直して作成時間を短縮した',
+    label: '③ 取り組んだこと',
+    question: '今月、新しく始めたこと・改善したこと・学んだことは？',
+    hint: '将来のSaludにつながる改善や成長を振り返ります。',
+    example: '例）LINE問い合わせ対応マニュアルを整備した／新しい補助金情報のキャッチアップ会を月1で開始した',
   },
 ]
 
-const EMPTY_INPUT: MonthlyReportInput = { actions: '', sales: '', tasks: '', initiatives: '' }
+// 【B】目標への進捗
+const GOAL_FIELDS: ReportField[] = [
+  {
+    key: 'goal_progress',
+    label: '⑤ 年間目標に対する今月の進捗',
+    question: '今年の目標に対して、今月進んだこと・進まなかったことは？',
+    hint: '今年の目標に対して、どこまで近づけたかを確認します。',
+    example: '例）持続化補助金の業務フローを整理し、標準化に着手できた／AIによる計画書作成支援はまだ検証段階',
+  },
+  {
+    key: 'challenges',
+    label: '⑥ 現在の課題',
+    question: '目標達成に向けて、現在感じている課題は？',
+    hint: '目標達成を妨げている原因や、会社として解決すべき課題を整理します。',
+    example: '例）自分が業務を抱えすぎている／業務フローが標準化されていない',
+  },
+]
+
+// 【C】月末会議
+const MEETING_FIELDS: ReportField[] = [
+  {
+    key: 'discussion_topics',
+    label: '⑦ 議論したいこと',
+    question: '月末の場で、みんなに相談・議論したいことは？',
+    hint: 'みんなの意見を聞きたいこと、会社として意思決定したいことを書いてください。',
+    example: '例）持続化補助金をAI中心のサービスに変えるべきか／代理店制度の次のステップをどうするか',
+  },
+]
+
+// 【D】来月の計画
+const NEXT_FIELDS: ReportField[] = [
+  {
+    key: 'next_month_actions',
+    label: '⑧ 来月取り組むこと',
+    question: '来月、取り組むこと・改善することは？',
+    hint: '今月の振り返りを、来月の具体的な行動につなげます。',
+    example: '例）持続化補助金の業務フローを完成させる／新サービス候補3社にヒアリングする',
+  },
+  {
+    key: 'next_month_outcome',
+    label: '⑨ 来月の成果',
+    question: '来月、どういう状態になっていたら「進んだ」と言える？',
+    hint: '何をするかではなく、来月の終わりにどうなっていたいかを考えます。',
+    example: '例）持続化補助金を他のメンバーでも対応できる状態にする',
+  },
+  {
+    key: 'support_needed',
+    label: '⑩ 必要なサポート',
+    question: '目標達成のために、会社・役員・メンバーに協力してほしいことは？',
+    hint: '個人ではなく、組織で成果を出すために必要な協力を明確にします。',
+    example: '例）三戸部さんに◯◯業務を引き継げるようマニュアル化を手伝ってほしい',
+  },
+]
+
+// タスクだけは専用UI（完了タスク読み込みボタン付き）で別枠に表示するため、他ブロックとフィールド定義を分ける
+const TASKS_FIELD: ReportField = {
+  key: 'tasks',
+  label: '④ タスク',
+  question: 'この月に完了した主なタスク',
+  hint: 'タスク管理の完了タスクを箇条書きで読み込めます。月報の中心ではなく補助情報として扱います。',
+  example: '例）・A社 持続化補助金の申請書を提出\n・B社 見積書を送付',
+}
+
+const REPORT_BLOCKS: { heading: string; description?: string; fields: ReportField[] }[] = [
+  { heading: '今月の振り返り', fields: [...REVIEW_FIELDS, TASKS_FIELD] },
+  { heading: '目標への進捗', description: '今年の目標に対して、今月どこまで進んだかを振り返ります。', fields: GOAL_FIELDS },
+  { heading: '月末会議', description: '月末の発表・議論で扱いたいテーマを整理します。', fields: MEETING_FIELDS },
+  { heading: '来月の計画', fields: NEXT_FIELDS },
+]
+
+const EMPTY_INPUT: MonthlyReportInput = {
+  actions: '', sales: '', tasks: '', initiatives: '',
+  goal_progress: '', challenges: '', discussion_topics: '',
+  next_month_actions: '', next_month_outcome: '', support_needed: '',
+}
+
+function reportToInput(report: DbMonthlyReport): MonthlyReportInput {
+  return {
+    actions: report.actions ?? '',
+    sales: report.sales ?? '',
+    tasks: report.tasks ?? '',
+    initiatives: report.initiatives ?? '',
+    goal_progress: report.goal_progress ?? '',
+    challenges: report.challenges ?? '',
+    discussion_topics: report.discussion_topics ?? '',
+    next_month_actions: report.next_month_actions ?? '',
+    next_month_outcome: report.next_month_outcome ?? '',
+    support_needed: report.support_needed ?? '',
+  }
+}
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -133,14 +222,7 @@ export default function MonthlyReportsPage() {
   )
 
   useEffect(() => {
-    setForm(myReport
-      ? {
-          actions: myReport.actions ?? '',
-          sales: myReport.sales ?? '',
-          tasks: myReport.tasks ?? '',
-          initiatives: myReport.initiatives ?? '',
-        }
-      : EMPTY_INPUT)
+    setForm(myReport ? reportToInput(myReport) : EMPTY_INPUT)
     setEditing(false)
   }, [myReport])
 
@@ -371,11 +453,6 @@ export default function MonthlyReportsPage() {
               </span>
               <div>
                 <p className="font-semibold text-slate-900">{me.full_name}（あなた）</p>
-                {myReport && !editing && (
-                  <p className="text-xs text-slate-400">
-                    最終更新: {new Date(myReport.updated_at).toLocaleString('ja-JP')}
-                  </p>
-                )}
               </div>
             </div>
             {!editing && (
@@ -386,43 +463,64 @@ export default function MonthlyReportsPage() {
           </div>
 
           {editing ? (
-            <div className="space-y-4">
-              {FIELDS.map(f => (
-                <div key={f.key}>
-                  <div className="mb-1 flex items-center justify-between gap-2">
-                    <label className="block text-sm font-medium text-slate-700">{f.label}</label>
-                    {f.key === 'tasks' && (
-                      <button
-                        type="button"
-                        disabled={completedTaskBullets.length === 0}
-                        className="text-xs font-medium text-brand-600 hover:underline disabled:cursor-not-allowed disabled:text-slate-300 disabled:no-underline"
-                        onClick={() => {
-                          const bullets = completedTaskBullets.join('\n')
-                          setForm(prev => ({ ...prev, tasks: prev.tasks ? `${prev.tasks}\n${bullets}` : bullets }))
-                        }}
-                      >
-                        {completedTaskBullets.length > 0
-                          ? `完了タスクを読み込む（${completedTaskBullets.length}件）`
-                          : 'この月に完了したタスクはありません'}
-                      </button>
-                    )}
+            <div className="space-y-5">
+              {REPORT_BLOCKS.map(block => (
+                <div key={block.heading} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 sm:p-5">
+                  <h3 className="text-sm font-bold text-slate-800">{block.heading}</h3>
+                  {block.description && (
+                    <p className="mt-0.5 text-xs text-slate-400">{block.description}</p>
+                  )}
+                  {block.heading === '目標への進捗' && (
+                    <div className="mb-4 mt-3 rounded-xl bg-white p-3.5">
+                      <p className="mb-1 text-xs font-semibold text-slate-400">{y}年の目標</p>
+                      {me.annual_goal ? (
+                        <p className="whitespace-pre-wrap text-sm text-slate-700">{me.annual_goal}</p>
+                      ) : (
+                        <p className="text-sm text-slate-400">
+                          年間目標が未設定です。「設定 → プロフィール」から登録できます。
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  <div className="mt-4 space-y-4">
+                    {block.fields.map(f => (
+                      <div key={f.key}>
+                        <div className="mb-0.5 flex items-center justify-between gap-2">
+                          <label className="block text-sm font-semibold text-slate-800">{f.label}</label>
+                          {f.key === 'tasks' && (
+                            <button
+                              type="button"
+                              disabled={completedTaskBullets.length === 0}
+                              className="text-xs font-medium text-brand-600 hover:underline disabled:cursor-not-allowed disabled:text-slate-300 disabled:no-underline"
+                              onClick={() => {
+                                const bullets = completedTaskBullets.join('\n')
+                                setForm(prev => ({ ...prev, tasks: prev.tasks ? `${prev.tasks}\n${bullets}` : bullets }))
+                              }}
+                            >
+                              {completedTaskBullets.length > 0
+                                ? `完了タスクを読み込む（${completedTaskBullets.length}件）`
+                                : 'この月に完了したタスクはありません'}
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-600">{f.question}</p>
+                        <p className="mb-1.5 text-xs text-slate-400">{f.hint}</p>
+                        <textarea
+                          className="input min-h-[70px] resize-y"
+                          placeholder={f.example}
+                          value={form[f.key]}
+                          onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                        />
+                      </div>
+                    ))}
                   </div>
-                  <p className="mb-1.5 text-xs text-slate-400">{f.example}</p>
-                  <textarea
-                    className="input min-h-[80px] resize-y"
-                    placeholder={f.hint}
-                    value={form[f.key]}
-                    onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                  />
                 </div>
               ))}
               <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
                 <button
                   type="button"
                   className="btn-secondary text-sm"
-                  onClick={() => { setEditing(false); setForm(myReport
-                    ? { actions: myReport.actions ?? '', sales: myReport.sales ?? '', tasks: myReport.tasks ?? '', initiatives: myReport.initiatives ?? '' }
-                    : EMPTY_INPUT) }}
+                  onClick={() => { setEditing(false); setForm(myReport ? reportToInput(myReport) : EMPTY_INPUT) }}
                 >
                   キャンセル
                 </button>
@@ -432,7 +530,7 @@ export default function MonthlyReportsPage() {
               </div>
             </div>
           ) : myReport ? (
-            <ReportBody report={myReport} />
+            <ReportBody report={myReport} annualGoal={me.annual_goal} year={y} />
           ) : (
             <p className="text-sm text-slate-400">この月の報告はまだありません。</p>
           )}
@@ -455,13 +553,8 @@ export default function MonthlyReportsPage() {
                     </span>
                     <p className="font-semibold text-slate-900">{ex.full_name}</p>
                   </div>
-                  {r && (
-                    <p className="text-xs text-slate-400">
-                      更新: {new Date(r.updated_at).toLocaleDateString('ja-JP')}
-                    </p>
-                  )}
                 </div>
-                {r ? <ReportBody report={r} /> : (
+                {r ? <ReportBody report={r} annualGoal={ex.annual_goal} year={y} /> : (
                   <p className="text-sm text-slate-400">この月の報告はまだありません。</p>
                 )}
               </div>
@@ -476,16 +569,30 @@ export default function MonthlyReportsPage() {
   )
 }
 
-function ReportBody({ report }: { report: DbMonthlyReport }) {
+function ReportBody({ report, annualGoal, year }: { report: DbMonthlyReport; annualGoal?: string | null; year?: number }) {
   return (
-    <div className="space-y-3">
-      {FIELDS.map(f => {
-        const value = report[f.key]
-        if (!value) return null
+    <div className="space-y-5">
+      {REPORT_BLOCKS.map(block => {
+        const isGoalBlock = block.heading === '目標への進捗'
+        const visibleFields = block.fields.filter(f => report[f.key])
+        if (visibleFields.length === 0 && !(isGoalBlock && annualGoal)) return null
         return (
-          <div key={f.key}>
-            <p className="mb-1 text-xs font-semibold text-slate-400">{f.label}</p>
-            <p className="whitespace-pre-wrap text-sm text-slate-700">{value}</p>
+          <div key={block.heading}>
+            <p className="mb-2 text-xs font-bold text-slate-400">{block.heading}</p>
+            {isGoalBlock && annualGoal && (
+              <div className="mb-3">
+                <p className="mb-1 text-xs font-semibold text-slate-400">{year}年の目標</p>
+                <p className="whitespace-pre-wrap text-sm text-slate-700">{annualGoal}</p>
+              </div>
+            )}
+            <div className="space-y-3">
+              {visibleFields.map(f => (
+                <div key={f.key}>
+                  <p className="mb-1 text-xs font-semibold text-slate-400">{f.label}</p>
+                  <p className="whitespace-pre-wrap text-sm text-slate-700">{report[f.key]}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )
       })}
