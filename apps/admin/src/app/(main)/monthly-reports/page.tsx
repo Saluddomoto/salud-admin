@@ -292,6 +292,35 @@ export default function MonthlyReportsPage() {
     }
   }
 
+  // 月報の「目標への進捗」からも、事前シート③（今年の目標）だけを軽く編集できるようにする
+  // （他の3項目のために事前シートの編集フォームを開かせずに済む）。保存先は事前シートと同じ。
+  const [goalEditing, setGoalEditing] = useState(false)
+  const [goalDraft,   setGoalDraft]   = useState('')
+  const [goalSaving,  setGoalSaving]  = useState(false)
+
+  const startGoalEdit = () => {
+    setGoalDraft(myPrepSheet?.this_year_contribution ?? '')
+    setGoalEditing(true)
+  }
+
+  const handleSaveGoal = async () => {
+    setGoalSaving(true)
+    try {
+      await upsertBoardPrepSheet({
+        ideal_future: myPrepSheet?.ideal_future ?? '',
+        why_involved: myPrepSheet?.why_involved ?? '',
+        this_year_contribution: goalDraft,
+        year_end_reflection: myPrepSheet?.year_end_reflection ?? '',
+      })
+      setGoalEditing(false)
+      loadPrep()
+    } catch (e) {
+      alert(`保存に失敗しました: ${e instanceof Error ? e.message : e}`)
+    } finally {
+      setGoalSaving(false)
+    }
+  }
+
   const others = execs.filter(e => e.id !== me?.id)
 
   if (!authLoading && !meLoading && !canAccess) {
@@ -472,7 +501,17 @@ export default function MonthlyReportsPage() {
                   )}
                   {block.heading === '目標への進捗' && (
                     <div className="mb-4 mt-3">
-                      <GoalPanel year={y} goal={myPrepSheet?.this_year_contribution ?? null} />
+                      <MyGoalPanel
+                        year={y}
+                        goal={myPrepSheet?.this_year_contribution ?? null}
+                        editing={goalEditing}
+                        draft={goalDraft}
+                        saving={goalSaving}
+                        onStartEdit={startGoalEdit}
+                        onCancel={() => setGoalEditing(false)}
+                        onSave={handleSaveGoal}
+                        onDraftChange={setGoalDraft}
+                      />
                     </div>
                   )}
                   <div className="mt-4 space-y-4">
@@ -527,7 +566,17 @@ export default function MonthlyReportsPage() {
             </div>
           ) : (
             <div className="space-y-5">
-              <GoalPanel year={y} goal={myPrepSheet?.this_year_contribution ?? null} />
+              <MyGoalPanel
+                year={y}
+                goal={myPrepSheet?.this_year_contribution ?? null}
+                editing={goalEditing}
+                draft={goalDraft}
+                saving={goalSaving}
+                onStartEdit={startGoalEdit}
+                onCancel={() => setGoalEditing(false)}
+                onSave={handleSaveGoal}
+                onDraftChange={setGoalDraft}
+              />
               {myReport ? (
                 <ReportBody report={myReport} />
               ) : (
@@ -572,7 +621,58 @@ export default function MonthlyReportsPage() {
   )
 }
 
-// 事前シート③（今年、自分がSaludにもたらしたいこと）を「年間目標」として表示するパネル。
+// 自分の年間目標（事前シート③）を月報の「目標への進捗」からその場で編集できるパネル。
+// 事前シートの残り3項目（②年後の理想像など）を開かせずに、この1行だけ更新できるようにする。
+// 保存先は事前シートと同じ board_prep_sheets（this_year_contribution）。
+function MyGoalPanel({
+  year, goal, editing, draft, saving, onStartEdit, onCancel, onSave, onDraftChange,
+}: {
+  year: number
+  goal: string | null
+  editing: boolean
+  draft: string
+  saving: boolean
+  onStartEdit: () => void
+  onCancel: () => void
+  onSave: () => void
+  onDraftChange: (value: string) => void
+}) {
+  if (editing) {
+    return (
+      <div className="rounded-xl bg-slate-50 p-3.5">
+        <p className="mb-1 text-xs font-semibold text-slate-400">{year}年の目標（事前シート③より）</p>
+        <textarea
+          className="input min-h-[80px] resize-y text-sm"
+          value={draft}
+          onChange={e => onDraftChange(e.target.value)}
+        />
+        <div className="mt-2 flex justify-end gap-2">
+          <button type="button" className="btn-secondary text-xs" onClick={onCancel}>キャンセル</button>
+          <button type="button" className="btn-primary text-xs" onClick={onSave} disabled={saving}>
+            {saving ? '保存中...' : '保存'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="rounded-xl bg-slate-50 p-3.5">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-slate-400">{year}年の目標（事前シート③より）</p>
+        <button type="button" className="text-xs font-medium text-brand-600 hover:underline" onClick={onStartEdit}>
+          編集
+        </button>
+      </div>
+      {goal ? (
+        <p className="whitespace-pre-wrap text-sm text-slate-700">{goal}</p>
+      ) : (
+        <p className="text-sm text-slate-400">まだ記入されていません。「編集」から入力できます。</p>
+      )}
+    </div>
+  )
+}
+
+// 事前シート③（今年、自分がSaludにもたらしたいこと）を「年間目標」として表示する、他の役員向けの読み取り専用パネル。
 // その月の月報がまだ書かれていなくても、目標は独立して常に見えるようにする
 // （月報カードの有無に紐づけると、月報未記入者の目標だけ一緒に隠れてしまうため）。
 function GoalPanel({ year, goal }: { year: number; goal: string | null }) {
