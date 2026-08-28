@@ -794,17 +794,32 @@ export type DbMeetingNote = {
   customer_id: string | null
   project_id: string | null
   source: 'zoom' | 'manual' | 'google_meet'
+  period: string | null // 'YYYY-MM-01'。役員月報の月末MTG議事録として紐付けた場合のみ設定
   created_at: string
   customers: { company_name: string } | null
   projects: { title: string } | null
 }
 
+const MEETING_NOTE_SELECT =
+  'id, title, meeting_date, duration_min, host_name, recording_url, transcript, summary, customer_id, project_id, source, period, created_at, customers(company_name), projects(title)'
+
 export async function fetchMeetingNotes(): Promise<DbMeetingNote[]> {
   const { data, error } = await db()
     .from('meeting_notes')
-    .select('id, title, meeting_date, duration_min, host_name, recording_url, transcript, summary, customer_id, project_id, source, created_at, customers(company_name), projects(title)')
+    .select(MEETING_NOTE_SELECT)
     .order('meeting_date', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as unknown as DbMeetingNote[]
+}
+
+/** 指定の月報期間（'YYYY-MM-01'）に紐付けられた月末MTG議事録を返す */
+export async function fetchMeetingNotesByPeriod(period: string): Promise<DbMeetingNote[]> {
+  const { data, error } = await db()
+    .from('meeting_notes')
+    .select(MEETING_NOTE_SELECT)
+    .eq('period', period)
+    .order('meeting_date', { ascending: false, nullsFirst: false })
   if (error) throw error
   return (data ?? []) as unknown as DbMeetingNote[]
 }
@@ -819,6 +834,7 @@ export async function insertMeetingNote(input: {
   customer_id?: string | null
   project_id?: string | null
   source?: 'manual' | 'google_meet'
+  period?: string | null
 }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
@@ -838,6 +854,7 @@ export async function updateMeetingNote(id: string, patch: {
   recording_url?: string | null
   customer_id?: string | null
   project_id?: string | null
+  period?: string | null
 }) {
   const { error } = await db()
     .from('meeting_notes')

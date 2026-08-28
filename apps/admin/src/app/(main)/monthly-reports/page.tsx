@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { Modal } from '@/components/Modal'
 import { useAuth } from '@/hooks/useAuth'
 import {
   fetchMyProfile, fetchExecutiveProfiles, fetchMonthlyReports, upsertMonthlyReport, fetchTasks,
   fetchBoardPrepSheets, upsertBoardPrepSheet, fetchMonthlyReportAiSummary, fetchAnnualReportAiSummary,
+  fetchMeetingNotesByPeriod, insertMeetingNote,
   type DbProfile, type DbMonthlyReport, type MonthlyReportInput, type DbTask,
-  type DbBoardPrepSheet, type BoardPrepSheetInput,
+  type DbBoardPrepSheet, type BoardPrepSheetInput, type DbMeetingNote,
 } from '@/lib/db'
 import type { MonthlyReportSummary, AnnualReportSummary } from '@salud/ai'
 
@@ -229,6 +231,40 @@ export default function MonthlyReportsPage() {
   }, [period])
 
   useEffect(load, [load])
+
+  // 月末MTG（役員会議）の議事録・録画。個人の月報とは別に、月ごとに1本以上を紐付けられる
+  const [meetingNotes,        setMeetingNotes]        = useState<DbMeetingNote[]>([])
+  const [meetingNotesLoading, setMeetingNotesLoading]  = useState(true)
+  const [mtgModalOpen,        setMtgModalOpen]         = useState(false)
+  const [mtgSaving,           setMtgSaving]            = useState(false)
+
+  const loadMeetingNotes = useCallback(() => {
+    setMeetingNotesLoading(true)
+    fetchMeetingNotesByPeriod(period).then(setMeetingNotes).finally(() => setMeetingNotesLoading(false))
+  }, [period])
+
+  useEffect(loadMeetingNotes, [loadMeetingNotes])
+
+  const handleAddMtgNote = async (ev: React.FormEvent<HTMLFormElement>) => {
+    ev.preventDefault()
+    const f = new FormData(ev.currentTarget)
+    setMtgSaving(true)
+    try {
+      await insertMeetingNote({
+        title:         String(f.get('title') || `役員月次MTG（${y}年${m}月）`),
+        meeting_date:  (f.get('meeting_date') as string) || null,
+        recording_url: (f.get('recording_url') as string)?.trim() || null,
+        summary:       (f.get('summary') as string)?.trim() || null,
+        period,
+      })
+      setMtgModalOpen(false)
+      loadMeetingNotes()
+    } catch (e) {
+      alert(`保存に失敗しました: ${e instanceof Error ? e.message : e}`)
+    } finally {
+      setMtgSaving(false)
+    }
+  }
 
   // 選択中の月に保存済みのAI分析結果があれば読み込んで表示する
   useEffect(() => {
@@ -570,6 +606,70 @@ export default function MonthlyReportsPage() {
           </button>
         </div>
       </div>
+
+      {/* 月末MTG（役員会議）の議事録・録画。個人の月報とは別に、その月の会議そのものの記録 */}
+      <div className="card p-5">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold text-slate-800">月末MTG 議事録・録画</p>
+            <p className="text-xs text-slate-400">{y}年{m}月の役員会議そのものの議事録・録画リンクです（個人の月報とは別）。</p>
+          </div>
+          <button className="btn-secondary text-sm whitespace-nowrap" onClick={() => setMtgModalOpen(true)}>+ 議事録・録画を追加</button>
+        </div>
+        {meetingNotesLoading ? (
+          <p className="text-sm text-slate-400">読み込み中...</p>
+        ) : meetingNotes.length === 0 ? (
+          <p className="text-sm text-slate-400">
+            この月に紐付けられた議事録はありません。「+ 議事録・録画を追加」で登録するか、
+            「議事録」ページの既存の記録に月を紐付けてください。
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {meetingNotes.map(n => (
+              <div key={n.id} className="rounded-xl border border-slate-100 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-slate-900">{n.title}</p>
+                  {n.recording_url && (
+                    <a href={n.recording_url} target="_blank" rel="noopener noreferrer"
+                      className="text-xs font-medium text-brand-600 hover:underline">▶ 録画を開く</a>
+                  )}
+                </div>
+                {n.meeting_date && <p className="mt-0.5 text-xs text-slate-400">{new Date(n.meeting_date).toLocaleString('ja-JP')}</p>}
+                {n.summary && <p className="mt-1.5 whitespace-pre-wrap text-sm text-slate-600">{n.summary}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <Modal title="月末MTG 議事録・録画を追加" open={mtgModalOpen} onClose={() => setMtgModalOpen(false)}>
+        <form onSubmit={handleAddMtgNote} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">会議名</label>
+            <input name="title" className="input" placeholder={`役員月次MTG（${y}年${m}月）`} />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">日時</label>
+              <input name="meeting_date" type="datetime-local" className="input" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">録画/共有リンク</label>
+              <input name="recording_url" type="url" className="input" placeholder="https://meet.google.com/xxx-xxxx-xxx" />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">議事録・決定事項</label>
+            <textarea name="summary" rows={5} className="input resize-y" placeholder="決まったこと・ToDoなど" />
+          </div>
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+            <button type="button" className="btn-secondary text-sm" onClick={() => setMtgModalOpen(false)}>キャンセル</button>
+            <button type="submit" disabled={mtgSaving} className="btn-primary text-sm">
+              {mtgSaving ? '保存中...' : '保存する'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* AI横断分析（クリックしたときだけ、3人分の月報をまとめてAIに分析させる） */}
       {isExecutive && (

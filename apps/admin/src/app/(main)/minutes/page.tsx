@@ -101,10 +101,11 @@ export default function MinutesPage() {
                 {n.duration_min ? ` · ${n.duration_min}分` : ''}
                 {n.host_name ? ` · ${n.host_name}` : ''}
               </p>
-              {(n.customers || n.projects) && (
+              {(n.customers || n.projects || n.period) && (
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {n.customers && <span className="badge bg-brand-50 text-xs text-brand-700">{n.customers.company_name}</span>}
                   {n.projects && <span className="badge bg-indigo-50 text-xs text-indigo-700">{n.projects.title}</span>}
+                  {n.period && <span className="badge bg-amber-50 text-xs text-amber-700">{n.period.slice(0, 7)} 月末MTG</span>}
                 </div>
               )}
               {(n.summary || n.transcript) && (
@@ -216,6 +217,7 @@ function DetailModal({ note, customers, projects, canDelete, onClose, onSaved }:
   const [recordingUrl, setRecordingUrl] = useState(note.recording_url ?? '')
   const [customerId,   setCustomerId]   = useState(note.customer_id ?? '')
   const [projectId,    setProjectId]    = useState(note.project_id ?? '')
+  const [period,       setPeriod]       = useState(note.period?.slice(0, 7) ?? '') // 'YYYY-MM'
   const [busy,         setBusy]         = useState(false)
   const [analyzing,    setAnalyzing]    = useState(false)
   const [actionItems,  setActionItems]  = useState('')
@@ -282,6 +284,7 @@ function DetailModal({ note, customers, projects, canDelete, onClose, onSaved }:
         recording_url: recordingUrl.trim() || null,
         customer_id:   customerId || null,
         project_id:    projectId || null,
+        period:        period ? `${period}-01` : null,
       })
       onSaved()
     } catch {
@@ -342,6 +345,14 @@ function DetailModal({ note, customers, projects, canDelete, onClose, onSaved }:
               {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
             </select>
           </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">役員月報の月末MTGとして紐付け</label>
+          <input type="month" value={period} onChange={e => setPeriod(e.target.value)} className="input" />
+          <p className="mt-1 text-xs text-slate-400">
+            設定すると「役員月報」ページのその月のセクションにこの議事録・録画が表示されます。
+          </p>
         </div>
 
         <div>
