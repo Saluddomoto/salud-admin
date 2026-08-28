@@ -698,22 +698,59 @@ function ReportBody({ report }: { report: DbMonthlyReport }) {
     return report[key]
   }
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {REPORT_BLOCKS.map(block => {
         const visibleFields = block.fields.filter(f => valueOf(f.key))
         if (visibleFields.length === 0) return null
         return (
-          <div key={block.heading}>
-            <p className="mb-2 text-xs font-bold text-slate-400">{block.heading}</p>
+          <div key={block.heading} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 sm:p-5">
+            <p className="mb-3 text-xs font-bold text-slate-500">{block.heading}</p>
             <div className="space-y-3">
               {visibleFields.map(f => (
-                <div key={f.key}>
-                  <p className="mb-1 text-xs font-semibold text-slate-400">{f.label}</p>
-                  <p className="whitespace-pre-wrap text-sm text-slate-700">{valueOf(f.key)}</p>
+                <div key={f.key} className="rounded-xl bg-white p-3">
+                  <p className="mb-1 text-xs font-semibold text-brand-600">{f.label}</p>
+                  <ReportText text={valueOf(f.key) ?? ''} />
                 </div>
               ))}
             </div>
           </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// 保存された文章を、行の形に応じて読みやすく整形する。
+// 「・」「-」始まりの行は箇条書き（折り返しがぶら下げインデントになる）、
+// 「【見出し】」形式の行は小見出し、空行は行間として扱い、それ以外は通常の段落として表示する。
+function ReportText({ text }: { text: string }) {
+  const lines = text.split('\n')
+  return (
+    <div className="text-sm text-slate-700">
+      {lines.map((line, i) => {
+        const trimmed = line.trim()
+        if (trimmed === '') return <div key={i} className="h-2" />
+        const heading = trimmed.match(/^【(.+)】$/)
+        if (heading) {
+          return (
+            <p key={i} className="mb-1 mt-2.5 text-xs font-semibold text-slate-500 first:mt-0">
+              {trimmed}
+            </p>
+          )
+        }
+        const bullet = trimmed.match(/^[・･\-]\s*(.+)$/)
+        if (bullet) {
+          return (
+            <div key={i} className="flex gap-1.5 py-0.5 pl-0.5">
+              <span className="shrink-0 text-slate-300">・</span>
+              <span className="whitespace-pre-wrap">{bullet[1]}</span>
+            </div>
+          )
+        }
+        return (
+          <p key={i} className="whitespace-pre-wrap py-0.5">
+            {line}
+          </p>
         )
       })}
     </div>
