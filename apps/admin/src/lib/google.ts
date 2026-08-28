@@ -74,6 +74,7 @@ type GoogleEvent = {
   summary?: string
   start?: { dateTime?: string; date?: string }
   end?:   { dateTime?: string; date?: string }
+  creator?: { email?: string; displayName?: string }
 }
 
 // UTCエポックms → JST の日付・時刻文字列
@@ -89,6 +90,16 @@ export async function syncGoogleCalendars(opts: { force?: boolean } = {}): Promi
     .from('google_calendar_connections')
     .select('user_id, refresh_token, calendar_id, last_synced_at')
     .not('calendar_id', 'is', null)
+
+  // 予定の実際の作成者をメールアドレスで突き止めるためのマップ。
+  // 共有カレンダー（例: 社内用）は1人しか接続していなくても、他メンバーが
+  // 自分のGoogleアカウントでその予定を作成していれば creator.email で判別できる。
+  const { data: authUsers } = await admin.auth.admin.listUsers()
+  const emailToProfileId = new Map(
+    (authUsers?.users ?? [])
+      .filter(u => u.email)
+      .map(u => [u.email!.toLowerCase(), u.id] as const),
+  )
 
   let synced = 0, skipped = 0
   const now = Date.now()
@@ -131,13 +142,17 @@ export async function syncGoogleCalendars(opts: { force?: boolean } = {}): Promi
         const title = ev.summary || '（無題）'
         // タイトルに「商談/営業」が含まれれば商談(sales)、それ以外は打ち合わせ(meeting)として扱う
         const category = /商談|営業/.test(title) ? 'sales' : 'meeting'
+        // 予定の実作成者（Googleカレンダー上のcreator）が判明すればその人に、
+        // 不明・社外ゲスト等の場合のみカレンダー接続者（conn.user_id）にフォールバック
+        const creatorEmail = ev.creator?.email?.toLowerCase()
+        const ownerId = (creatorEmail && emailToProfileId.get(creatorEmail)) || conn.user_id
         rows.push({
           google_event_id:  gid,
           title,
           event_date, start_time, end_time,
           category,
-          assigned_user_id: conn.user_id,
-          created_by:       conn.user_id,
+          assigned_user_id: ownerId,
+          created_by:       ownerId,
           notes:            'Google カレンダーから同期',
         })
       }
