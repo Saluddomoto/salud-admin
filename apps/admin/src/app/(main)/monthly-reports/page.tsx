@@ -45,8 +45,8 @@ const REVIEW_FIELDS: ReportField[] = [
     key: 'actions',
     label: '① 今月の活動',
     question: '今月、主体的に取り組んだこと・改善したことは？',
-    hint: '日々の業務だけでなく、自分で考えて動いたこと、新しく挑戦したこと、業務を改善したことなど、今月の主な活動を振り返ります。',
-    example: '・代理店候補と商談し、契約まで進めた\n・補助金案件の進め方を整理した\n・Webサイトの不具合を発見し、復旧対応した\n・業務フローを見直し、○○の作業を効率化した',
+    hint: '日々の業務だけでなく、自分で考えて動いたこと、新しく挑戦したこと、業務の改善や学びなど、今月の主な活動を振り返ります（旧「取り組んだこと」欄はここに統合されました）。',
+    example: '・代理店候補と商談し、契約まで進めた\n・補助金案件の進め方を整理した\n・Webサイトの不具合を発見し、復旧対応した\n・業務フローを見直し、○○の作業を効率化した\n・LINE問い合わせ対応マニュアルを整備した',
   },
   {
     key: 'sales',
@@ -54,13 +54,6 @@ const REVIEW_FIELDS: ReportField[] = [
     question: '今月、売上・顧客・案件につながる活動は？',
     hint: '商談・紹介・提案・契約・既存顧客へのフォローなど、売上や顧客獲得につながる活動を振り返ります。可能であれば件数・金額・契約状況など数字を入れてください。',
     example: '・新規商談3件\n・代理店候補5社へ提案\n・既存顧客へ追加提案\n・紹介から1件契約\n・士業との連携を1件開始',
-  },
-  {
-    key: 'initiatives',
-    label: '取り組んだこと',
-    question: '今月、新しく始めたこと・改善したこと・学んだことは？',
-    hint: '将来のSaludにつながる改善や成長を振り返ります。',
-    example: '・LINE問い合わせ対応マニュアルを整備した\n・新しい補助金情報のキャッチアップ会を月1で開始した',
   },
 ]
 
@@ -86,7 +79,7 @@ const GOAL_FIELDS: ReportField[] = [
 const MEETING_FIELDS: ReportField[] = [
   {
     key: 'discussion_topics',
-    label: '⑤ 月末会議で議論したいこと',
+    label: '⑤ 議論したいこと',
     question: '月末の場で、みんなに相談・議論したいことは？',
     hint: 'みんなの意見を聞きたいこと、会社として意思決定したいことを書いてください。「相談があります」ではなく、何について意見が欲しいのか具体的に。月末会議のアジェンダとして使います。',
     example: '・持続化補助金をAI中心のサービスに変えていくべきか\n・代理店制度の次のステップをどうするか\n・新しいストックサービスをどう設計するか\n・業務を誰にどこまで任せるか\n・新サービスの価格設定をどうするか',
@@ -140,12 +133,19 @@ const EMPTY_INPUT: MonthlyReportInput = {
   next_month_actions: '', next_month_outcome: '', support_needed: '',
 }
 
+// 「① 今月の活動」欄は旧「行動」(actions)と旧「取り組んだこと」(initiatives)を統合した項目。
+// 別カラムのまま残っている過去データを失わないよう、表示・編集どちらも両方の内容を合体して扱う。
+// 保存すると自然に actions 側へ一本化され、initiatives 側は空になる（DBスキーマは変更しない）。
+function mergedActions(report: Pick<DbMonthlyReport, 'actions' | 'initiatives'>): string {
+  return [report.actions, report.initiatives].filter(Boolean).join('\n')
+}
+
 function reportToInput(report: DbMonthlyReport): MonthlyReportInput {
   return {
-    actions: report.actions ?? '',
+    actions: mergedActions(report),
     sales: report.sales ?? '',
     tasks: report.tasks ?? '',
-    initiatives: report.initiatives ?? '',
+    initiatives: '',
     goal_progress: report.goal_progress ?? '',
     challenges: report.challenges ?? '',
     discussion_topics: report.discussion_topics ?? '',
@@ -591,10 +591,11 @@ function GoalPanel({ year, goal }: { year: number; goal: string | null }) {
 }
 
 function ReportBody({ report }: { report: DbMonthlyReport }) {
+  const valueOf = (key: keyof MonthlyReportInput) => (key === 'actions' ? mergedActions(report) : report[key])
   return (
     <div className="space-y-5">
       {REPORT_BLOCKS.map(block => {
-        const visibleFields = block.fields.filter(f => report[f.key])
+        const visibleFields = block.fields.filter(f => valueOf(f.key))
         if (visibleFields.length === 0) return null
         return (
           <div key={block.heading}>
@@ -603,7 +604,7 @@ function ReportBody({ report }: { report: DbMonthlyReport }) {
               {visibleFields.map(f => (
                 <div key={f.key}>
                   <p className="mb-1 text-xs font-semibold text-slate-400">{f.label}</p>
-                  <p className="whitespace-pre-wrap text-sm text-slate-700">{report[f.key]}</p>
+                  <p className="whitespace-pre-wrap text-sm text-slate-700">{valueOf(f.key)}</p>
                 </div>
               ))}
             </div>
