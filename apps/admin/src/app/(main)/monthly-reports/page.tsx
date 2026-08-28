@@ -87,24 +87,19 @@ const MEETING_FIELDS: ReportField[] = [
 ]
 
 // 【D】来月の計画
+// 「⑥ 来月の取り組み・成果」は旧「来月取り組むこと」(next_month_actions)と旧「来月の成果」(next_month_outcome)を
+// 統合した項目。行動と成果を別々の欄に分けず、1つの自然な文章で「何をして、どうなりたいか」を書いてもらう。
 const NEXT_FIELDS: ReportField[] = [
   {
     key: 'next_month_actions',
-    label: '⑥ 来月の取り組み',
-    question: '来月、取り組むこと・改善することは？',
-    hint: '今月の振り返りや議論を、来月の具体的な行動につなげます。「頑張る」「検討する」ではなく、具体的な行動を書きます。',
-    example: '・持続化補助金の業務フローを整理する\n・代理店候補5社へ提案する\n・新サービス候補3社へヒアリングする\n・AIによる計画書作成支援をテストする',
-  },
-  {
-    key: 'next_month_outcome',
-    label: '⑦ 来月の成果',
-    question: '来月、どういう状態になっていたら「進んだ」と言える？',
-    hint: '何をするかではなく、来月の終わりにどうなっていたいかを明確にします。「行動」ではなく「成果・状態」を書きます。',
-    example: 'NG：マニュアルを作る\nOK：持続化補助金を他のメンバーでも対応できる状態にする\n\nNG：新サービスを考える\nOK：新サービスの初期顧客候補3社へのヒアリングを完了し、サービス内容を決定する\n\nNG：代理店営業を頑張る\nOK：代理店候補5社と商談し、1社以上の契約につなげる',
+    label: '⑥ 来月の取り組み・成果',
+    question: '来月、何に取り組み、どんな状態を目指す？',
+    hint: '今月の振り返りを踏まえて、来月やることと、その結果どうなっていたいかを1つの文章で整理します。',
+    example: '・代理店候補5社に提案し、1社以上の契約につなげる\n・持続化補助金の業務フローを整理し、他のメンバーでも対応できる状態にする\n・新サービスの顧客ヒアリングを3社実施し、サービス内容を固める',
   },
   {
     key: 'support_needed',
-    label: '⑧ 必要なサポート',
+    label: '⑦ 必要なサポート',
     question: '目標達成のために、会社・役員・メンバーに協力してほしいことは？',
     hint: '個人ではなく、組織で成果を出すために必要な協力を明確にします。誰に、何を協力してほしいのかまで具体的に書きます。',
     example: '・栗原さんに補助金業務の標準化について相談したい\n・堂本さんに新サービスの方向性について意思決定してほしい\n・○○さんにWeb制作部分をお願いしたい\n・営業資料の作成をサポートしてほしい',
@@ -134,10 +129,16 @@ const EMPTY_INPUT: MonthlyReportInput = {
 }
 
 // 「① 今月の活動」欄は旧「行動」(actions)と旧「取り組んだこと」(initiatives)を統合した項目。
-// 別カラムのまま残っている過去データを失わないよう、表示・編集どちらも両方の内容を合体して扱う。
-// 保存すると自然に actions 側へ一本化され、initiatives 側は空になる（DBスキーマは変更しない）。
+// 「⑥ 来月の取り組み・成果」欄は旧「来月取り組むこと」(next_month_actions)と
+// 旧「来月の成果」(next_month_outcome)を統合した項目。
+// どちらも、別カラムのまま残っている過去データを失わないよう、表示・編集どちらも両方の内容を合体して扱う。
+// 保存すると自然に前者のカラムへ一本化され、後者は空になる（DBスキーマは変更しない）。
 function mergedActions(report: Pick<DbMonthlyReport, 'actions' | 'initiatives'>): string {
   return [report.actions, report.initiatives].filter(Boolean).join('\n')
+}
+
+function mergedNextMonth(report: Pick<DbMonthlyReport, 'next_month_actions' | 'next_month_outcome'>): string {
+  return [report.next_month_actions, report.next_month_outcome].filter(Boolean).join('\n')
 }
 
 function reportToInput(report: DbMonthlyReport): MonthlyReportInput {
@@ -149,8 +150,8 @@ function reportToInput(report: DbMonthlyReport): MonthlyReportInput {
     goal_progress: report.goal_progress ?? '',
     challenges: report.challenges ?? '',
     discussion_topics: report.discussion_topics ?? '',
-    next_month_actions: report.next_month_actions ?? '',
-    next_month_outcome: report.next_month_outcome ?? '',
+    next_month_actions: mergedNextMonth(report),
+    next_month_outcome: '',
     support_needed: report.support_needed ?? '',
   }
 }
@@ -691,7 +692,11 @@ function GoalPanel({ year, goal }: { year: number; goal: string | null }) {
 }
 
 function ReportBody({ report }: { report: DbMonthlyReport }) {
-  const valueOf = (key: keyof MonthlyReportInput) => (key === 'actions' ? mergedActions(report) : report[key])
+  const valueOf = (key: keyof MonthlyReportInput) => {
+    if (key === 'actions') return mergedActions(report)
+    if (key === 'next_month_actions') return mergedNextMonth(report)
+    return report[key]
+  }
   return (
     <div className="space-y-5">
       {REPORT_BLOCKS.map(block => {
