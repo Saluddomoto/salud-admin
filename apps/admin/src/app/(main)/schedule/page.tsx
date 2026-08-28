@@ -8,10 +8,11 @@ import { fetchEvents, insertEvent, type DbEvent } from '@/lib/db'
 const WEEK_DAYS = ['月', '火', '水', '木', '金', '土', '日']
 
 const CATEGORY_META: Record<DbEvent['category'], { label: string; color: string; cls: string }> = {
-  sales:    { label: '商談', color: '#f59e0b', cls: 'bg-amber-100 text-amber-700' },
-  meeting:  { label: '面談', color: '#6366f1', cls: 'bg-indigo-100 text-indigo-700' },
-  deadline: { label: '締切', color: '#ef4444', cls: 'bg-rose-100 text-rose-700' },
-  internal: { label: '社内', color: '#64748b', cls: 'bg-slate-100 text-slate-600' },
+  sales:         { label: '商談', color: '#f59e0b', cls: 'bg-amber-100 text-amber-700' },
+  first_meeting: { label: '見込み案件初回商談', color: '#14b8a6', cls: 'bg-teal-100 text-teal-700' },
+  meeting:       { label: '面談', color: '#6366f1', cls: 'bg-indigo-100 text-indigo-700' },
+  deadline:      { label: '締切', color: '#ef4444', cls: 'bg-rose-100 text-rose-700' },
+  internal:      { label: '社内', color: '#64748b', cls: 'bg-slate-100 text-slate-600' },
 }
 
 // 入力者（担当者）ごとの色分け（キーは苗字。full_name の前方一致で判定）

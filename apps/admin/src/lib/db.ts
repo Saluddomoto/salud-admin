@@ -126,7 +126,7 @@ export type DbEvent = {
   event_date: string
   start_time: string // 'HH:MM:SS'
   end_time: string
-  category: 'sales' | 'meeting' | 'deadline' | 'internal'
+  category: 'sales' | 'first_meeting' | 'meeting' | 'deadline' | 'internal'
   notes: string | null
   assigned_user_id: string | null
   profiles: { full_name: string } | null

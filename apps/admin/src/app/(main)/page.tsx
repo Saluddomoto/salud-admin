@@ -14,7 +14,7 @@ import { buildLedgerRows, derivePipelineForecastRows, deriveFutureContractForeca
 import { BUSINESS_LINE_LABELS } from '@/lib/revenueCategories'
 
 const EVENT_COLORS: Record<DbEvent['category'], string> = {
-  sales: '#f59e0b', meeting: '#6366f1', deadline: '#ef4444', internal: '#64748b',
+  sales: '#f59e0b', first_meeting: '#14b8a6', meeting: '#6366f1', deadline: '#ef4444', internal: '#64748b',
 }
 
 const PRIORITY_META: Record<DbTask['priority'], { label: string; cls: string }> = {
