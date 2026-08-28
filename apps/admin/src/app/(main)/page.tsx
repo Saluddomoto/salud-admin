@@ -6,9 +6,10 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import {
   fetchCustomerCount, fetchEvents, fetchMyProfile, fetchNeedsReplyCount, fetchProjects, fetchTasks,
   fetchRevenueLedger, fetchRecurringContracts, fetchTaskCompletions, setTaskCompletion,
-  fetchDashboardSettings, updateDashboardZoomUrl,
+  fetchDashboardSettings, updateDashboardZoomUrl, fetchSubsidyProgramDeadlines,
   formatAmount, updateTaskStatus, type DbEvent, type DbProfile, type DbProject, type DbTask,
   type DbRevenueEntry, type DbRecurringContract, type DbTaskCompletion, type DbDashboardSettings,
+  type DbSubsidyProgramDeadline,
 } from '@/lib/db'
 import { buildLedgerRows, derivePipelineForecastRows, deriveFutureContractForecastRows, sumRowsByBusinessLine } from '@/lib/revenueRows'
 import { BUSINESS_LINE_LABELS } from '@/lib/revenueCategories'
@@ -66,6 +67,7 @@ export default function DashboardPage() {
   const [contracts,     setContracts]     = useState<DbRecurringContract[]>([])
   const [completions,   setCompletions]   = useState<DbTaskCompletion[]>([])
   const [dashSettings,  setDashSettings]  = useState<DbDashboardSettings | null>(null)
+  const [programDeadlines, setProgramDeadlines] = useState<DbSubsidyProgramDeadline[]>([])
   const [loading,       setLoading]       = useState(true)
   const [zoomEditing,   setZoomEditing]   = useState(false)
   const [zoomDraft,     setZoomDraft]     = useState('')
@@ -87,6 +89,7 @@ export default function DashboardPage() {
       fetchRecurringContracts().then(setContracts).catch(() => {}),
       fetchTaskCompletions(today).then(setCompletions).catch(() => {}),
       fetchDashboardSettings().then(setDashSettings).catch(() => {}),
+      fetchSubsidyProgramDeadlines().then(setProgramDeadlines).catch(() => {}),
     ]).finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -131,6 +134,16 @@ export default function DashboardPage() {
     .filter(p => p.deadline && daysUntil(p.deadline, today) >= 0 && daysUntil(p.deadline, today) <= 14)
     .sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''))
     .slice(0, 5)
+
+  // 各補助金プログラムの公募回締切（案件と紐づかない制度そのものの締切）。
+  // 経済産業省系を優先しつつ、直近のものから最大6件表示する。
+  const upcomingProgramDeadlines = programDeadlines
+    .filter(d => daysUntil(d.deadline_date, today) >= 0)
+    .sort((a, b) => {
+      const metiDiff = Number(b.ministry === '経済産業省') - Number(a.ministry === '経済産業省')
+      return metiDiff !== 0 ? metiDiff : a.deadline_date.localeCompare(b.deadline_date)
+    })
+    .slice(0, 6)
 
   // ルーティン（期限なし・毎日）タスクは常に表示し、完了は task_completions（当日分）で判定する。
   // それ以外は従来どおり期限が今日までのものを表示し、status で完了判定する。
@@ -302,6 +315,34 @@ export default function DashboardPage() {
             <Link href="/subsidies" className="text-sm font-medium text-amber-700 whitespace-nowrap hover:underline">
               すべて確認 →
             </Link>
+          </div>
+        </div>
+      )}
+
+      {/* 補助金プログラムの公募締切（案件と紐づかない、制度そのものの次回締切） */}
+      {upcomingProgramDeadlines.length > 0 && (
+        <div className="card p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold text-slate-900">補助金プログラムの公募締切（経済産業省系を優先表示）</p>
+            <Link href="/subsidies" className="text-xs font-medium text-brand-600 hover:underline">管理する →</Link>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {upcomingProgramDeadlines.map(d => {
+              const days = daysUntil(d.deadline_date, today)
+              const urgent = days <= 14
+              return (
+                <div key={d.id} className="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 text-sm">
+                  <span className={`h-2 w-2 flex-shrink-0 rounded-full ${d.ministry === '経済産業省' ? 'bg-brand-500' : 'bg-slate-300'}`} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-slate-800">{d.program_name}{d.round_label ? `（${d.round_label}）` : ''}</p>
+                    <p className="text-xs text-slate-400">{d.ministry ?? '—'} · {d.deadline_date}</p>
+                  </div>
+                  <span className={`flex-shrink-0 text-xs font-semibold ${urgent ? 'text-rose-600' : 'text-slate-500'}`}>
+                    {days === 0 ? '本日締切' : `残り${days}日`}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

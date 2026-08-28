@@ -1561,3 +1561,43 @@ export async function deletePartnerAgency(id: string) {
   const { error } = await db().from('partner_agencies').delete().eq('id', id)
   if (error) throw error
 }
+
+// ── 補助金プログラムの公募締切（案件と紐づかない、制度そのものの締切） ──────
+export type DbSubsidyProgramDeadline = {
+  id: string
+  program_name: string
+  ministry: string | null
+  round_label: string | null
+  deadline_date: string
+  notes: string | null
+}
+
+export async function fetchSubsidyProgramDeadlines(): Promise<DbSubsidyProgramDeadline[]> {
+  const { data, error } = await db()
+    .from('subsidy_program_deadlines')
+    .select('id, program_name, ministry, round_label, deadline_date, notes')
+    .order('deadline_date', { ascending: true })
+  if (error) throw error
+  return data as DbSubsidyProgramDeadline[]
+}
+
+export async function insertSubsidyProgramDeadline(input: {
+  program_name: string
+  ministry: string | null
+  round_label: string | null
+  deadline_date: string
+  notes: string | null
+}) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client.from('subsidy_program_deadlines').insert({
+    ...input,
+    created_by: user?.id ?? null,
+  })
+  if (error) throw error
+}
+
+export async function deleteSubsidyProgramDeadline(id: string) {
+  const { error } = await db().from('subsidy_program_deadlines').delete().eq('id', id)
+  if (error) throw error
+}

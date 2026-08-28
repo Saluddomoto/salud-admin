@@ -3,8 +3,15 @@
 import { Fragment, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { fetchProjects, fetchRevenueLedger, formatAmount, type DbProject, type DbRevenueEntry } from '@/lib/db'
+import { Modal } from '@/components/Modal'
+import {
+  fetchProjects, fetchRevenueLedger, formatAmount, type DbProject, type DbRevenueEntry,
+  fetchSubsidyProgramDeadlines, insertSubsidyProgramDeadline, deleteSubsidyProgramDeadline,
+  type DbSubsidyProgramDeadline,
+} from '@/lib/db'
 import { matchRevenueCategoryFromSubsidyName, buildCategoryAcceptanceStats, MIN_DECIDED_FOR_ACTUAL_ACCEPTANCE_RATE } from '@/lib/revenueCategories'
+
+const MINISTRIES = ['経済産業省', '厚生労働省', '都道府県・市区町村', 'その他'] as const
 
 const STATUS_META: Record<DbProject['status'], { label: string; cls: string }> = {
   planning:    { label: '見込み',     cls: 'bg-slate-100 text-slate-600' },
@@ -89,15 +96,53 @@ export default function SubsidiesPage() {
   const [ledger,   setLedger]   = useState<DbRevenueEntry[]>([])
   const [loading,  setLoading]  = useState(true)
   const [filter,   setFilter]   = useState('')
-  const [view,     setView]     = useState<'list' | 'category'>('list')
+  const [view,     setView]     = useState<'list' | 'category' | 'deadlines'>('list')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [year,     setYear]     = useState<number | null>(new Date().getFullYear())
+
+  const [deadlines,        setDeadlines]        = useState<DbSubsidyProgramDeadline[]>([])
+  const [deadlinesLoading, setDeadlinesLoading]  = useState(true)
+  const [deadlineModalOpen, setDeadlineModalOpen] = useState(false)
+  const [deadlineSaving,    setDeadlineSaving]    = useState(false)
 
   useEffect(() => {
     Promise.all([fetchProjects(), fetchRevenueLedger()])
       .then(([p, l]) => { setProjects(p); setLedger(l) })
       .finally(() => setLoading(false))
   }, [])
+
+  const loadDeadlines = () => {
+    setDeadlinesLoading(true)
+    fetchSubsidyProgramDeadlines().then(setDeadlines).finally(() => setDeadlinesLoading(false))
+  }
+  useEffect(loadDeadlines, [])
+
+  const handleDeadlineSubmit = async (ev: React.FormEvent<HTMLFormElement>) => {
+    ev.preventDefault()
+    const f = new FormData(ev.currentTarget)
+    setDeadlineSaving(true)
+    try {
+      await insertSubsidyProgramDeadline({
+        program_name:  String(f.get('program_name')),
+        ministry:      String(f.get('ministry')) || null,
+        round_label:   String(f.get('round_label')) || null,
+        deadline_date: String(f.get('deadline_date')),
+        notes:         String(f.get('notes')) || null,
+      })
+      setDeadlineModalOpen(false)
+      loadDeadlines()
+    } catch (e) {
+      alert(`保存に失敗しました: ${e instanceof Error ? e.message : e}`)
+    } finally {
+      setDeadlineSaving(false)
+    }
+  }
+
+  const handleDeadlineDelete = async (id: string) => {
+    if (!confirm('この締切を削除しますか？')) return
+    await deleteSubsidyProgramDeadline(id)
+    loadDeadlines()
+  }
 
   const filtered = filter ? projects.filter(p => p.status === filter) : projects
   const accepted = projects.filter(p => p.status === 'accepted')
@@ -139,8 +184,9 @@ export default function SubsidiesPage() {
 
       <div className="flex gap-1 border-b border-slate-200">
         {[
-          { key: 'list' as const,     label: '案件一覧' },
-          { key: 'category' as const, label: 'カテゴリ別実績' },
+          { key: 'list' as const,      label: '案件一覧' },
+          { key: 'category' as const,  label: 'カテゴリ別実績' },
+          { key: 'deadlines' as const, label: '公募締切' },
         ].map(t => (
           <button
             key={t.key}
@@ -361,6 +407,94 @@ export default function SubsidiesPage() {
           </div>
         </div>
       )}
+
+      {view === 'deadlines' && (
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-slate-400">
+              特定の顧客案件とは別に、各補助金プログラムの公式な公募回の締切を管理します（経済産業省・厚生労働省・自治体など）。
+            </p>
+            <button className="btn-primary text-sm" onClick={() => setDeadlineModalOpen(true)}>+ 締切を追加</button>
+          </div>
+          <div className="card overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs text-slate-500">
+                  <th className="px-4 py-3 font-medium">プログラム名</th>
+                  <th className="px-4 py-3 font-medium">省庁・自治体</th>
+                  <th className="px-4 py-3 font-medium">回次</th>
+                  <th className="px-4 py-3 font-medium">締切日</th>
+                  <th className="px-4 py-3 font-medium">メモ</th>
+                  <th className="px-4 py-3 font-medium"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {deadlinesLoading && (
+                  <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">読み込み中...</td></tr>
+                )}
+                {!deadlinesLoading && deadlines.map(d => (
+                  <tr key={d.id} className="border-b border-slate-50">
+                    <td className="px-4 py-3 font-medium text-slate-900">{d.program_name}</td>
+                    <td className="px-4 py-3">
+                      {d.ministry && (
+                        <span className={`badge ${d.ministry === '経済産業省' ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {d.ministry}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{d.round_label ?? '—'}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-800">{d.deadline_date}</td>
+                    <td className="px-4 py-3 text-slate-500">{d.notes ?? '—'}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button className="text-xs text-slate-400 hover:text-rose-600" onClick={() => handleDeadlineDelete(d.id)}>削除</button>
+                    </td>
+                  </tr>
+                ))}
+                {!deadlinesLoading && deadlines.length === 0 && (
+                  <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">
+                    登録されている締切はありません。「+ 締切を追加」から登録してください。
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <Modal title="補助金プログラムの締切を追加" open={deadlineModalOpen} onClose={() => setDeadlineModalOpen(false)}>
+        <form onSubmit={handleDeadlineSubmit} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">プログラム名 *</label>
+            <input name="program_name" required className="input" placeholder="例: 小規模事業者持続化補助金（第20回）" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">省庁・自治体</label>
+              <select name="ministry" className="input" defaultValue="経済産業省">
+                {MINISTRIES.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">回次</label>
+              <input name="round_label" className="input" placeholder="例: 第20回" />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">締切日 *</label>
+            <input name="deadline_date" type="date" required className="input" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">メモ</label>
+            <textarea name="notes" rows={2} className="input" />
+          </div>
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+            <button type="button" className="btn-secondary text-sm" onClick={() => setDeadlineModalOpen(false)}>キャンセル</button>
+            <button type="submit" disabled={deadlineSaving} className="btn-primary text-sm">
+              {deadlineSaving ? '保存中...' : '保存する'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }
