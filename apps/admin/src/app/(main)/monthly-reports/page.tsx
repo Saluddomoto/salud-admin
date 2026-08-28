@@ -9,6 +9,7 @@ import {
   type DbProfile, type DbMonthlyReport, type MonthlyReportInput, type DbTask,
   type DbBoardPrepSheet, type BoardPrepSheetInput,
 } from '@/lib/db'
+import type { MonthlyReportSummary } from '@salud/ai'
 
 const PREP_FIELDS: { key: keyof BoardPrepSheetInput; label: string; hint: string }[] = [
   {
@@ -184,6 +185,11 @@ export default function MonthlyReportsPage() {
   const [prepForm,    setPrepForm]    = useState<BoardPrepSheetInput>(EMPTY_PREP_INPUT)
   const [prepSaving,  setPrepSaving]  = useState(false)
 
+  // 月報のAI横断分析（クリックしたときだけ実行。DBには保存せずその場で表示するだけ）
+  const [aiSummary, setAiSummary] = useState<MonthlyReportSummary | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError,   setAiError]   = useState<string | null>(null)
+
   const period = useMemo(() => `${y}-${pad(m)}-01`, [y, m])
   const periodEnd = useMemo(() => {
     const total = y * 12 + (m - 1) + 1
@@ -232,6 +238,28 @@ export default function MonthlyReportsPage() {
       const total = (prev.y * 12 + (prev.m - 1)) + delta
       return { y: Math.floor(total / 12), m: (total % 12) + 1 }
     })
+    // 月を切り替えたら、前の月のAI分析結果を出しっぱなしにしない
+    setAiSummary(null)
+    setAiError(null)
+  }
+
+  const handleRunAi = async () => {
+    setAiLoading(true)
+    setAiError(null)
+    try {
+      const res = await fetch('/api/monthly-reports/ai-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ period }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'AI分析に失敗しました')
+      setAiSummary(data as MonthlyReportSummary)
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   const isCurrentMonth = useMemo(() => {
@@ -472,6 +500,26 @@ export default function MonthlyReportsPage() {
           </button>
         </div>
       </div>
+
+      {/* AI横断分析（クリックしたときだけ、3人分の月報をまとめてAIに分析させる） */}
+      {isExecutive && (
+        <div className="card p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">AI分析</p>
+              <p className="text-xs text-slate-400">
+                {y}年{m}月の役員月報をまとめてAIに読ませ、全体の要約・好調な点・共通の課題・
+                月末会議のアジェンダ・アドバイスを生成します。
+              </p>
+            </div>
+            <button className="btn-primary text-sm whitespace-nowrap" onClick={handleRunAi} disabled={aiLoading}>
+              {aiLoading ? '分析中...' : aiSummary ? '再分析する' : 'AI分析を実行'}
+            </button>
+          </div>
+          {aiError && <p className="mt-3 text-sm text-rose-600">{aiError}</p>}
+          {aiSummary && <AiSummaryBody summary={aiSummary} />}
+        </div>
+      )}
 
       {/* 自分の月報 */}
       {isExecutive && me && (
@@ -753,6 +801,42 @@ function ReportText({ text }: { text: string }) {
           </p>
         )
       })}
+    </div>
+  )
+}
+
+const AI_SUMMARY_LISTS: { key: keyof Pick<MonthlyReportSummary, 'highlights' | 'risks' | 'discussionAgenda' | 'advice'>; label: string }[] = [
+  { key: 'highlights',       label: '好調な点・進捗' },
+  { key: 'risks',            label: '共通の課題' },
+  { key: 'discussionAgenda', label: '月末会議のアジェンダ' },
+  { key: 'advice',           label: 'アドバイス' },
+]
+
+function AiSummaryBody({ summary }: { summary: MonthlyReportSummary }) {
+  return (
+    <div className="mt-4 space-y-4 border-t border-slate-100 pt-4">
+      {summary.overview && (
+        <p className="whitespace-pre-wrap text-sm text-slate-700">{summary.overview}</p>
+      )}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {AI_SUMMARY_LISTS.map(({ key, label }) => {
+          const items = summary[key]
+          if (!items || items.length === 0) return null
+          return (
+            <div key={key} className="rounded-xl bg-slate-50 p-3.5">
+              <p className="mb-1.5 text-xs font-semibold text-brand-600">{label}</p>
+              <ul className="space-y-1">
+                {items.map((item, i) => (
+                  <li key={i} className="flex gap-1.5 text-sm text-slate-700">
+                    <span className="shrink-0 text-slate-300">・</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
