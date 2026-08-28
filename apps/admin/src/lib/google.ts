@@ -94,10 +94,16 @@ export async function syncGoogleCalendars(opts: { force?: boolean } = {}): Promi
   // 予定の実際の作成者をメールアドレスで突き止めるためのマップ。
   // 共有カレンダー（例: 社内用）は1人しか接続していなくても、他メンバーが
   // 自分のGoogleアカウントでその予定を作成していれば creator.email で判別できる。
-  const { data: authUsers } = await admin.auth.admin.listUsers()
+  // is_active な profiles のみを対象にする（テスト用ダミーアカウント等の
+  // 非アクティブなプロフィールに紐付いてしまわないようにするため）。
+  const [{ data: authUsers }, { data: activeProfiles }] = await Promise.all([
+    admin.auth.admin.listUsers(),
+    admin.from('profiles').select('id').eq('is_active', true),
+  ])
+  const activeProfileIds = new Set((activeProfiles ?? []).map(p => p.id))
   const emailToProfileId = new Map(
     (authUsers?.users ?? [])
-      .filter(u => u.email)
+      .filter(u => u.email && activeProfileIds.has(u.id))
       .map(u => [u.email!.toLowerCase(), u.id] as const),
   )
 
