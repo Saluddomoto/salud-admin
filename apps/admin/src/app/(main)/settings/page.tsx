@@ -51,7 +51,6 @@ export default function SettingsPage() {
   const [members,    setMembers]    = useState<DbProfile[]>([])
   const [fullName,   setFullName]   = useState('')
   const [department, setDepartment] = useState('')
-  const [annualGoal, setAnnualGoal] = useState('')
   const [saving,     setSaving]     = useState(false)
   const [saved,      setSaved]      = useState(false)
 
@@ -85,7 +84,6 @@ export default function SettingsPage() {
       setMe(p)
       setFullName(p?.full_name ?? '')
       setDepartment(p?.department ?? '')
-      setAnnualGoal(p?.annual_goal ?? '')
       setPrefs(p?.notification_prefs ?? null)
     })
     fetchProfiles().then(setMembers).catch(() => setMembers([]))
@@ -149,7 +147,7 @@ export default function SettingsPage() {
     setSaving(true)
     setSaved(false)
     try {
-      await updateMyProfile({ full_name: fullName, department: department || null, annual_goal: annualGoal || null })
+      await updateMyProfile({ full_name: fullName, department: department || null })
       setSaved(true)
     } catch (e) {
       alert(`保存に失敗しました: ${e instanceof Error ? e.message : e}`)
@@ -359,18 +357,6 @@ export default function SettingsPage() {
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">権限</label>
                   <input className="input" value={myRole.label} disabled />
                 </div>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">今年の目標</label>
-                <p className="mb-1.5 text-xs text-slate-400">
-                  役員月報の「目標への進捗」に毎月表示されます。売上の数値目標とは別の、質的な目標です。
-                </p>
-                <textarea
-                  className="input min-h-[90px] resize-y"
-                  placeholder="例）AI×補助金×Webの新しい価値提供モデルを作る"
-                  value={annualGoal}
-                  onChange={e => setAnnualGoal(e.target.value)}
-                />
               </div>
               <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
                 {saved && <span className="text-sm text-emerald-600">保存しました</span>}

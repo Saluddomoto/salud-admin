@@ -472,12 +472,12 @@ export default function MonthlyReportsPage() {
                   )}
                   {block.heading === '目標への進捗' && (
                     <div className="mb-4 mt-3 rounded-xl bg-white p-3.5">
-                      <p className="mb-1 text-xs font-semibold text-slate-400">{y}年の目標</p>
-                      {me.annual_goal ? (
-                        <p className="whitespace-pre-wrap text-sm text-slate-700">{me.annual_goal}</p>
+                      <p className="mb-1 text-xs font-semibold text-slate-400">{y}年の目標（事前シート③より）</p>
+                      {myPrepSheet?.this_year_contribution ? (
+                        <p className="whitespace-pre-wrap text-sm text-slate-700">{myPrepSheet.this_year_contribution}</p>
                       ) : (
                         <p className="text-sm text-slate-400">
-                          年間目標が未設定です。「設定 → プロフィール」から登録できます。
+                          上の「役員会議 事前シート」の③（今年、自分がSaludにもたらしたいこと）が未記入です。
                         </p>
                       )}
                     </div>
@@ -530,7 +530,7 @@ export default function MonthlyReportsPage() {
               </div>
             </div>
           ) : myReport ? (
-            <ReportBody report={myReport} annualGoal={me.annual_goal} year={y} />
+            <ReportBody report={myReport} annualGoal={myPrepSheet?.this_year_contribution ?? null} year={y} />
           ) : (
             <p className="text-sm text-slate-400">この月の報告はまだありません。</p>
           )}
@@ -544,6 +544,7 @@ export default function MonthlyReportsPage() {
         <div className="space-y-4">
           {others.map(ex => {
             const r = reports.find(rep => rep.user_id === ex.id) ?? null
+            const exPrep = prepSheets.find(sh => sh.user_id === ex.id) ?? null
             return (
               <div key={ex.id} className="card p-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
@@ -554,7 +555,7 @@ export default function MonthlyReportsPage() {
                     <p className="font-semibold text-slate-900">{ex.full_name}</p>
                   </div>
                 </div>
-                {r ? <ReportBody report={r} annualGoal={ex.annual_goal} year={y} /> : (
+                {r ? <ReportBody report={r} annualGoal={exPrep?.this_year_contribution ?? null} year={y} /> : (
                   <p className="text-sm text-slate-400">この月の報告はまだありません。</p>
                 )}
               </div>

@@ -118,7 +118,6 @@ export type DbProfile = {
   chatwork_account_id: string | null
   is_executive: boolean
   annual_target_amount: number | null
-  annual_goal: string | null // 今年の目標（質的テキスト。売上KGIの annual_target_amount とは別物）
 }
 
 export type DbEvent = {
@@ -641,7 +640,7 @@ export async function fetchNeedsReplyCount(): Promise<number> {
 export async function fetchProfiles(): Promise<DbProfile[]> {
   const { data, error } = await db()
     .from('profiles')
-    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount, annual_goal')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount')
     .order('created_at')
   if (error) throw error
   return data as DbProfile[]
@@ -651,7 +650,7 @@ export async function fetchProfiles(): Promise<DbProfile[]> {
 export async function fetchExecutiveProfiles(): Promise<DbProfile[]> {
   const { data, error } = await db()
     .from('profiles')
-    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount, annual_goal')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount')
     .eq('is_executive', true)
     .eq('is_active', true)
     .order('created_at')
@@ -665,14 +664,14 @@ export async function fetchMyProfile(): Promise<DbProfile | null> {
   if (!user) return null
   const { data, error } = await client
     .from('profiles')
-    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount, annual_goal')
+    .select('id, full_name, role, department, is_active, notification_prefs, tasks_shared_with_team, digest_enabled, line_user_id, chatwork_account_id, is_executive, annual_target_amount')
     .eq('id', user.id)
     .single()
   if (error) throw error
   return data as DbProfile
 }
 
-export async function updateMyProfile(input: { full_name: string; department: string | null; annual_goal?: string | null }) {
+export async function updateMyProfile(input: { full_name: string; department: string | null }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
   if (!user) throw new Error('not signed in')
