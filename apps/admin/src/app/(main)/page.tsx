@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import {
   fetchCustomerCount, fetchEvents, fetchMyProfile, fetchNeedsReplyCount, fetchProjects, fetchTasks,
   fetchRevenueLedger, fetchRecurringContracts, fetchTaskCompletions, setTaskCompletion,
-  fetchDashboardSettings, updateDashboardZoomUrl, fetchSubsidyProgramDeadlines,
+  fetchDashboardSettings, updateDashboardZoomUrl, updateDashboardMeetUrl, fetchSubsidyProgramDeadlines,
   formatAmount, updateTaskStatus, type DbEvent, type DbProfile, type DbProject, type DbTask,
   type DbRevenueEntry, type DbRecurringContract, type DbTaskCompletion, type DbDashboardSettings,
   type DbSubsidyProgramDeadline,
@@ -73,6 +73,12 @@ export default function DashboardPage() {
   const [zoomDraft,     setZoomDraft]     = useState('')
   const [zoomSaving,    setZoomSaving]    = useState(false)
   const [zoomCopied,    setZoomCopied]    = useState(false)
+  const [zoomError,     setZoomError]     = useState('')
+  const [meetEditing,   setMeetEditing]   = useState(false)
+  const [meetDraft,     setMeetDraft]     = useState('')
+  const [meetSaving,    setMeetSaving]    = useState(false)
+  const [meetCopied,    setMeetCopied]    = useState(false)
+  const [meetError,     setMeetError]     = useState('')
 
   const now = new Date()
   const today = toISODate(now)
@@ -177,17 +183,19 @@ export default function DashboardPage() {
     }
   }
 
-  const startZoomEdit = () => { setZoomDraft(dashSettings?.zoom_url ?? ''); setZoomEditing(true) }
+  const startZoomEdit = () => { setZoomDraft(dashSettings?.zoom_url ?? ''); setZoomError(''); setZoomEditing(true) }
 
   const saveZoomUrl = async () => {
     setZoomSaving(true)
+    setZoomError('')
     try {
       const url = zoomDraft.trim() || null
       await updateDashboardZoomUrl(url)
-      setDashSettings({ id: 1, zoom_url: url, updated_at: new Date().toISOString() })
+      setDashSettings(prev => ({ id: 1, zoom_url: url, meet_url: prev?.meet_url ?? null, updated_at: new Date().toISOString() }))
       setZoomEditing(false)
     } catch {
       // 保存失敗時は編集欄を開いたままにして再入力できるようにする
+      setZoomError('保存に失敗しました(権限がない可能性があります)')
     } finally {
       setZoomSaving(false)
     }
@@ -199,6 +207,34 @@ export default function DashboardPage() {
       await navigator.clipboard.writeText(dashSettings.zoom_url)
       setZoomCopied(true)
       setTimeout(() => setZoomCopied(false), 1500)
+    } catch {
+      // クリップボードが使えない環境では何もしない
+    }
+  }
+
+  const startMeetEdit = () => { setMeetDraft(dashSettings?.meet_url ?? ''); setMeetError(''); setMeetEditing(true) }
+
+  const saveMeetUrl = async () => {
+    setMeetSaving(true)
+    setMeetError('')
+    try {
+      const url = meetDraft.trim() || null
+      await updateDashboardMeetUrl(url)
+      setDashSettings(prev => ({ id: 1, zoom_url: prev?.zoom_url ?? null, meet_url: url, updated_at: new Date().toISOString() }))
+      setMeetEditing(false)
+    } catch {
+      setMeetError('保存に失敗しました(権限がない可能性があります)')
+    } finally {
+      setMeetSaving(false)
+    }
+  }
+
+  const copyMeetUrl = async () => {
+    if (!dashSettings?.meet_url) return
+    try {
+      await navigator.clipboard.writeText(dashSettings.meet_url)
+      setMeetCopied(true)
+      setTimeout(() => setMeetCopied(false), 1500)
     } catch {
       // クリップボードが使えない環境では何もしない
     }
@@ -219,12 +255,13 @@ export default function DashboardPage() {
       </PageHeader>
 
       {/* Zoom URL（全社共有・1件） */}
-      <div className="card flex items-center gap-3 p-4">
+      <div className="card flex flex-col gap-2 p-4">
+        <div className="flex items-center gap-3">
         <span className="flex-shrink-0 text-sm font-medium text-slate-700">Zoom URL</span>
         {zoomEditing ? (
           <>
             <input
-              type="url"
+              type="text"
               className="input flex-1 text-sm"
               placeholder="https://zoom.us/j/..."
               value={zoomDraft}
@@ -262,6 +299,57 @@ export default function DashboardPage() {
             </button>
           </>
         )}
+        </div>
+        {zoomError && <p className="text-xs text-rose-600">{zoomError}</p>}
+      </div>
+
+      {/* Google Meet URL（全社共有・1件） */}
+      <div className="card flex flex-col gap-2 p-4">
+        <div className="flex items-center gap-3">
+        <span className="flex-shrink-0 text-sm font-medium text-slate-700">Meet URL</span>
+        {meetEditing ? (
+          <>
+            <input
+              type="text"
+              className="input flex-1 text-sm"
+              placeholder="https://meet.google.com/..."
+              value={meetDraft}
+              onChange={e => setMeetDraft(e.target.value)}
+              autoFocus
+            />
+            <button type="button" disabled={meetSaving} className="btn-primary text-sm flex-shrink-0" onClick={saveMeetUrl}>
+              {meetSaving ? '保存中...' : '保存'}
+            </button>
+            <button type="button" className="btn-secondary text-sm flex-shrink-0" onClick={() => setMeetEditing(false)}>
+              キャンセル
+            </button>
+          </>
+        ) : dashSettings?.meet_url ? (
+          <>
+            <a
+              href={dashSettings.meet_url}
+              target="_blank" rel="noopener noreferrer"
+              className="min-w-0 flex-1 truncate text-sm text-brand-600 hover:underline"
+            >
+              {dashSettings.meet_url}
+            </a>
+            <button type="button" className="btn-secondary text-sm flex-shrink-0" onClick={copyMeetUrl}>
+              {meetCopied ? 'コピーしました' : 'コピー'}
+            </button>
+            <button type="button" className="text-xs font-medium text-slate-400 hover:text-brand-600 hover:underline flex-shrink-0" onClick={startMeetEdit}>
+              編集
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="flex-1 text-sm text-slate-400">未設定</span>
+            <button type="button" className="btn-secondary text-sm flex-shrink-0" onClick={startMeetEdit}>
+              URLを設定
+            </button>
+          </>
+        )}
+        </div>
+        {meetError && <p className="text-xs text-rose-600">{meetError}</p>}
       </div>
 
       {/* 要返信アラート */}

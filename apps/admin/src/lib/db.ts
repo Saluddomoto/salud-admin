@@ -102,6 +102,7 @@ export type DbTaskCompletion = {
 export type DbDashboardSettings = {
   id: number
   zoom_url: string | null
+  meet_url: string | null
   updated_at: string
 }
 
@@ -622,6 +623,15 @@ export async function updateDashboardZoomUrl(zoomUrl: string | null) {
   const { error } = await client
     .from('dashboard_settings')
     .upsert({ id: 1, zoom_url: zoomUrl, updated_at: new Date().toISOString(), updated_by: user?.id ?? null })
+  if (error) throw error
+}
+
+export async function updateDashboardMeetUrl(meetUrl: string | null) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client
+    .from('dashboard_settings')
+    .upsert({ id: 1, meet_url: meetUrl, updated_at: new Date().toISOString(), updated_by: user?.id ?? null })
   if (error) throw error
 }
 
