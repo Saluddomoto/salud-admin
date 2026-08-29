@@ -37,6 +37,14 @@ export type DbCustomer = {
   created_at: string
   profiles: { full_name: string } | null
   customer_contacts: DbContact[]
+  // 外部リード連携(例: hojokin-app)由来の顧客のみ設定される
+  external_lead_id: string | null
+  lead_source: string | null
+  selected_subsidy_name: string | null
+  matching_score: number | null
+  matching_reason: string | null
+  via_agency: boolean | null
+  lead_registered_at: string | null
 }
 
 export type DbProject = {
@@ -272,6 +280,73 @@ export async function insertCustomer(input: {
     })
   }
   return data.id
+}
+
+// hojokin-app等の外部リードを手動で取り込む。external_lead_idが既存customerと
+// 一致する場合は上書き更新、なければ新規作成する（先方からの再送・二重登録対策）。
+export async function insertLeadCustomer(input: {
+  external_lead_id: string
+  lead_source: string
+  company_name: string
+  contact_name: string
+  email: string | null
+  phone: string | null
+  industry: string | null
+  employee_count: number | null
+  address: string | null
+  notes: string | null
+  selected_subsidy_name: string | null
+  matching_score: number | null
+  matching_reason: string | null
+  via_agency: boolean
+  lead_registered_at: string | null
+}): Promise<{ id: string; wasUpdate: boolean }> {
+  const client = db()
+  const { data: existing, error: findError } = await client
+    .from('customers')
+    .select('id')
+    .eq('external_lead_id', input.external_lead_id)
+    .maybeSingle()
+  if (findError) throw findError
+
+  const customerFields = {
+    company_name:           input.company_name,
+    email:                  input.email,
+    phone:                  input.phone,
+    industry:               input.industry,
+    employee_count:         input.employee_count,
+    address:                input.address,
+    notes:                  input.notes,
+    external_lead_id:       input.external_lead_id,
+    lead_source:            input.lead_source,
+    selected_subsidy_name:  input.selected_subsidy_name,
+    matching_score:         input.matching_score,
+    matching_reason:        input.matching_reason,
+    via_agency:             input.via_agency,
+    lead_registered_at:     input.lead_registered_at,
+  }
+
+  if (existing) {
+    const { error } = await client.from('customers').update(customerFields).eq('id', existing.id)
+    if (error) throw error
+    return { id: existing.id, wasUpdate: true }
+  }
+
+  const { data, error } = await client
+    .from('customers')
+    .insert({ ...customerFields, status: 'prospect' })
+    .select('id')
+    .single()
+  if (error) throw error
+
+  if (input.contact_name) {
+    await client.from('customer_contacts').insert({
+      customer_id: data.id,
+      name:        input.contact_name,
+      is_primary:  true,
+    })
+  }
+  return { id: data.id, wasUpdate: false }
 }
 
 // ── 案件 ─────────────────────────────────────────────

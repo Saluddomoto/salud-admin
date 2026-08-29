@@ -193,6 +193,28 @@ export default function CustomerDetailPage() {
               <p className="whitespace-pre-wrap text-sm text-slate-600">{customer.notes}</p>
             </div>
           )}
+          {customer.external_lead_id && (
+            <div className="mt-4 border-t border-slate-100 pt-3">
+              <p className="mb-2 text-xs font-medium text-slate-500">
+                {customer.lead_source === 'hojokin_app' ? 'hojokin-appからのリード' : '外部リード'}
+              </p>
+              <dl className="space-y-2 text-sm">
+                {[
+                  { label: 'リードID',   value: customer.external_lead_id },
+                  { label: '選定補助金', value: customer.selected_subsidy_name ?? '—' },
+                  { label: '診断スコア', value: customer.matching_score != null ? String(customer.matching_score) : '—' },
+                  { label: '診断理由',   value: customer.matching_reason ?? '—' },
+                  { label: '代理店経由', value: customer.via_agency ? 'はい' : 'いいえ' },
+                  { label: '登録日時',   value: customer.lead_registered_at ? customer.lead_registered_at.replace('T', ' ').slice(0, 16) : '—' },
+                ].map(row => (
+                  <div key={row.label} className="flex gap-3">
+                    <dt className="w-20 flex-shrink-0 text-slate-400">{row.label}</dt>
+                    <dd className="min-w-0 break-words text-slate-700">{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
         </div>
 
         {/* 担当者 */}

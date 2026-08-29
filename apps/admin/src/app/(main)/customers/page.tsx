@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
-import { fetchCustomers, insertCustomer, type DbCustomer } from '@/lib/db'
+import { fetchCustomers, insertCustomer, insertLeadCustomer, type DbCustomer } from '@/lib/db'
 
 const STATUS_LABELS = {
   active:   { label: '契約中', cls: 'bg-emerald-100 text-emerald-700' },
@@ -20,8 +20,10 @@ export default function CustomersPage() {
   const [industry,  setIndustry]  = useState('')
   const [status,    setStatus]    = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  const [leadModalOpen, setLeadModalOpen] = useState(false)
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
+  const [leadResult, setLeadResult] = useState('')
 
   const load = () => {
     fetchCustomers()
@@ -65,14 +67,54 @@ export default function CustomersPage() {
     }
   }
 
+  const handleLeadSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    const f = new FormData(e.currentTarget)
+    try {
+      const { wasUpdate } = await insertLeadCustomer({
+        external_lead_id:      f.get('external_lead_id') as string,
+        lead_source:           'hojokin_app',
+        company_name:          f.get('company_name') as string,
+        contact_name:          f.get('contact_name') as string,
+        email:                 (f.get('email') as string) || null,
+        phone:                 (f.get('phone') as string) || null,
+        industry:              (f.get('industry') as string) || null,
+        employee_count:        f.get('employee_count') ? Number(f.get('employee_count')) : null,
+        address:               (f.get('address') as string) || null,
+        notes:                 (f.get('notes') as string) || null,
+        selected_subsidy_name: (f.get('selected_subsidy_name') as string) || null,
+        matching_score:        f.get('matching_score') ? Number(f.get('matching_score')) : null,
+        matching_reason:       (f.get('matching_reason') as string) || null,
+        via_agency:            f.get('via_agency') === 'on',
+        lead_registered_at:    (f.get('lead_registered_at') as string) || null,
+      })
+      setLeadModalOpen(false)
+      setLeadResult(wasUpdate ? '既存のリード（同じリードID）を更新しました' : 'リードを新規登録しました')
+      load()
+    } catch {
+      setError('リードの取り込みに失敗しました（リードIDが未入力の可能性があります）')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="顧客管理" description={`全 ${customers.length} 社`}>
+        <button className="btn-secondary text-sm" onClick={() => setLeadModalOpen(true)}>+ リードを取り込む</button>
         <button className="btn-primary text-sm" onClick={() => setModalOpen(true)}>+ 顧客を追加</button>
       </PageHeader>
 
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+      )}
+      {leadResult && (
+        <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {leadResult}
+          <button className="text-xs text-emerald-600 hover:underline" onClick={() => setLeadResult('')}>閉じる</button>
+        </div>
       )}
 
       <div className="card flex flex-wrap items-center gap-3 p-4">
@@ -177,6 +219,80 @@ export default function CustomersPage() {
             <button type="button" className="btn-secondary text-sm" onClick={() => setModalOpen(false)}>キャンセル</button>
             <button type="submit" disabled={saving} className="btn-primary text-sm">
               {saving ? '保存中...' : '保存'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal title="hojokin-appからリードを取り込む" open={leadModalOpen} onClose={() => setLeadModalOpen(false)}>
+        <form onSubmit={handleLeadSubmit} className="space-y-4">
+          <p className="text-xs text-slate-500">
+            hojokin-app管理画面の「リード管理」で確認した内容を転記してください。リードIDが同じ場合は既存の顧客情報を上書き更新します。
+          </p>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">リードID（一意）*</label>
+            <input name="external_lead_id" required className="input" placeholder="hojokin-app管理画面に表示のID" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">会社名 *</label>
+              <input name="company_name" required className="input" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">担当者名</label>
+              <input name="contact_name" className="input" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">メールアドレス</label>
+              <input name="email" type="email" className="input" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">電話番号</label>
+              <input name="phone" className="input" placeholder="任意入力のため無い場合あり" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">業種</label>
+              <input name="industry" className="input" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">従業員数</label>
+              <input name="employee_count" type="number" className="input" />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">所在地</label>
+            <input name="address" className="input" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">事業内容</label>
+            <textarea name="notes" rows={2} className="input" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">選定補助金名</label>
+              <input name="selected_subsidy_name" className="input" placeholder="例: 持続化補助金" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">診断スコア</label>
+              <input name="matching_score" type="number" className="input" />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">診断理由</label>
+            <textarea name="matching_reason" rows={2} className="input" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">登録日時（hojokin-app上の登録日時）</label>
+            <input name="lead_registered_at" type="datetime-local" className="input" />
+          </div>
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+            <input name="via_agency" type="checkbox" className="h-4 w-4 rounded border-slate-300 text-brand-600" />
+            代理店経由のリード
+          </label>
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+            <button type="button" className="btn-secondary text-sm" onClick={() => setLeadModalOpen(false)}>キャンセル</button>
+            <button type="submit" disabled={saving} className="btn-primary text-sm">
+              {saving ? '保存中...' : '取り込む'}
             </button>
           </div>
         </form>
