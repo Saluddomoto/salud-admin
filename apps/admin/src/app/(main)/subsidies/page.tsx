@@ -31,6 +31,44 @@ const FILTERS = [
   { key: 'accepted',    label: '採択' },
 ] as const
 
+const STATUS_ORDER: Record<DbProject['status'], number> = {
+  planning: 0, in_progress: 1, submitted: 2, accepted: 3, rejected: 4, lost: 5, completed: 6,
+}
+
+type ProjectSortKey = 'title' | 'customer' | 'amount' | 'deadline' | 'status' | 'assignee'
+
+const PROJECT_SORT_COLUMNS: { key: ProjectSortKey; label: string }[] = [
+  { key: 'title',    label: '案件名' },
+  { key: 'customer', label: '顧客' },
+  { key: 'amount',   label: '申請額' },
+  { key: 'deadline', label: '期限' },
+  { key: 'status',   label: 'ステータス' },
+  { key: 'assignee', label: '担当' },
+]
+
+function getProjectSortValue(p: DbProject, key: ProjectSortKey): string | number {
+  switch (key) {
+    case 'title':    return p.title
+    case 'customer': return p.customers?.company_name ?? ''
+    case 'amount':   return p.applied_amount ?? -Infinity
+    case 'deadline': return p.deadline ?? ''
+    case 'status':   return STATUS_ORDER[p.status]
+    case 'assignee': return p.profiles?.full_name ?? ''
+  }
+}
+
+function sortProjects(list: DbProject[], key: ProjectSortKey | null, dir: 'asc' | 'desc'): DbProject[] {
+  if (!key) return list
+  return [...list].sort((a, b) => {
+    const av = getProjectSortValue(a, key)
+    const bv = getProjectSortValue(b, key)
+    const cmp = typeof av === 'number' && typeof bv === 'number'
+      ? av - bv
+      : String(av).localeCompare(String(bv), 'ja')
+    return dir === 'asc' ? cmp : -cmp
+  })
+}
+
 type CategoryStat = {
   name: string
   list: DbProject[]
@@ -97,6 +135,8 @@ export default function SubsidiesPage() {
   const [loading,  setLoading]  = useState(true)
   const [filter,   setFilter]   = useState('')
   const [view,     setView]     = useState<'list' | 'category' | 'deadlines'>('list')
+  const [sortKey,  setSortKey]  = useState<ProjectSortKey | null>(null)
+  const [sortDir,  setSortDir]  = useState<'asc' | 'desc'>('asc')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [year,     setYear]     = useState<number | null>(new Date().getFullYear())
 
@@ -144,7 +184,13 @@ export default function SubsidiesPage() {
     loadDeadlines()
   }
 
-  const filtered = filter ? projects.filter(p => p.status === filter) : projects
+  const handleSort = (key: ProjectSortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+  }
+
+  const filteredRaw = filter ? projects.filter(p => p.status === filter) : projects
+  const filtered = sortProjects(filteredRaw, sortKey, sortDir)
   const accepted = projects.filter(p => p.status === 'accepted')
   const inFlight = projects.filter(p => p.status === 'submitted')
   const active   = projects.filter(p => !['accepted', 'rejected', 'lost', 'completed'].includes(p.status))
@@ -222,12 +268,16 @@ export default function SubsidiesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs text-slate-500">
-                  <th className="px-4 py-3 font-medium">案件名</th>
-                  <th className="px-4 py-3 font-medium">顧客</th>
-                  <th className="px-4 py-3 font-medium">申請額</th>
-                  <th className="px-4 py-3 font-medium">期限</th>
-                  <th className="px-4 py-3 font-medium">ステータス</th>
-                  <th className="px-4 py-3 font-medium">担当</th>
+                  {PROJECT_SORT_COLUMNS.map(col => (
+                    <th
+                      key={col.key}
+                      className="cursor-pointer select-none px-4 py-3 font-medium hover:text-slate-700"
+                      onClick={() => handleSort(col.key)}
+                    >
+                      {col.label}
+                      {sortKey === col.key && (sortDir === 'asc' ? ' ▲' : ' ▼')}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
