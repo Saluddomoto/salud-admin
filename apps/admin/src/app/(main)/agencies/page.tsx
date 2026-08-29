@@ -87,13 +87,20 @@ export default function AgenciesPage() {
       (a.contact_person ?? '').toLowerCase().includes(q))
   }, [agencies, query])
 
+  // 月間ペース目標は「Googleフォームに実際に回答があったもの」だけを新規登録として
+  // 数える（既存リストの一括取込や手動登録は、登録日=取込/入力日であって実際の
+  // 新規獲得日ではないため対象外。総件数カウントには引き続き全件含める）
+  const paceEligibleAgencies = useMemo(
+    () => agencies.filter(a => !!a.form_timestamp),
+    [agencies])
+
   const now = new Date()
   const currentYear = now.getFullYear()
   const elapsedMonths = elapsedPaceMonths(currentYear, now.getMonth() + 1)
   const paceTarget = elapsedMonths * MONTHLY_PACE_TARGET
   const yearCount = useMemo(
-    () => agencies.filter(a => registeredDate(a).getFullYear() === currentYear).length,
-    [agencies, currentYear])
+    () => paceEligibleAgencies.filter(a => registeredDate(a).getFullYear() === currentYear).length,
+    [paceEligibleAgencies, currentYear])
   const progressPct = Math.min(100, Math.round((yearCount / paceTarget) * 100))
 
   // 月ごとの内訳（フォーム回答は form_timestamp、それ以外は登録日を基準に月を判定）
@@ -101,14 +108,14 @@ export default function AgenciesPage() {
     const startMonth = currentYear === PACE_START_YEAR ? PACE_START_MONTH : 1
     const months: { year: number; month: number; count: number }[] = []
     for (let month = startMonth; month <= now.getMonth() + 1; month++) {
-      const count = agencies.filter(a => {
+      const count = paceEligibleAgencies.filter(a => {
         const d = registeredDate(a)
         return d.getFullYear() === currentYear && d.getMonth() + 1 === month
       }).length
       months.push({ year: currentYear, month, count })
     }
     return months.reverse()
-  }, [agencies, currentYear, now])
+  }, [paceEligibleAgencies, currentYear, now])
 
   const handleSync = async () => {
     setSyncing(true)
