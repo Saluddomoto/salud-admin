@@ -38,3 +38,6 @@ npm-debug.log*
 pnpm-debug.log*
 .vercel
 .credentials.local.md
+
+# Local Claude Code settings (may contain machine-specific/sensitive permission entries)
+.claude/settings.local.json
