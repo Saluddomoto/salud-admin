@@ -41,6 +41,20 @@ function elapsedPaceMonths(year: number, month: number): number {
   return 0
 }
 
+// 推移予測用：開始（PACE_START_YEAR年PACE_START_MONTH月）から現在までの通算経過月数
+// （elapsedPaceMonthsは年目標が年またぎでリセットされる仕様のため、こちらは別関数にする）
+function totalElapsedPaceMonths(now: Date): number {
+  const y = now.getFullYear()
+  const m = now.getMonth() + 1
+  if (y < PACE_START_YEAR) return 0
+  if (y === PACE_START_YEAR) return Math.max(1, m - PACE_START_MONTH + 1)
+  const startYearRemainingMonths = 12 - PACE_START_MONTH + 1
+  const fullYearsBetween = y - PACE_START_YEAR - 1
+  return startYearRemainingMonths + fullYearsBetween * 12 + m
+}
+
+const FORECAST_MONTHS = 6
+
 // 集計用の登録日。フォーム回答は本人の送信日時、それ以外はシステムへの登録日を使う（registeredLabel と同じ基準）
 function registeredDate(a: DbPartnerAgency): Date {
   if (a.source === 'form' && a.form_timestamp) return new Date(a.form_timestamp)
@@ -116,6 +130,25 @@ export default function AgenciesPage() {
     }
     return months.reverse()
   }, [paceEligibleAgencies, currentYear, now])
+
+  // 将来の代理店数推移予測（実績ペース = 開始月からのフォーム回答数の通算平均、目標ペース = 月MONTHLY_PACE_TARGET件）
+  const totalElapsedMonths = totalElapsedPaceMonths(now)
+  const actualMonthlyPace = totalElapsedMonths > 0 ? paceEligibleAgencies.length / totalElapsedMonths : 0
+  const forecast = useMemo(() => {
+    const list: { label: string; actualPaceCount: number; targetPaceCount: number }[] = []
+    let y = now.getFullYear()
+    let m = now.getMonth() + 1
+    for (let i = 1; i <= FORECAST_MONTHS; i++) {
+      m += 1
+      if (m > 12) { m = 1; y += 1 }
+      list.push({
+        label: `${y}年${m}月`,
+        actualPaceCount: Math.round(agencies.length + actualMonthlyPace * i),
+        targetPaceCount: agencies.length + MONTHLY_PACE_TARGET * i,
+      })
+    }
+    return list
+  }, [agencies.length, actualMonthlyPace, now])
 
   const handleSync = async () => {
     setSyncing(true)
@@ -215,6 +248,38 @@ export default function AgenciesPage() {
               )
             })}
           </div>
+        </div>
+      )}
+
+      {!loading && (
+        <div className="card p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-slate-400">将来の代理店数推移予測（現在 {agencies.length}社）</p>
+            <p className="text-xs text-slate-400">実績ペース: 月平均 {actualMonthlyPace.toFixed(1)}件（フォーム回答ベース・全期間平均）</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-slate-400">
+                  <th className="py-1.5 font-medium">月</th>
+                  <th className="py-1.5 font-medium text-right">予測件数（実績ペース）</th>
+                  <th className="py-1.5 font-medium text-right">予測件数（目標ペース・月{MONTHLY_PACE_TARGET}件）</th>
+                </tr>
+              </thead>
+              <tbody>
+                {forecast.map(f => (
+                  <tr key={f.label} className="border-t border-slate-50">
+                    <td className="py-2 text-slate-600">{f.label}</td>
+                    <td className="py-2 text-right font-semibold text-slate-800">{f.actualPaceCount}社</td>
+                    <td className="py-2 text-right text-slate-500">{f.targetPaceCount}社</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-[11px] text-slate-400">
+            「実績ペース」は{PACE_START_YEAR}年{PACE_START_MONTH}月からのGoogleフォーム回答数を経過月数で単純平均し、今後も同じペースが続くと仮定した場合の予測です。実際の増減により変動します。
+          </p>
         </div>
       )}
 

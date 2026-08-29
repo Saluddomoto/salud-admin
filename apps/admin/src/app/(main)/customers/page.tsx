@@ -13,6 +13,23 @@ const STATUS_LABELS = {
   inactive: { label: '休眠',   cls: 'bg-slate-100 text-slate-500' },
 } as const
 
+// 案件元（リードの取得経路）。hojokin_appのリードは代理店経由かどうかでさらに分ける
+function getCustomerSource(c: DbCustomer): string {
+  if (c.lead_source === 'hojokin_app') return c.via_agency ? 'hojokin-app（代理店経由）' : 'hojokin-app（直接）'
+  return '手動登録・その他'
+}
+
+function buildBreakdown(list: DbCustomer[], keyFn: (c: DbCustomer) => string): { name: string; count: number }[] {
+  const map = new Map<string, number>()
+  for (const c of list) {
+    const key = keyFn(c)
+    map.set(key, (map.get(key) ?? 0) + 1)
+  }
+  return Array.from(map.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+}
+
 export default function CustomersPage() {
   const router = useRouter()
   const [customers, setCustomers] = useState<DbCustomer[]>([])
@@ -20,6 +37,8 @@ export default function CustomersPage() {
   const [search,    setSearch]    = useState('')
   const [industry,  setIndustry]  = useState('')
   const [status,    setStatus]    = useState('')
+  const [source,    setSource]    = useState('')
+  const [breakdownOpen, setBreakdownOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [leadModalOpen, setLeadModalOpen] = useState(false)
   const [saving,    setSaving]    = useState(false)
@@ -37,14 +56,19 @@ export default function CustomersPage() {
   useEffect(load, [])
 
   const industries = [...new Set(customers.map(c => c.industry).filter(Boolean))] as string[]
+  const sources = [...new Set(customers.map(getCustomerSource))]
 
   const filtered = customers.filter(c => {
     const contact = c.customer_contacts.find(x => x.is_primary)?.name ?? ''
     if (search && !`${c.company_name}${contact}`.includes(search)) return false
     if (industry && c.industry !== industry) return false
     if (status && c.status !== status) return false
+    if (source && getCustomerSource(c) !== source) return false
     return true
   })
+
+  const industryBreakdown = buildBreakdown(customers, c => c.industry || '未設定')
+  const sourceBreakdown   = buildBreakdown(customers, getCustomerSource)
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -170,8 +194,48 @@ export default function CustomersPage() {
           <option value="prospect">見込み</option>
           <option value="inactive">休眠</option>
         </select>
+        <select className="input w-48" value={source} onChange={e => setSource(e.target.value)}>
+          <option value="">全案件元</option>
+          {sources.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <button
+          type="button"
+          className="text-xs font-medium text-brand-600 hover:underline"
+          onClick={() => setBreakdownOpen(v => !v)}
+        >
+          {breakdownOpen ? '内訳を閉じる' : '業種・案件元の内訳を見る'}
+        </button>
         <span className="ml-auto text-sm text-slate-500">{filtered.length} 件</span>
       </div>
+
+      {breakdownOpen && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="card p-4">
+            <p className="mb-3 text-xs font-medium text-slate-500">業種別の内訳（全{customers.length}社）</p>
+            <div className="space-y-1.5">
+              {industryBreakdown.map(row => (
+                <div key={row.name} className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600">{row.name}</span>
+                  <span className="font-semibold text-slate-800">{row.count}社</span>
+                </div>
+              ))}
+              {industryBreakdown.length === 0 && <p className="text-sm text-slate-400">データがありません</p>}
+            </div>
+          </div>
+          <div className="card p-4">
+            <p className="mb-3 text-xs font-medium text-slate-500">案件元別の内訳（全{customers.length}社）</p>
+            <div className="space-y-1.5">
+              {sourceBreakdown.map(row => (
+                <div key={row.name} className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600">{row.name}</span>
+                  <span className="font-semibold text-slate-800">{row.count}社</span>
+                </div>
+              ))}
+              {sourceBreakdown.length === 0 && <p className="text-sm text-slate-400">データがありません</p>}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card overflow-x-auto">
         <table className="w-full min-w-[720px] text-sm">
