@@ -26,6 +26,31 @@ const SUBSIDY_NAMES = [
   '事業承継・M&A補助金',
 ]
 
+// 補助金名ごとにカードを色分けするためのマップ。一目で案件の種類が
+// わかるよう、左ボーダー・小さなバッジ・凡例の3箇所で同じ色を使う。
+const SUBSIDY_COLORS: Record<string, { border: string; badge: string; dot: string }> = {
+  '省力化投資補助金':             { border: 'border-l-indigo-400', badge: 'bg-indigo-100 text-indigo-700', dot: 'bg-indigo-400' },
+  '小規模事業者持続化補助金':      { border: 'border-l-emerald-400', badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-400' },
+  '新事業進出・ものづくり補助金':  { border: 'border-l-amber-400', badge: 'bg-amber-100 text-amber-700', dot: 'bg-amber-400' },
+  'デジタル化・AI導入補助金':      { border: 'border-l-sky-400', badge: 'bg-sky-100 text-sky-700', dot: 'bg-sky-400' },
+  '成長加速化補助金':             { border: 'border-l-rose-400', badge: 'bg-rose-100 text-rose-700', dot: 'bg-rose-400' },
+  '事業承継・M&A補助金':          { border: 'border-l-purple-400', badge: 'bg-purple-100 text-purple-700', dot: 'bg-purple-400' },
+}
+const WEB_COLOR   = { border: 'border-l-teal-400',  badge: 'bg-teal-100 text-teal-700',   dot: 'bg-teal-400' }
+const OTHER_COLOR = { border: 'border-l-slate-300', badge: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' }
+
+function getProjectColor(p: DbProject) {
+  if (p.project_type === 'web') return WEB_COLOR
+  const known = p.subsidy_name ? SUBSIDY_COLORS[p.subsidy_name] : undefined
+  return known ?? OTHER_COLOR
+}
+
+const LEGEND_ITEMS = [
+  ...SUBSIDY_NAMES.map(name => ({ name, ...SUBSIDY_COLORS[name]! })),
+  { name: 'WEB制作', ...WEB_COLOR },
+  { name: 'その他', ...OTHER_COLOR },
+]
+
 const BASE_FEE_OPTIONS = [100_000, 120_000, 150_000]
 const SUCCESS_FEE_OPTIONS = [8, 9, 10, 11, 12, 13, 14, 15]
 
@@ -103,6 +128,15 @@ export default function ProjectsPage() {
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       )}
 
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2">
+        {LEGEND_ITEMS.map(item => (
+          <span key={item.name} className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span className={`h-2 w-2 rounded-full ${item.dot}`} />
+            {item.name}
+          </span>
+        ))}
+      </div>
+
       <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {COLUMNS.map(col => {
           const items = projects.filter(p => p.status === col.key)
@@ -114,8 +148,13 @@ export default function ProjectsPage() {
                 <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">{items.length}</span>
               </div>
               <div className="flex flex-col gap-2">
-                {items.map(p => (
-                  <div key={p.id} className="card p-2.5 transition-shadow hover:shadow-md">
+                {items.map(p => {
+                  const color = getProjectColor(p)
+                  return (
+                  <div key={p.id} className={`card border-l-4 ${color.border} p-2.5 transition-shadow hover:shadow-md`}>
+                    <span className={`badge mb-1.5 text-[10px] ${color.badge}`}>
+                      {p.project_type === 'web' ? 'WEB制作' : (p.subsidy_name ?? 'その他')}
+                    </span>
                     <div className="flex items-start justify-between gap-2">
                       <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-sm font-semibold leading-snug text-slate-900 hover:text-brand-600 hover:underline">
                         {p.title}
@@ -148,7 +187,8 @@ export default function ProjectsPage() {
                       </select>
                     </div>
                   </div>
-                ))}
+                  )
+                })}
                 {!loading && items.length === 0 && (
                   <p className="py-8 text-center text-xs text-slate-300">案件なし</p>
                 )}
