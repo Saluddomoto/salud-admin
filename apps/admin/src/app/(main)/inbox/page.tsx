@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { fetchMessages, markMessageRead, markMessageReplied, dismissMessage, type DbMessage } from '@/lib/db'
+import { fetchMessages, markMessageRead, markMessageReplied, dismissMessage, dismissMessages, type DbMessage } from '@/lib/db'
 
 const SWIPE_DISMISS_THRESHOLD = 80
 
@@ -85,6 +85,22 @@ export default function InboxPage() {
     }
   }
 
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const handleDismissAll = async (targets: DbMessage[]) => {
+    if (targets.length === 0) return
+    if (!confirm(`表示中の${targets.length}件をすべて削除しますか？`)) return
+    const ids = targets.map(m => m.id)
+    setBulkDeleting(true)
+    setMessages(prev => prev.filter(x => !ids.includes(x.id)))
+    try {
+      await dismissMessages(ids)
+    } catch {
+      setMessages(prev => [...prev, ...targets].sort((a, b) => b.received_at.localeCompare(a.received_at)))
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
   const handleTouchStart = (id: string, e: React.TouchEvent) => {
     touchStartX.current[id] = e.touches[0]!.clientX
   }
@@ -138,6 +154,14 @@ export default function InboxPage() {
           <option value="converted">変換済み</option>
           <option value="read">既読</option>
         </select>
+        <button
+          type="button"
+          onClick={() => handleDismissAll(filtered)}
+          disabled={bulkDeleting || filtered.length === 0}
+          className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-500 transition-colors hover:border-rose-300 hover:text-rose-600 disabled:opacity-40"
+        >
+          表示中を一斉削除{filtered.length > 0 ? `（${filtered.length}）` : ''}
+        </button>
       </PageHeader>
 
       <div className="card divide-y divide-slate-50 overflow-hidden">

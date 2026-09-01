@@ -45,6 +45,14 @@ function mondayOf(d: Date): Date {
   return monday
 }
 
+function startOfMonth(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), 1)
+}
+
+function addMonths(d: Date, n: number): Date {
+  return new Date(d.getFullYear(), d.getMonth() + n, 1)
+}
+
 const fmtTime = (t: string) => t.slice(0, 5)
 
 export default function SchedulePage() {
@@ -52,7 +60,9 @@ export default function SchedulePage() {
   const [loading,  setLoading]  = useState(true)
   const [category, setCategory] = useState('')
   const [assignee, setAssignee] = useState('')
+  const [view, setView] = useState<'week' | 'month'>('week')
   const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()))
+  const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()))
   const [modalOpen, setModalOpen] = useState(false)
   const [saving,    setSaving]    = useState(false)
 
@@ -69,12 +79,34 @@ export default function SchedulePage() {
   const weekFrom = weekDates[0]!
   const weekTo   = weekDates[6]!
 
+  // 月表示用：当月を含む週単位のグリッド（月初の週の月曜〜月末の週の日曜）を生成
+  const monthDates = useMemo(() => {
+    const first = startOfMonth(monthCursor)
+    const last = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0)
+    const gridStart = mondayOf(first)
+    const lastDow = (last.getDay() + 6) % 7 // 0=月 ... 6=日
+    const gridEnd = new Date(last)
+    gridEnd.setDate(last.getDate() + (6 - lastDow))
+    const days = Math.round((gridEnd.getTime() - gridStart.getTime()) / 86_400_000) + 1
+    return Array.from({ length: days }, (_, i) => {
+      const d = new Date(gridStart)
+      d.setDate(gridStart.getDate() + i)
+      return toISODate(d)
+    })
+  }, [monthCursor])
+
+  const monthFrom = monthDates[0]!
+  const monthTo   = monthDates[monthDates.length - 1]!
+
+  const rangeFrom = view === 'month' ? monthFrom : weekFrom
+  const rangeTo   = view === 'month' ? monthTo   : weekTo
+
   const load = useCallback(() => {
     setLoading(true)
-    fetchEvents(weekFrom, weekTo)
+    fetchEvents(rangeFrom, rangeTo)
       .then(setEvents)
       .finally(() => setLoading(false))
-  }, [weekFrom, weekTo])
+  }, [rangeFrom, rangeTo])
 
   useEffect(load, [load])
 
@@ -93,6 +125,12 @@ export default function SchedulePage() {
     setWeekStart(d)
   }
 
+  const moveMonth = (n: number) => setMonthCursor(prev => addMonths(prev, n))
+  const goToday = () => {
+    setWeekStart(mondayOf(new Date()))
+    setMonthCursor(startOfMonth(new Date()))
+  }
+
   const assignees = [...new Set(events.map(e => e.profiles?.full_name).filter(Boolean))] as string[]
 
   const filtered = events.filter(e => {
@@ -101,7 +139,9 @@ export default function SchedulePage() {
     return true
   })
 
-  const rangeLabel = `${weekFrom.replace(/-/g, '/')} 〜 ${weekTo.slice(5).replace('-', '/')}`
+  const rangeLabel = view === 'month'
+    ? `${monthCursor.getFullYear()}年${monthCursor.getMonth() + 1}月`
+    : `${weekFrom.replace(/-/g, '/')} 〜 ${weekTo.slice(5).replace('-', '/')}`
 
   const handleSubmit = async (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault()
@@ -128,10 +168,24 @@ export default function SchedulePage() {
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="スケジュール" description={rangeLabel}>
+        <div className="inline-flex rounded-lg border border-slate-200 p-1">
+          <button
+            className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${view === 'week' ? 'bg-brand-600 text-white' : 'text-slate-500 hover:text-slate-700'}`}
+            onClick={() => setView('week')}
+          >
+            週表示
+          </button>
+          <button
+            className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${view === 'month' ? 'bg-brand-600 text-white' : 'text-slate-500 hover:text-slate-700'}`}
+            onClick={() => setView('month')}
+          >
+            月表示
+          </button>
+        </div>
         <div className="flex items-center gap-1">
-          <button className="btn-secondary px-2.5 text-sm" onClick={() => moveWeek(-1)}>◀</button>
-          <button className="btn-secondary text-sm" onClick={() => setWeekStart(mondayOf(new Date()))}>今週</button>
-          <button className="btn-secondary px-2.5 text-sm" onClick={() => moveWeek(1)}>▶</button>
+          <button className="btn-secondary px-2.5 text-sm" onClick={() => view === 'month' ? moveMonth(-1) : moveWeek(-1)}>◀</button>
+          <button className="btn-secondary text-sm" onClick={goToday}>{view === 'month' ? '今月' : '今週'}</button>
+          <button className="btn-secondary px-2.5 text-sm" onClick={() => view === 'month' ? moveMonth(1) : moveWeek(1)}>▶</button>
         </div>
         <select className="input w-32 text-sm" value={category} onChange={e => setCategory(e.target.value)}>
           <option value="">全カテゴリ</option>
@@ -158,7 +212,51 @@ export default function SchedulePage() {
         </span>
       </div>
 
-      {/* 週カレンダー（モバイルは横スクロール） */}
+      {/* カレンダー（モバイルは横スクロール） */}
+      {view === 'month' ? (
+      <div className="card overflow-x-auto">
+        <div className="grid min-w-[700px] grid-cols-7 divide-x divide-slate-100 border-b border-slate-100">
+          {WEEK_DAYS.map((d, i) => (
+            <div key={d} className={`px-3 py-2 text-center text-xs font-medium ${i >= 5 ? 'text-slate-400' : 'text-slate-500'}`}>{d}</div>
+          ))}
+        </div>
+        <div className="grid min-w-[700px] grid-cols-7 divide-x divide-y divide-slate-100 overflow-hidden">
+          {monthDates.map((date, i) => {
+            const dayEvents = filtered.filter(e => e.event_date === date)
+            const isToday = date === today
+            const inMonth = Number(date.slice(5, 7)) === monthCursor.getMonth() + 1
+            const isWeekend = i % 7 >= 5
+            const shown = dayEvents.slice(0, 3)
+            const extra = dayEvents.length - shown.length
+
+            return (
+              <div key={date} className={`min-h-[104px] p-1.5 ${isToday ? 'bg-brand-50/50' : !inMonth ? 'bg-slate-50/40' : isWeekend ? 'bg-slate-50/40' : ''}`}>
+                <p className={`mb-1 text-right text-xs font-semibold ${isToday ? 'text-brand-600' : !inMonth ? 'text-slate-300' : 'text-slate-600'}`}>
+                  {parseInt(date.slice(8), 10)}
+                </p>
+                <div className="space-y-1">
+                  {shown.map(e => {
+                    const meta = CATEGORY_META[e.category]
+                    const aColor = assigneeColor(e.profiles?.full_name)
+                    return (
+                      <div
+                        key={e.id}
+                        className="cursor-pointer truncate rounded px-1 py-0.5 text-[10px] font-medium leading-tight"
+                        style={{ background: `${aColor}1a`, color: aColor }}
+                        title={`${fmtTime(e.start_time)} ${e.title}（${meta.label}・${e.profiles?.full_name ?? '—'}）`}
+                      >
+                        {fmtTime(e.start_time)} {e.title}
+                      </div>
+                    )
+                  })}
+                  {extra > 0 && <p className="px-1 text-[10px] text-slate-400">+{extra}件</p>}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      ) : (
       <div className="card overflow-x-auto">
       <div className="grid min-w-[700px] grid-cols-7 divide-x divide-slate-100 overflow-hidden">
         {weekDates.map((date, i) => {
@@ -204,13 +302,14 @@ export default function SchedulePage() {
         })}
       </div>
       </div>
+      )}
 
       {/* 今後の予定リスト */}
       <div className="card p-5">
-        <h3 className="mb-4 font-semibold text-slate-900">今週の予定</h3>
+        <h3 className="mb-4 font-semibold text-slate-900">{view === 'month' ? '今月の予定' : '今週の予定'}</h3>
         {loading && <p className="py-8 text-center text-sm text-slate-400">読み込み中...</p>}
         {!loading && filtered.length === 0 && (
-          <p className="py-8 text-center text-sm text-slate-400">この週の予定はありません</p>
+          <p className="py-8 text-center text-sm text-slate-400">{view === 'month' ? 'この月の予定はありません' : 'この週の予定はありません'}</p>
         )}
         <div className="space-y-2">
           {filtered.map(e => {

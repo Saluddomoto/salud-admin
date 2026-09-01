@@ -19,6 +19,8 @@ export type Row = {
   memo: string | null
   source: 'manual' | 'project'
   projectId?: string
+  // 手入力行（source: 'manual'）で customers と紐付けている場合のみ設定
+  customerId?: string | null
   // 補助金案件由来の行のみ設定。基本料金／成功報酬の内訳を売上台帳で表示するために使う
   // （金額未定のカテゴリ平均額で暫定計上した申請中案件は内訳が出せないため未設定のまま）。
   baseFee?: number

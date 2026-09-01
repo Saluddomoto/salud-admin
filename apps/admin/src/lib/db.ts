@@ -700,6 +700,15 @@ export async function dismissMessage(id: string) {
   if (error) throw error
 }
 
+// 複数件をまとめて受信トレイから消す（一斉削除ボタン用）
+export async function dismissMessages(ids: string[]) {
+  if (ids.length === 0) return
+  const { error } = await db().from('messages')
+    .update({ dismissed_at: new Date().toISOString(), is_read: true, needs_reply: false })
+    .in('id', ids)
+  if (error) throw error
+}
+
 export async function markMessageRead(id: string) {
   const { error } = await db().from('messages').update({ is_read: true }).eq('id', id)
   if (error) throw error
@@ -1364,6 +1373,8 @@ export type DbRevenueEntry = {
   memo: string | null
   // 手入力の売上明細が「基本料金」か「成功報酬」かの区分（任意・補助金以外は未設定）。
   fee_type: 'base_fee' | 'success_fee' | null
+  // 顧客管理（customers）との紐付け（任意）
+  customer_id: string | null
 }
 
 export type RevenueEntryInput = {
@@ -1376,6 +1387,7 @@ export type RevenueEntryInput = {
   payment_received_date: string | null
   memo: string | null
   fee_type?: 'base_fee' | 'success_fee' | null
+  customer_id?: string | null
 }
 
 export async function fetchRevenueLedger(): Promise<DbRevenueEntry[]> {

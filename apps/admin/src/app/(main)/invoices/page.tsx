@@ -105,23 +105,54 @@ function ItemsEditor({ items, setItems }: {
   }
   const remove = (idx: number) => setItems(items.filter((_, i) => i !== idx))
   const add = () => setItems([...items, emptyItem()])
+  const move = (idx: number, dir: -1 | 1) => {
+    const target = idx + dir
+    if (target < 0 || target >= items.length) return
+    const next = [...items]
+    const tmp = next[idx]!
+    next[idx] = next[target]!
+    next[target] = tmp
+    setItems(next)
+  }
 
   return (
     <div className="space-y-3">
       <label className="block text-sm font-medium text-slate-700">明細</label>
       {items.map((it, idx) => (
         <div key={idx} className="rounded-lg border border-slate-200 p-3">
-          <div className="mb-2 grid grid-cols-2 gap-2">
-            <input
-              placeholder="項目" value={it.name}
-              onChange={e => update(idx, { name: e.target.value })}
-              className="input text-sm"
-            />
-            <input
-              placeholder="作業内容" value={it.work}
-              onChange={e => update(idx, { work: e.target.value })}
-              className="input text-sm"
-            />
+          <div className="mb-2 flex items-center gap-2">
+            <div className="flex shrink-0 flex-col">
+              <button
+                type="button"
+                onClick={() => move(idx, -1)}
+                disabled={idx === 0}
+                className="text-slate-400 hover:text-slate-700 disabled:opacity-25"
+                aria-label="上に移動"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                onClick={() => move(idx, 1)}
+                disabled={idx === items.length - 1}
+                className="text-slate-400 hover:text-slate-700 disabled:opacity-25"
+                aria-label="下に移動"
+              >
+                ▼
+              </button>
+            </div>
+            <div className="grid flex-1 grid-cols-2 gap-2">
+              <input
+                placeholder="項目" value={it.name}
+                onChange={e => update(idx, { name: e.target.value })}
+                className="input text-sm"
+              />
+              <input
+                placeholder="作業内容" value={it.work}
+                onChange={e => update(idx, { work: e.target.value })}
+                className="input text-sm"
+              />
+            </div>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div>
@@ -472,7 +503,7 @@ export default function InvoicesPage() {
       )}
 
       {detail && (
-        <Modal title={`${DOC_TYPE_LABELS[detail.doc_type]}　${detail.invoice_no}`} open onClose={() => setDetail(null)}>
+        <Modal title={`${DOC_TYPE_LABELS[detail.doc_type]}　${detail.invoice_no}`} open onClose={() => setDetail(null)} size="full">
           <DetailView
             invoice={detail}
             canDelete={canDelete}
@@ -582,7 +613,7 @@ function AddModal({ customers, noteTemplates, onNoteTemplatesChanged, initialDoc
   }
 
   return (
-    <Modal title={`${DOC_TYPE_LABELS[form.doc_type]}を作成`} open onClose={onClose}>
+    <Modal title={`${DOC_TYPE_LABELS[form.doc_type]}を作成`} open onClose={onClose} size="full">
       <form onSubmit={handleSubmit} className="space-y-4">
         <InvoiceForm
           form={form} setForm={updater => setForm(updater)} customers={customers}
@@ -633,7 +664,7 @@ function EditModal({ invoice, customers, noteTemplates, onNoteTemplatesChanged, 
   }
 
   return (
-    <Modal title={`${invoice.invoice_no} を編集`} open onClose={onClose}>
+    <Modal title={`${invoice.invoice_no} を編集`} open onClose={onClose} size="full">
       <div className="space-y-4">
         <InvoiceForm
           form={form} setForm={updater => setForm(updater)} customers={customers}

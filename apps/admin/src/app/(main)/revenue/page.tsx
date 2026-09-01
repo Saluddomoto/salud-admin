@@ -2,17 +2,18 @@
 
 import { Fragment, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { TaxAmountInput } from '@/components/TaxAmountInput'
 import { useAuth } from '@/hooks/useAuth'
 import {
   fetchRevenueLedger, insertRevenueEntry, updateRevenueEntry, deleteRevenueEntry,
-  fetchProjects, formatAmount, formatDate,
+  fetchProjects, formatAmount, formatDate, fetchCustomers,
   fetchRecurringContracts, insertRecurringContract, updateRecurringContract,
   deleteRecurringContract, syncRecurringContracts,
   fetchRevenueSettings, upsertRevenueSettings, fetchRevenueCategoryTargets, upsertRevenueCategoryTarget,
-  type DbRevenueEntry, type DbProject, type RevenueEntryInput,
+  type DbRevenueEntry, type DbProject, type RevenueEntryInput, type DbCustomer,
   type DbRecurringContract, type RecurringContractInput,
   type DbRevenueSettings, type DbRevenueCategoryTarget,
 } from '@/lib/db'
@@ -57,12 +58,86 @@ function SortableTh({
 }
 
 
+function topRoundedBarPath(x: number, y: number, w: number, h: number, r: number): string {
+  if (h <= 0) return ''
+  const rr = Math.min(r, w / 2, h)
+  return `M${x},${y + h} L${x},${y + rr} Q${x},${y} ${x + rr},${y} L${x + w - rr},${y} Q${x + w},${y} ${x + w},${y + rr} L${x + w},${y + h} Z`
+}
+
+function MonthlyBarChart({ data, color, monthlyTarget }: {
+  data: { label: string; value: number }[]
+  color: string
+  monthlyTarget?: number
+}) {
+  const [hover, setHover] = useState<number | null>(null)
+  const rawMax = Math.max(1, ...data.map(d => d.value), monthlyTarget ?? 0)
+  const axisMax = rawMax * 1.15
+  const W = 760, H = 168, padL = 46, padR = 6, padT = 10, padB = 22
+  const chartH = H - padT - padB
+  const plotW = W - padL - padR
+  const slot = plotW / data.length
+  const barW = Math.min(30, slot * 0.55)
+  const yFor = (v: number) => padT + chartH * (1 - v / axisMax)
+  const ticks = [0, 1 / 3, 2 / 3, 1].map(f => axisMax * f)
+
+  return (
+    <div className="relative">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 168 }} preserveAspectRatio="none">
+        {ticks.map(t => (
+          <g key={t}>
+            <line x1={padL} x2={W - padR} y1={yFor(t)} y2={yFor(t)} stroke="#eef2f7" strokeWidth={1} />
+            <text x={padL - 6} y={yFor(t)} dy={3} textAnchor="end" fontSize={9} fill="#94a3b8">{formatAmount(t)}</text>
+          </g>
+        ))}
+        <line x1={padL} y1={padT + chartH} x2={W - padR} y2={padT + chartH} stroke="#e2e8f0" strokeWidth={1} />
+        {data.map((d, i) => {
+          const h = d.value > 0 ? Math.max(3, (d.value / axisMax) * chartH) : 0
+          const x = padL + i * slot + (slot - barW) / 2
+          const y = padT + chartH - h
+          return (
+            <g
+              key={i}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(cur => (cur === i ? null : cur))}
+              className="cursor-default"
+            >
+              <rect x={padL + i * slot} y={padT} width={slot} height={chartH} fill="transparent" />
+              {h > 0 && <path d={topRoundedBarPath(x, y, barW, h, 4)} fill={color} opacity={hover === i ? 1 : 0.82} />}
+              <text x={padL + i * slot + slot / 2} y={H - 7} textAnchor="middle" fontSize={9} fill="#94a3b8">{d.label}</text>
+            </g>
+          )
+        })}
+        {monthlyTarget != null && monthlyTarget > 0 && (
+          <g>
+            <line
+              x1={padL} x2={W - padR} y1={yFor(monthlyTarget)} y2={yFor(monthlyTarget)}
+              stroke="#94a3b8" strokeWidth={1.25} strokeDasharray="4 3"
+            />
+            <text x={W - padR} y={yFor(monthlyTarget) - 4} textAnchor="end" fontSize={9} fill="#94a3b8">
+              目標（月割 {formatAmount(monthlyTarget)}）
+            </text>
+          </g>
+        )}
+      </svg>
+      {hover !== null && data[hover] && (
+        <div
+          className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-md bg-slate-900 px-2 py-1 text-xs font-medium whitespace-nowrap text-white shadow-lg"
+          style={{ left: `${((padL + (hover + 0.5) * slot) / W) * 100}%`, top: `${(padT / H) * 100}%` }}
+        >
+          {data[hover]!.label}：{formatAmount(data[hover]!.value)}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function RevenuePage() {
   const router = useRouter()
   const { role, isLoading: authLoading } = useAuth()
   const [manual,   setManual]   = useState<DbRevenueEntry[]>([])
   const [projects, setProjects] = useState<DbProject[]>([])
   const [contracts, setContracts] = useState<DbRecurringContract[]>([])
+  const [customers, setCustomers] = useState<DbCustomer[]>([])
   const [loading,  setLoading]  = useState(true)
   const [tab,       setTab]     = useState<'ledger' | 'monthly' | 'contracts' | 'goals'>('ledger')
   const [modalOpen, setModalOpen] = useState(false)
@@ -172,8 +247,8 @@ export default function RevenuePage() {
   }
 
   const load = () => {
-    Promise.all([fetchRevenueLedger(), fetchProjects(), fetchRecurringContracts()])
-      .then(([m, p, c]) => { setManual(m); setProjects(p); setContracts(c) })
+    Promise.all([fetchRevenueLedger(), fetchProjects(), fetchRecurringContracts(), fetchCustomers()])
+      .then(([m, p, c, cu]) => { setManual(m); setProjects(p); setContracts(c); setCustomers(cu) })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
   }
@@ -187,7 +262,7 @@ export default function RevenuePage() {
   }, [])
 
   const rows: Row[] = useMemo(() => {
-    const manualRows: Row[] = manual.map(r => ({ ...r, source: 'manual' as const }))
+    const manualRows: Row[] = manual.map(r => ({ ...r, source: 'manual' as const, customerId: r.customer_id }))
     const merged = [...manualRows, ...deriveProjectRows(projects)]
     const dir = sortDir === 'asc' ? 1 : -1
     return merged.sort((a, b) => {
@@ -216,6 +291,7 @@ export default function RevenuePage() {
         payment_due_date: entry.payment_due_date,
         payment_received_date: entry.payment_received_date,
         memo: entry.memo,
+        customer_id: entry.customer_id,
       })
     } catch {
       setError('区分の更新に失敗しました')
@@ -238,6 +314,7 @@ export default function RevenuePage() {
       payment_due_date:        (f.get('payment_due_date') as string) || null,
       payment_received_date:   (f.get('payment_received_date') as string) || null,
       memo:                     (f.get('memo') as string)?.trim() || null,
+      customer_id:              (f.get('customer_id') as string) || null,
       // 未選択なら送らない（revenue_ledger.fee_type 列が未マイグレーションの環境でも壊れないように）
       ...(feeType ? { fee_type: feeType as 'base_fee' | 'success_fee' } : {}),
     }
@@ -431,7 +508,17 @@ export default function RevenuePage() {
                   title={r.source === 'project' && r.projectId ? '案件の詳細・編集を開く' : undefined}
                 >
                   <td className="px-3 py-2.5 whitespace-nowrap">{r.entry_date || '—'}</td>
-                  <td className="px-3 py-2.5">{r.payer_name}</td>
+                  <td className="px-3 py-2.5">
+                    {r.customerId ? (
+                      <Link
+                        href={`/customers/${r.customerId}`}
+                        onClick={e => e.stopPropagation()}
+                        className="text-brand-600 hover:underline"
+                      >
+                        {r.payer_name}
+                      </Link>
+                    ) : r.payer_name}
+                  </td>
                   <td className="px-3 py-2.5">{r.category}</td>
                   <td className="px-3 py-2.5 text-right font-medium">{formatAmount(r.amount_excl_tax)}</td>
                   <td className="px-3 py-2.5 whitespace-nowrap text-xs text-slate-500">
@@ -551,6 +638,16 @@ export default function RevenuePage() {
               <div className="border-b border-slate-100 px-4 py-3">
                 <h3 className="text-sm font-semibold text-slate-900">{block.title}</h3>
                 {block.note && <p className="mt-0.5 text-xs text-slate-400">{block.note}</p>}
+              </div>
+              <div className="border-b border-slate-100 px-4 py-3">
+                <MonthlyBarChart
+                  color={block.key === 'confirmed' ? '#059669' : '#d97706'}
+                  data={MONTHS.map((m, mi) => ({
+                    label: `${m}月`,
+                    value: categories.reduce((s, cat) => s + (monthlyTotals.get(cat.name)?.[block.key][mi] ?? 0), 0),
+                  }))}
+                  monthlyTarget={categories.reduce((s, c) => s + annualTargetAmount(c), 0) / 12}
+                />
               </div>
               <table className="w-full min-w-[1000px] text-xs">
                 <thead>
@@ -1011,6 +1108,23 @@ export default function RevenuePage() {
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">顧客 *</label>
               <input name="payer_name" required className="input" defaultValue={editing?.payer_name ?? ''} placeholder="カ）〇〇" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">顧客管理との紐付け（任意）</label>
+              <select
+                name="customer_id"
+                className="input"
+                defaultValue={editing?.customer_id ?? ''}
+                onChange={e => {
+                  const customer = customers.find(c => c.id === e.currentTarget.value)
+                  const form = e.currentTarget.form
+                  const nameInput = form?.elements.namedItem('payer_name') as HTMLInputElement | null
+                  if (customer && nameInput && !nameInput.value.trim()) nameInput.value = customer.company_name
+                }}
+              >
+                <option value="">紐付けなし</option>
+                {customers.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+              </select>
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">カテゴリ *</label>

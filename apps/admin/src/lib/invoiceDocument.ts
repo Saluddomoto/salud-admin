@@ -45,8 +45,6 @@ export const DEFAULT_NOTES =
   `契約方法：電子サイン\n` +
   `何かご不明な点などございましたら、お気軽にご連絡下さい。`
 
-const MIN_ITEM_ROWS = 6
-
 export function computeTotals(items: InvoiceItem[], taxRate: number) {
   const subtotal = items.reduce((sum, it) => sum + it.quantity * it.unit_price, 0)
   const tax = Math.round(subtotal * (taxRate / 100))
@@ -87,13 +85,14 @@ type InvoiceLike = {
 export function buildInvoiceHtml(invoice: InvoiceLike): string {
   const meta = DOC_TYPE_META[invoice.doc_type]
   const { subtotal, tax, total } = computeTotals(invoice.items, invoice.tax_rate)
-  const rows = [...invoice.items]
-  while (rows.length < MIN_ITEM_ROWS) rows.push({ name: '', work: '', quantity: 0, unit_price: 0 })
+  const rows = invoice.items
+  const showWork = rows.some(it => it.work.trim())
+  const leadingColspan = showWork ? 3 : 2
 
   const itemRows = rows.map(it => `
     <tr>
       <td class="cell">${escapeHtml(it.name)}</td>
-      <td class="cell">${escapeHtml(it.work)}</td>
+      ${showWork ? `<td class="cell">${escapeHtml(it.work)}</td>` : ''}
       <td class="cell num">${it.quantity ? it.quantity.toLocaleString() : ''}</td>
       <td class="cell num">${it.unit_price ? formatYen(it.unit_price) : ''}</td>
       <td class="cell num">${it.name || it.quantity || it.unit_price ? formatYen(it.quantity * it.unit_price) : ''}</td>
@@ -127,13 +126,13 @@ export function buildInvoiceHtml(invoice: InvoiceLike): string {
 
       <table class="items">
         <thead>
-          <tr><th>項目</th><th>作業内容</th><th class="num">数量</th><th class="num">単価</th><th class="num">金額</th></tr>
+          <tr><th>項目</th>${showWork ? '<th>作業内容</th>' : ''}<th class="num">数量</th><th class="num">単価</th><th class="num">金額</th></tr>
         </thead>
         <tbody>${itemRows}</tbody>
         <tfoot>
-          <tr><td colspan="3"></td><td class="label">小計</td><td class="num">${formatYen(subtotal)}</td></tr>
-          <tr><td colspan="3"></td><td class="label">${invoice.tax_rate.toFixed(2)}%</td><td class="num">${formatYen(tax)}</td></tr>
-          <tr><td colspan="3"></td><td class="label total">合計</td><td class="num total">${formatYen(total)}</td></tr>
+          <tr><td colspan="${leadingColspan}"></td><td class="label">小計</td><td class="num">${formatYen(subtotal)}</td></tr>
+          <tr><td colspan="${leadingColspan}"></td><td class="label">${invoice.tax_rate.toFixed(2)}%</td><td class="num">${formatYen(tax)}</td></tr>
+          <tr><td colspan="${leadingColspan}"></td><td class="label total">合計</td><td class="num total">${formatYen(total)}</td></tr>
         </tfoot>
       </table>
 
