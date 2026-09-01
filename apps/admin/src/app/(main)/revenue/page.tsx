@@ -425,21 +425,21 @@ export default function RevenuePage() {
   )
   const lineTotalsWithForecast = useMemo(() => sumRowsByBusinessLine(yearRows), [yearRows])
 
-  // 採択済み補助金案件の成功報酬（入金見込み）一覧。採択が決まった時点で売上計上はされるが、
-  // 実際の入金はクライアントへの補助金支給後になるため、資金繰り確認用に単独で集計する。
-  const acceptedSuccessFeeItems = useMemo(() => {
+  // 申請済み（審査結果待ち）の補助金案件の成功報酬見込み一覧。採択率での加重はせず、
+  // 採択された場合にもらえる満額ベースで、資金繰り・見込み確認用に単独で集計する。
+  const pendingSuccessFeeItems = useMemo(() => {
     return projects
-      .filter(p => p.project_type === 'subsidy' && p.status === 'accepted')
+      .filter(p => p.project_type === 'subsidy' && p.status === 'submitted')
       .map(p => ({
         projectId: p.id,
         payer_name: p.customers?.company_name ?? '—',
-        amount: (p.subsidy_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100),
+        amount: (p.subsidy_amount ?? p.applied_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100),
         date: p.result_at ?? p.deadline,
       }))
       .filter((r): r is typeof r & { date: string } => r.amount > 0 && !!r.date && new Date(r.date).getFullYear() === year)
       .sort((a, b) => (a.date < b.date ? 1 : -1))
   }, [projects, year])
-  const acceptedSuccessFeeTotal = acceptedSuccessFeeItems.reduce((s, r) => s + r.amount, 0)
+  const pendingSuccessFeeTotal = pendingSuccessFeeItems.reduce((s, r) => s + r.amount, 0)
 
   if (!authLoading && !canAccess) {
     return (
@@ -643,34 +643,37 @@ export default function RevenuePage() {
             </table>
           </div>
 
-          {/* 採択済み補助金案件の成功報酬（入金見込み）。採択＝売上確定だが、実際の入金は
-              クライアントへの補助金支給後になるため、いくら・いつ入ってくる見込みかを別枠で確認できるようにする。 */}
+          {/* 申請済み（審査結果待ち）補助金案件の成功報酬見込み。採択率での加重はせず、
+              採択された場合の満額ベースで、いくら・何件・いつ判定が出る見込みかを別枠で確認できるようにする。 */}
           <div className="card overflow-x-auto p-0">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
               <div>
-                <h3 className="text-sm font-semibold text-slate-900">成功報酬（採択）入金見込み（{year}年）</h3>
-                <p className="mt-0.5 text-xs text-slate-400">採択が決まった案件の成功報酬。売上には計上済みですが、実際の入金はクライアントへの補助金支給後になります。</p>
+                <h3 className="text-sm font-semibold text-slate-900">成功報酬見込み（申請済み・審査待ち）（{year}年）</h3>
+                <p className="mt-0.5 text-xs text-slate-400">審査結果待ちの案件が採択された場合にもらえる成功報酬の満額（採択率での加重なし）。</p>
               </div>
-              <p className="text-lg font-bold text-emerald-600 whitespace-nowrap">{formatAmount(acceptedSuccessFeeTotal)}</p>
+              <div className="text-right">
+                <p className="text-lg font-bold text-amber-600 whitespace-nowrap">{formatAmount(pendingSuccessFeeTotal)}</p>
+                <p className="text-xs text-slate-400 whitespace-nowrap">{pendingSuccessFeeItems.length}件</p>
+              </div>
             </div>
             <table className="w-full min-w-[500px] text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
-                  <th className="px-3 py-2">採択日</th>
+                  <th className="px-3 py-2">判定予定日</th>
                   <th className="px-3 py-2">顧客</th>
-                  <th className="px-3 py-2 text-right">成功報酬（入金見込み）</th>
+                  <th className="px-3 py-2 text-right">成功報酬見込み（満額）</th>
                 </tr>
               </thead>
               <tbody>
-                {acceptedSuccessFeeItems.map(r => (
+                {pendingSuccessFeeItems.map(r => (
                   <tr key={r.projectId} className="cursor-pointer border-b border-slate-50 hover:bg-slate-50/60" onClick={() => router.push(`/projects/${r.projectId}`)}>
                     <td className="px-3 py-2 whitespace-nowrap">{formatDate(r.date)}</td>
                     <td className="px-3 py-2">{r.payer_name}</td>
-                    <td className="px-3 py-2 text-right font-medium text-emerald-600">{formatAmount(r.amount)}</td>
+                    <td className="px-3 py-2 text-right font-medium text-amber-600">{formatAmount(r.amount)}</td>
                   </tr>
                 ))}
-                {acceptedSuccessFeeItems.length === 0 && (
-                  <tr><td colSpan={3} className="py-8 text-center text-sm text-slate-300">{year}年の採択案件はまだありません</td></tr>
+                {pendingSuccessFeeItems.length === 0 && (
+                  <tr><td colSpan={3} className="py-8 text-center text-sm text-slate-300">{year}年の審査待ち案件はまだありません</td></tr>
                 )}
               </tbody>
             </table>
