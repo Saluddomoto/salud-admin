@@ -425,6 +425,22 @@ export default function RevenuePage() {
   )
   const lineTotalsWithForecast = useMemo(() => sumRowsByBusinessLine(yearRows), [yearRows])
 
+  // 採択済み補助金案件の成功報酬（入金見込み）一覧。採択が決まった時点で売上計上はされるが、
+  // 実際の入金はクライアントへの補助金支給後になるため、資金繰り確認用に単独で集計する。
+  const acceptedSuccessFeeItems = useMemo(() => {
+    return projects
+      .filter(p => p.project_type === 'subsidy' && p.status === 'accepted')
+      .map(p => ({
+        projectId: p.id,
+        payer_name: p.customers?.company_name ?? '—',
+        amount: (p.subsidy_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100),
+        date: p.result_at ?? p.deadline,
+      }))
+      .filter((r): r is typeof r & { date: string } => r.amount > 0 && !!r.date && new Date(r.date).getFullYear() === year)
+      .sort((a, b) => (a.date < b.date ? 1 : -1))
+  }, [projects, year])
+  const acceptedSuccessFeeTotal = acceptedSuccessFeeItems.reduce((s, r) => s + r.amount, 0)
+
   if (!authLoading && !canAccess) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-6 text-center">
@@ -623,6 +639,39 @@ export default function RevenuePage() {
                     <td className="px-3 py-2 text-right text-amber-600">{formatAmount(lineTotalsWithForecast[line])}</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 採択済み補助金案件の成功報酬（入金見込み）。採択＝売上確定だが、実際の入金は
+              クライアントへの補助金支給後になるため、いくら・いつ入ってくる見込みかを別枠で確認できるようにする。 */}
+          <div className="card overflow-x-auto p-0">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">成功報酬（採択）入金見込み（{year}年）</h3>
+                <p className="mt-0.5 text-xs text-slate-400">採択が決まった案件の成功報酬。売上には計上済みですが、実際の入金はクライアントへの補助金支給後になります。</p>
+              </div>
+              <p className="text-lg font-bold text-emerald-600 whitespace-nowrap">{formatAmount(acceptedSuccessFeeTotal)}</p>
+            </div>
+            <table className="w-full min-w-[500px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
+                  <th className="px-3 py-2">採択日</th>
+                  <th className="px-3 py-2">顧客</th>
+                  <th className="px-3 py-2 text-right">成功報酬（入金見込み）</th>
+                </tr>
+              </thead>
+              <tbody>
+                {acceptedSuccessFeeItems.map(r => (
+                  <tr key={r.projectId} className="cursor-pointer border-b border-slate-50 hover:bg-slate-50/60" onClick={() => router.push(`/projects/${r.projectId}`)}>
+                    <td className="px-3 py-2 whitespace-nowrap">{formatDate(r.date)}</td>
+                    <td className="px-3 py-2">{r.payer_name}</td>
+                    <td className="px-3 py-2 text-right font-medium text-emerald-600">{formatAmount(r.amount)}</td>
+                  </tr>
+                ))}
+                {acceptedSuccessFeeItems.length === 0 && (
+                  <tr><td colSpan={3} className="py-8 text-center text-sm text-slate-300">{year}年の採択案件はまだありません</td></tr>
+                )}
               </tbody>
             </table>
           </div>

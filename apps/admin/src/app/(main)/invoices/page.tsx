@@ -620,7 +620,7 @@ function AddModal({ customers, noteTemplates, onNoteTemplatesChanged, initialDoc
           noteTemplates={noteTemplates} onNoteTemplatesChanged={onNoteTemplatesChanged}
         />
         {err && <p className="text-sm text-rose-600">{err}</p>}
-        <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+        <div className="sticky bottom-0 -mx-6 flex justify-end gap-2 border-t border-slate-100 bg-white px-6 pb-4 pt-4">
           <button type="button" className="btn-secondary text-sm" onClick={onClose}>キャンセル</button>
           <button type="submit" disabled={saving} className="btn-primary text-sm">{saving ? '保存中...' : `${DOC_TYPE_LABELS[form.doc_type]}を作成する`}</button>
         </div>
@@ -671,7 +671,7 @@ function EditModal({ invoice, customers, noteTemplates, onNoteTemplatesChanged, 
           noteTemplates={noteTemplates} onNoteTemplatesChanged={onNoteTemplatesChanged}
         />
         {err && <p className="text-sm text-rose-600">{err}</p>}
-        <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+        <div className="sticky bottom-0 -mx-6 flex justify-end gap-2 border-t border-slate-100 bg-white px-6 pb-4 pt-4">
           <button type="button" className="btn-secondary text-sm" onClick={onClose}>キャンセル</button>
           <button type="button" disabled={saving} onClick={save} className="btn-primary text-sm">{saving ? '保存中...' : '保存'}</button>
         </div>

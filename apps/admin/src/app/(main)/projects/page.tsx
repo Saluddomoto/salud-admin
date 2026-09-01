@@ -64,6 +64,7 @@ export default function ProjectsPage() {
   const [error,     setError]     = useState('')
   const [subsidyChoice, setSubsidyChoice] = useState(SUBSIDY_NAMES[0]!)
   const [projectType, setProjectType] = useState<'subsidy' | 'web'>('subsidy')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'subsidy' | 'web'>('all')
 
   const load = () => {
     Promise.all([fetchProjects(), fetchCustomers(), fetchProfiles()])
@@ -118,9 +119,30 @@ export default function ProjectsPage() {
     }
   }
 
+  const visibleProjects = projects.filter(p => typeFilter === 'all' || p.project_type === typeFilter)
+  const legendItems = typeFilter === 'web'
+    ? LEGEND_ITEMS.filter(item => item.name === 'WEB制作')
+    : typeFilter === 'subsidy'
+      ? LEGEND_ITEMS.filter(item => item.name !== 'WEB制作')
+      : LEGEND_ITEMS
+
   return (
     <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
-      <PageHeader title="案件管理" description={`進行中 ${projects.filter(p => p.status !== 'completed' && p.status !== 'rejected' && p.status !== 'lost').length} 件`}>
+      <PageHeader title="案件管理" description={`進行中 ${visibleProjects.filter(p => p.status !== 'completed' && p.status !== 'rejected' && p.status !== 'lost').length} 件`}>
+        <div className="inline-flex rounded-lg border border-slate-200 p-1">
+          {([['all', '全案件'], ['subsidy', '補助金'], ['web', 'WEB']] as const).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTypeFilter(key)}
+              className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+                typeFilter === key ? 'bg-brand-600 text-white' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <button className="btn-primary text-sm" onClick={() => setModalOpen(true)}>+ 新規案件</button>
       </PageHeader>
 
@@ -129,7 +151,7 @@ export default function ProjectsPage() {
       )}
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2">
-        {LEGEND_ITEMS.map(item => (
+        {legendItems.map(item => (
           <span key={item.name} className="flex items-center gap-1.5 text-xs text-slate-500">
             <span className={`h-2 w-2 rounded-full ${item.dot}`} />
             {item.name}
@@ -139,7 +161,7 @@ export default function ProjectsPage() {
 
       <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {COLUMNS.map(col => {
-          const items = projects.filter(p => p.status === col.key)
+          const items = visibleProjects.filter(p => p.status === col.key)
           return (
             <div key={col.key} className="flex flex-col rounded-2xl bg-slate-50/80 p-3">
               <div className="mb-3 flex items-center gap-2 px-1">
