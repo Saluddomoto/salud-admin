@@ -36,6 +36,8 @@ export default function MinutesPage() {
   const [addOpen,  setAddOpen]  = useState(false)
   const [saving,   setSaving]   = useState(false)
   const [detail,   setDetail]   = useState<DbMeetingNote | null>(null)
+  const [syncing,  setSyncing]  = useState(false)
+  const [syncMsg,  setSyncMsg]  = useState('')
 
   const load = () => {
     Promise.all([fetchMeetingNotes(), fetchCustomers(), fetchProjects()])
@@ -46,6 +48,28 @@ export default function MinutesPage() {
   useEffect(load, [])
 
   const zoomCount = useMemo(() => notes.filter(n => n.source === 'zoom').length, [notes])
+
+  const syncNow = async () => {
+    setSyncing(true)
+    setSyncMsg('')
+    setError('')
+    try {
+      const res = await fetch('/api/minutes/sync-now', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || '取り込みに失敗しました')
+      setSyncMsg(
+        data.processed > 0
+          ? `${data.processed}件の議事録を取り込みました`
+          : '新しい議事録はありませんでした',
+      )
+      if (data.errors?.length) setError(data.errors.join(' / '))
+      load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '取り込みに失敗しました')
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const handleAdd = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -75,9 +99,17 @@ export default function MinutesPage() {
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="議事録" description={`社内MTG・Zoom連携（Zoom取込 ${zoomCount} 件）`}>
-        <button className="btn-primary text-sm" onClick={() => setAddOpen(true)}>+ 議事録を追加</button>
+        <div className="flex gap-2">
+          <button className="btn-secondary text-sm" onClick={syncNow} disabled={syncing}>
+            {syncing ? '取込中...' : '今すぐ取込'}
+          </button>
+          <button className="btn-primary text-sm" onClick={() => setAddOpen(true)}>+ 議事録を追加</button>
+        </div>
       </PageHeader>
 
+      {syncMsg && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{syncMsg}</div>
+      )}
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       )}
