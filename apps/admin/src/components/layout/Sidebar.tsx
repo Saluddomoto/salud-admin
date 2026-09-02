@@ -238,7 +238,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         </button>
 
         {/* Logo */}
-        <div className="flex items-center gap-3 px-4 py-5 border-b border-slate-100">
+        <Link href="/" onClick={onClose} className="flex items-center gap-3 px-4 py-5 border-b border-slate-100 hover:bg-slate-50">
           <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-brand-600">
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -251,7 +251,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
               <p className="text-xs text-slate-400 mt-0.5">管理システム</p>
             </div>
           )}
-        </div>
+        </Link>
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
