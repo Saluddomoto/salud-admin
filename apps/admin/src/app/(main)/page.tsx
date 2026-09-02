@@ -78,6 +78,7 @@ export default function DashboardPage() {
   const [meetDraft,     setMeetDraft]     = useState('')
   const [meetSaving,    setMeetSaving]    = useState(false)
   const [meetCopied,    setMeetCopied]    = useState(false)
+  const [nameCopied,    setNameCopied]    = useState(false)
   const [meetError,     setMeetError]     = useState('')
 
   const now = new Date()
@@ -240,6 +241,16 @@ export default function DashboardPage() {
     }
   }
 
+  const copySystemName = async () => {
+    try {
+      await navigator.clipboard.writeText('salud管理システム')
+      setNameCopied(true)
+      setTimeout(() => setNameCopied(false), 1500)
+    } catch {
+      // クリップボードが使えない環境では何もしない
+    }
+  }
+
   const hour = now.getHours()
   const greeting = hour < 12 ? 'おはようございます' : hour < 18 ? 'こんにちは' : 'こんばんは'
 
@@ -350,6 +361,15 @@ export default function DashboardPage() {
         )}
         </div>
         {meetError && <p className="text-xs text-rose-600">{meetError}</p>}
+      </div>
+
+      {/* システム名（コピペ用） */}
+      <div className="card flex items-center gap-3 p-4">
+        <span className="flex-shrink-0 text-sm font-medium text-slate-700">システム名</span>
+        <span className="min-w-0 flex-1 truncate text-sm text-slate-600">salud管理システム</span>
+        <button type="button" className="btn-secondary text-sm flex-shrink-0" onClick={copySystemName}>
+          {nameCopied ? 'コピーしました' : 'コピー'}
+        </button>
       </div>
 
       {/* 要返信アラート */}

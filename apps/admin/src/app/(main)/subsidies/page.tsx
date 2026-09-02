@@ -303,7 +303,7 @@ export default function SubsidiesPage() {
                 })}
                 {!loading && filtered.length === 0 && (
                   <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">
-                    案件がありません。「案件管理」から登録してください。
+                    案件がありません。「案件進捗管理」から登録してください。
                   </td></tr>
                 )}
               </tbody>
@@ -324,7 +324,7 @@ export default function SubsidiesPage() {
             >
               全期間
             </button>
-            <span className="text-xs text-slate-400">「申請期限」の年で集計（案件管理の期限欄）</span>
+            <span className="text-xs text-slate-400">「申請期限」の年で集計（案件進捗管理の期限欄）</span>
           </div>
           <div className="card overflow-hidden">
           <table className="w-full text-sm">
@@ -406,14 +406,14 @@ export default function SubsidiesPage() {
                               )
                             })}
                             {c.list.length === 0 && (
-                              <tr><td colSpan={5} className="py-3 text-center text-slate-300">案件管理には登録がありません</td></tr>
+                              <tr><td colSpan={5} className="py-3 text-center text-slate-300">案件進捗管理には登録がありません</td></tr>
                             )}
                           </tbody>
                         </table>
 
                         {c.ledgerList.length > 0 && (
                           <div className="mt-3 border-t border-slate-200 pt-3">
-                            <p className="mb-1.5 text-[11px] font-medium text-slate-400">売上台帳から検出した採択実績（案件管理には未登録）</p>
+                            <p className="mb-1.5 text-[11px] font-medium text-slate-400">売上台帳から検出した採択実績（案件進捗管理には未登録）</p>
                             <table className="w-full text-xs">
                               <thead>
                                 <tr className="text-left text-slate-400">
@@ -448,8 +448,8 @@ export default function SubsidiesPage() {
           </table>
           <p className="border-t border-slate-100 px-4 py-3 text-xs text-slate-400">
             採択率（実績）は「採択／（採択＋不採択）」で計算しています（審査中は含みません）。
-            採択は案件管理のステータスに加えて、売上台帳に手入力された過去の確定済み成功報酬（案件管理未登録分）も合算しています。
-            不採択は案件管理のステータス更新に頼っているため、更新が漏れていると実績より高い採択率に見える点にご注意ください。
+            採択は案件進捗管理のステータスに加えて、売上台帳に手入力された過去の確定済み成功報酬（案件進捗管理未登録分）も合算しています。
+            不採択は案件進捗管理のステータス更新に頼っているため、更新が漏れていると実績より高い採択率に見える点にご注意ください。
             採択率（予測用の設定値）は売上管理の月次予測で使っている値です。決定件数（採択＋不採択）が
             {MIN_DECIDED_FOR_ACTUAL_ACCEPTANCE_RATE}件に達したカテゴリは、この採択率（実績）が予測にも自動で反映されます
             （それ未満のカテゴリは業界目安の固定値のまま）。つまり不採択の記録が増えるほど、そのカテゴリの売上予測は実態に近づきます。

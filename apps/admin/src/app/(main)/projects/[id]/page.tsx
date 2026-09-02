@@ -182,7 +182,7 @@ export default function ProjectDetailPage() {
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
       <div>
-        <Link href="/projects" className="text-xs font-medium text-slate-400 hover:text-brand-600">← 案件管理</Link>
+        <Link href="/projects" className="text-xs font-medium text-slate-400 hover:text-brand-600">← 案件進捗管理</Link>
         <div className="mt-1">
           <PageHeader title={project.title} description={project.project_type === 'web' ? 'WEB制作' : project.subsidy_name ?? undefined}>
             <select

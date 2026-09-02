@@ -128,7 +128,7 @@ export default function ProjectsPage() {
 
   return (
     <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
-      <PageHeader title="案件管理" description={`進行中 ${visibleProjects.filter(p => p.status !== 'completed' && p.status !== 'rejected' && p.status !== 'lost').length} 件`}>
+      <PageHeader title="案件進捗管理" description={`進行中 ${visibleProjects.filter(p => p.status !== 'completed' && p.status !== 'rejected' && p.status !== 'lost').length} 件`}>
         <div className="inline-flex rounded-lg border border-slate-200 p-1">
           {([['all', '全案件'], ['subsidy', '補助金'], ['web', 'WEB']] as const).map(([key, label]) => (
             <button

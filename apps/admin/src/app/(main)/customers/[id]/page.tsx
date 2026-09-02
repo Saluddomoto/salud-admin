@@ -258,7 +258,7 @@ export default function CustomerDetailPage() {
         <div className="card p-5">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-semibold text-slate-900">案件（{projects.length}件）</h3>
-            <Link href="/projects" className="text-xs font-medium text-brand-600 hover:underline">案件管理へ</Link>
+            <Link href="/projects" className="text-xs font-medium text-brand-600 hover:underline">案件進捗管理へ</Link>
           </div>
           <div className="space-y-2">
             {projects.map(p => {
