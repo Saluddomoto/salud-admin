@@ -265,111 +265,114 @@ export default function DashboardPage() {
         <Link href="/projects" className="btn-primary text-sm">新規案件</Link>
       </PageHeader>
 
-      {/* Zoom URL（全社共有・1件） */}
-      <div className="card flex flex-col gap-2 p-4">
-        <div className="flex items-center gap-3">
-        <span className="flex-shrink-0 text-sm font-medium text-slate-700">Zoom URL</span>
-        {zoomEditing ? (
-          <>
-            <input
-              type="text"
-              className="input flex-1 text-sm"
-              placeholder="https://zoom.us/j/..."
-              value={zoomDraft}
-              onChange={e => setZoomDraft(e.target.value)}
-              autoFocus
-            />
-            <button type="button" disabled={zoomSaving} className="btn-primary text-sm flex-shrink-0" onClick={saveZoomUrl}>
-              {zoomSaving ? '保存中...' : '保存'}
-            </button>
-            <button type="button" className="btn-secondary text-sm flex-shrink-0" onClick={() => setZoomEditing(false)}>
-              キャンセル
-            </button>
-          </>
-        ) : dashSettings?.zoom_url ? (
-          <>
-            <a
-              href={dashSettings.zoom_url}
-              target="_blank" rel="noopener noreferrer"
-              className="min-w-0 flex-1 truncate text-sm text-brand-600 hover:underline"
-            >
-              {dashSettings.zoom_url}
-            </a>
-            <button type="button" className="btn-secondary text-sm flex-shrink-0" onClick={copyZoomUrl}>
-              {zoomCopied ? 'コピーしました' : 'コピー'}
-            </button>
-            <button type="button" className="text-xs font-medium text-slate-400 hover:text-brand-600 hover:underline flex-shrink-0" onClick={startZoomEdit}>
-              編集
-            </button>
-          </>
-        ) : (
-          <>
-            <span className="flex-1 text-sm text-slate-400">未設定</span>
-            <button type="button" className="btn-secondary text-sm flex-shrink-0" onClick={startZoomEdit}>
-              URLを設定
-            </button>
-          </>
-        )}
+      {/* クイックリンク（Zoom URL / Meet URL / システム名、全社共有） */}
+      <div className="card flex w-full max-w-xl flex-col gap-2 self-start p-3">
+        {/* Zoom URL */}
+        <div className="flex items-center gap-2">
+          <span className="w-12 flex-shrink-0 text-xs font-medium text-slate-500">Zoom</span>
+          {zoomEditing ? (
+            <>
+              <input
+                type="text"
+                className="input min-w-0 flex-1 text-xs"
+                placeholder="https://zoom.us/j/..."
+                value={zoomDraft}
+                onChange={e => setZoomDraft(e.target.value)}
+                autoFocus
+              />
+              <button type="button" disabled={zoomSaving} className="btn-primary flex-shrink-0 px-2 py-1 text-xs" onClick={saveZoomUrl}>
+                {zoomSaving ? '保存中' : '保存'}
+              </button>
+              <button type="button" className="flex-shrink-0 px-1 text-xs text-slate-400" onClick={() => setZoomEditing(false)}>
+                取消
+              </button>
+            </>
+          ) : dashSettings?.zoom_url ? (
+            <>
+              <a
+                href={dashSettings.zoom_url}
+                target="_blank" rel="noopener noreferrer"
+                className="min-w-0 flex-1 truncate text-xs text-brand-600 hover:underline"
+              >
+                {dashSettings.zoom_url}
+              </a>
+              <button type="button" className="btn-secondary flex-shrink-0 px-2 py-1 text-xs" onClick={copyZoomUrl}>
+                {zoomCopied ? '済' : 'コピー'}
+              </button>
+              <button type="button" className="flex-shrink-0 px-1 text-xs text-slate-400 hover:text-brand-600" onClick={startZoomEdit}>
+                編集
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="flex-1 text-xs text-slate-400">未設定</span>
+              <button type="button" className="btn-secondary flex-shrink-0 px-2 py-1 text-xs" onClick={startZoomEdit}>
+                設定
+              </button>
+            </>
+          )}
         </div>
-        {zoomError && <p className="text-xs text-rose-600">{zoomError}</p>}
-      </div>
+        {zoomError && <p className="pl-14 text-xs text-rose-600">{zoomError}</p>}
 
-      {/* Google Meet URL（全社共有・1件） */}
-      <div className="card flex flex-col gap-2 p-4">
-        <div className="flex items-center gap-3">
-        <span className="flex-shrink-0 text-sm font-medium text-slate-700">Meet URL</span>
-        {meetEditing ? (
-          <>
-            <input
-              type="text"
-              className="input flex-1 text-sm"
-              placeholder="https://meet.google.com/..."
-              value={meetDraft}
-              onChange={e => setMeetDraft(e.target.value)}
-              autoFocus
-            />
-            <button type="button" disabled={meetSaving} className="btn-primary text-sm flex-shrink-0" onClick={saveMeetUrl}>
-              {meetSaving ? '保存中...' : '保存'}
-            </button>
-            <button type="button" className="btn-secondary text-sm flex-shrink-0" onClick={() => setMeetEditing(false)}>
-              キャンセル
-            </button>
-          </>
-        ) : dashSettings?.meet_url ? (
-          <>
-            <a
-              href={dashSettings.meet_url}
-              target="_blank" rel="noopener noreferrer"
-              className="min-w-0 flex-1 truncate text-sm text-brand-600 hover:underline"
-            >
-              {dashSettings.meet_url}
-            </a>
-            <button type="button" className="btn-secondary text-sm flex-shrink-0" onClick={copyMeetUrl}>
-              {meetCopied ? 'コピーしました' : 'コピー'}
-            </button>
-            <button type="button" className="text-xs font-medium text-slate-400 hover:text-brand-600 hover:underline flex-shrink-0" onClick={startMeetEdit}>
-              編集
-            </button>
-          </>
-        ) : (
-          <>
-            <span className="flex-1 text-sm text-slate-400">未設定</span>
-            <button type="button" className="btn-secondary text-sm flex-shrink-0" onClick={startMeetEdit}>
-              URLを設定
-            </button>
-          </>
-        )}
+        <div className="h-px bg-slate-100" />
+
+        {/* Google Meet URL */}
+        <div className="flex items-center gap-2">
+          <span className="w-12 flex-shrink-0 text-xs font-medium text-slate-500">Meet</span>
+          {meetEditing ? (
+            <>
+              <input
+                type="text"
+                className="input min-w-0 flex-1 text-xs"
+                placeholder="https://meet.google.com/..."
+                value={meetDraft}
+                onChange={e => setMeetDraft(e.target.value)}
+                autoFocus
+              />
+              <button type="button" disabled={meetSaving} className="btn-primary flex-shrink-0 px-2 py-1 text-xs" onClick={saveMeetUrl}>
+                {meetSaving ? '保存中' : '保存'}
+              </button>
+              <button type="button" className="flex-shrink-0 px-1 text-xs text-slate-400" onClick={() => setMeetEditing(false)}>
+                取消
+              </button>
+            </>
+          ) : dashSettings?.meet_url ? (
+            <>
+              <a
+                href={dashSettings.meet_url}
+                target="_blank" rel="noopener noreferrer"
+                className="min-w-0 flex-1 truncate text-xs text-brand-600 hover:underline"
+              >
+                {dashSettings.meet_url}
+              </a>
+              <button type="button" className="btn-secondary flex-shrink-0 px-2 py-1 text-xs" onClick={copyMeetUrl}>
+                {meetCopied ? '済' : 'コピー'}
+              </button>
+              <button type="button" className="flex-shrink-0 px-1 text-xs text-slate-400 hover:text-brand-600" onClick={startMeetEdit}>
+                編集
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="flex-1 text-xs text-slate-400">未設定</span>
+              <button type="button" className="btn-secondary flex-shrink-0 px-2 py-1 text-xs" onClick={startMeetEdit}>
+                設定
+              </button>
+            </>
+          )}
         </div>
-        {meetError && <p className="text-xs text-rose-600">{meetError}</p>}
-      </div>
+        {meetError && <p className="pl-14 text-xs text-rose-600">{meetError}</p>}
 
-      {/* システム名（コピペ用） */}
-      <div className="card flex items-center gap-3 p-4">
-        <span className="flex-shrink-0 text-sm font-medium text-slate-700">システム名</span>
-        <span className="min-w-0 flex-1 truncate text-sm text-slate-600">salud管理システム</span>
-        <button type="button" className="btn-secondary text-sm flex-shrink-0" onClick={copySystemName}>
-          {nameCopied ? 'コピーしました' : 'コピー'}
-        </button>
+        <div className="h-px bg-slate-100" />
+
+        {/* システム名（コピペ用） */}
+        <div className="flex items-center gap-2">
+          <span className="w-12 flex-shrink-0 text-xs font-medium text-slate-500">名称</span>
+          <span className="min-w-0 flex-1 truncate text-xs text-slate-600">salud管理システム</span>
+          <button type="button" className="btn-secondary flex-shrink-0 px-2 py-1 text-xs" onClick={copySystemName}>
+            {nameCopied ? '済' : 'コピー'}
+          </button>
+        </div>
       </div>
 
       {/* 要返信アラート */}
