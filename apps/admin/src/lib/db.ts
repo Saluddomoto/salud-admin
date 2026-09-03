@@ -53,6 +53,7 @@ export type DbProject = {
   subsidy_name: string | null
   project_type: 'subsidy' | 'web'
   status: 'planning' | 'in_progress' | 'submitted' | 'accepted' | 'rejected' | 'lost' | 'completed'
+  result_report_status: 'estimate_prep' | 'grant_application' | 'in_execution' | 'result_report' | null
   applied_amount: number | null
   subsidy_amount: number | null
   base_fee: number | null
@@ -390,6 +391,11 @@ export async function insertProject(input: {
 
 export async function updateProjectStatus(id: string, status: string) {
   const { error } = await db().from('projects').update({ status }).eq('id', id)
+  if (error) throw error
+}
+
+export async function updateResultReportStatus(id: string, resultReportStatus: string | null) {
+  const { error } = await db().from('projects').update({ result_report_status: resultReportStatus }).eq('id', id)
   if (error) throw error
 }
 

@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { TaxAmountInput } from '@/components/TaxAmountInput'
 import {
-  fetchProjects, fetchCustomers, fetchProfiles, insertProject, updateProjectStatus,
+  fetchProjects, fetchCustomers, fetchProfiles, insertProject, updateProjectStatus, updateResultReportStatus,
   formatAmount, formatDate, type DbProject, type DbCustomer, type DbProfile,
 } from '@/lib/db'
 
@@ -15,6 +15,13 @@ const COLUMNS = [
   { key: 'in_progress', label: '申請準備中', dot: 'bg-amber-500' },
   { key: 'submitted',   label: '申請済み',   dot: 'bg-indigo-500' },
   { key: 'accepted',    label: '採択',       dot: 'bg-emerald-500' },
+] as const
+
+const RESULT_REPORT_COLUMNS = [
+  { key: 'estimate_prep',      label: '見積書準備',   dot: 'bg-slate-400' },
+  { key: 'grant_application',  label: '交付申請',     dot: 'bg-amber-500' },
+  { key: 'in_execution',       label: '補助事業実行中', dot: 'bg-indigo-500' },
+  { key: 'result_report',      label: '実績報告申請', dot: 'bg-emerald-500' },
 ] as const
 
 const SUBSIDY_NAMES = [
@@ -65,6 +72,7 @@ export default function ProjectsPage() {
   const [subsidyChoice, setSubsidyChoice] = useState(SUBSIDY_NAMES[0]!)
   const [projectType, setProjectType] = useState<'subsidy' | 'web'>('subsidy')
   const [typeFilter, setTypeFilter] = useState<'all' | 'subsidy' | 'web'>('all')
+  const [view, setView] = useState<'progress' | 'result_report'>('progress')
 
   const load = () => {
     Promise.all([fetchProjects(), fetchCustomers(), fetchProfiles()])
@@ -119,6 +127,16 @@ export default function ProjectsPage() {
     }
   }
 
+  const moveResultReportStatus = async (id: string, resultReportStatus: string) => {
+    setProjects(prev => prev.map(p => p.id === id ? { ...p, result_report_status: resultReportStatus as DbProject['result_report_status'] } : p))
+    try {
+      await updateResultReportStatus(id, resultReportStatus)
+    } catch {
+      setError('ステータスの更新に失敗しました')
+      load()
+    }
+  }
+
   const visibleProjects = projects.filter(p => typeFilter === 'all' || p.project_type === typeFilter)
   const legendItems = typeFilter === 'web'
     ? LEGEND_ITEMS.filter(item => item.name === 'WEB制作')
@@ -126,23 +144,47 @@ export default function ProjectsPage() {
       ? LEGEND_ITEMS.filter(item => item.name !== 'WEB制作')
       : LEGEND_ITEMS
 
+  // 実績報告サポートの対象は「採択済みの補助金案件」のみ
+  const resultReportProjects = projects.filter(p => p.status === 'accepted' && p.project_type === 'subsidy')
+
   return (
     <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
-      <PageHeader title="案件進捗管理" description={`進行中 ${visibleProjects.filter(p => p.status !== 'completed' && p.status !== 'rejected' && p.status !== 'lost').length} 件`}>
+      <PageHeader
+        title="案件進捗管理"
+        description={view === 'progress'
+          ? `進行中 ${visibleProjects.filter(p => p.status !== 'completed' && p.status !== 'rejected' && p.status !== 'lost').length} 件`
+          : `実績報告サポート対象 ${resultReportProjects.length} 件`}
+      >
         <div className="inline-flex rounded-lg border border-slate-200 p-1">
-          {([['all', '全案件'], ['subsidy', '補助金'], ['web', 'WEB']] as const).map(([key, label]) => (
+          {([['progress', '案件進捗'], ['result_report', '実績報告サポート']] as const).map(([key, label]) => (
             <button
               key={key}
               type="button"
-              onClick={() => setTypeFilter(key)}
+              onClick={() => setView(key)}
               className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-                typeFilter === key ? 'bg-brand-600 text-white' : 'text-slate-500 hover:text-slate-700'
+                view === key ? 'bg-brand-600 text-white' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               {label}
             </button>
           ))}
         </div>
+        {view === 'progress' && (
+          <div className="inline-flex rounded-lg border border-slate-200 p-1">
+            {([['all', '全案件'], ['subsidy', '補助金'], ['web', 'WEB']] as const).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTypeFilter(key)}
+                className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+                  typeFilter === key ? 'bg-brand-600 text-white' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         <button className="btn-primary text-sm" onClick={() => setModalOpen(true)}>+ 新規案件</button>
       </PageHeader>
 
@@ -150,6 +192,13 @@ export default function ProjectsPage() {
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       )}
 
+      {view === 'result_report' && (
+        <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-3 py-2 text-xs text-amber-700">
+          採択済みの補助金案件を対象に、見積書準備 → 交付申請 → 補助事業実行中 → 実績報告申請 の進捗を管理します。
+        </div>
+      )}
+
+      {view === 'progress' && (
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2">
         {legendItems.map(item => (
           <span key={item.name} className="flex items-center gap-1.5 text-xs text-slate-500">
@@ -158,7 +207,9 @@ export default function ProjectsPage() {
           </span>
         ))}
       </div>
+      )}
 
+      {view === 'progress' && (
       <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {COLUMNS.map(col => {
           const items = visibleProjects.filter(p => p.status === col.key)
@@ -219,6 +270,63 @@ export default function ProjectsPage() {
           )
         })}
       </div>
+      )}
+
+      {view === 'result_report' && (
+      <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {RESULT_REPORT_COLUMNS.map(col => {
+          const items = resultReportProjects.filter(p => (p.result_report_status ?? RESULT_REPORT_COLUMNS[0].key) === col.key)
+          return (
+            <div key={col.key} className="flex flex-col rounded-2xl bg-slate-50/80 p-3">
+              <div className="mb-3 flex items-center gap-2 px-1">
+                <span className={`h-2 w-2 rounded-full ${col.dot}`} />
+                <h3 className="text-sm font-semibold text-slate-700">{col.label}</h3>
+                <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">{items.length}</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {items.map(p => {
+                  const color = getProjectColor(p)
+                  return (
+                  <div key={p.id} className={`card border-l-4 ${color.border} p-2.5 transition-shadow hover:shadow-md`}>
+                    <span className={`badge mb-1.5 text-[10px] ${color.badge}`}>
+                      {p.subsidy_name ?? 'その他'}
+                    </span>
+                    <div className="flex items-start justify-between gap-2">
+                      <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-sm font-semibold leading-snug text-slate-900 hover:text-brand-600 hover:underline">
+                        {p.title}
+                      </Link>
+                      <span className="flex-shrink-0 text-xs font-semibold text-slate-700">
+                        {formatAmount(p.applied_amount)}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-500">
+                      <span className="min-w-0 truncate">{p.customers?.company_name ?? '—'}</span>
+                      <span className="flex-shrink-0 text-slate-400">採択 {formatDate(p.result_at)}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-50 pt-2">
+                      <span className="min-w-0 truncate text-xs text-slate-500">
+                        {[p.profiles?.full_name, p.assignee2?.full_name].filter(Boolean).join('・') || '—'}
+                      </span>
+                      <select
+                        className="flex-shrink-0 rounded-lg border border-slate-200 px-1 py-0.5 text-xs text-slate-600"
+                        value={p.result_report_status ?? RESULT_REPORT_COLUMNS[0].key}
+                        onChange={e => moveResultReportStatus(p.id, e.target.value)}
+                      >
+                        {RESULT_REPORT_COLUMNS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  )
+                })}
+                {!loading && items.length === 0 && (
+                  <p className="py-8 text-center text-xs text-slate-300">案件なし</p>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      )}
 
       <Modal title="新規案件" open={modalOpen} onClose={() => setModalOpen(false)}>
         <form onSubmit={handleSubmit} className="space-y-4">
