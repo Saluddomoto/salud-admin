@@ -59,6 +59,7 @@ export default function ProjectDetailPage() {
   const [saving,   setSaving]   = useState(false)
   const [subsidyChoice, setSubsidyChoice] = useState('')
   const [projectType, setProjectType] = useState<'subsidy' | 'web'>('subsidy')
+  const [baseFeeChoice, setBaseFeeChoice] = useState('')
 
   const load = useCallback(() => {
     Promise.all([fetchProject(id), fetchTasksByProject(id), fetchCustomers(), fetchProfiles()])
@@ -81,6 +82,9 @@ export default function ProjectDetailPage() {
     setError('')
     const f = new FormData(e.currentTarget)
     const subsidyName = subsidyChoice === '__other__' ? (f.get('subsidy_name_other') as string) : subsidyChoice
+    const baseFee = baseFeeChoice === '__other__'
+      ? (f.get('base_fee_other') ? Number(f.get('base_fee_other')) * 10_000 : null)
+      : (f.get('base_fee') ? Number(f.get('base_fee')) : null)
     try {
       await updateProject(id, {
         title:             f.get('title') as string,
@@ -89,7 +93,7 @@ export default function ProjectDetailPage() {
         customer_id:       (f.get('customer_id') as string) || null,
         applied_amount:    projectType === 'web' ? null : (f.get('amount') ? Number(f.get('amount')) * 10_000 : null),
         subsidy_amount:    projectType === 'web' ? null : (f.get('subsidy_amount') ? Number(f.get('subsidy_amount')) * 10_000 : null),
-        base_fee:          projectType === 'web' ? null : (f.get('base_fee') ? Number(f.get('base_fee')) : null),
+        base_fee:          projectType === 'web' ? null : baseFee,
         success_fee_rate:  projectType === 'web' ? null : (f.get('success_fee_rate') ? Number(f.get('success_fee_rate')) : null),
         web_fee_excl_tax:  projectType === 'web' ? (f.get('web_fee_excl_tax') ? Number(f.get('web_fee_excl_tax')) : null) : null,
         payment_due_date:      (f.get('payment_due_date') as string) || null,
@@ -201,6 +205,11 @@ export default function ProjectDetailPage() {
                     : '__other__'
                 )
                 setProjectType(project.project_type)
+                setBaseFeeChoice(
+                  project.base_fee != null && BASE_FEE_OPTIONS.includes(project.base_fee)
+                    ? String(project.base_fee)
+                    : project.base_fee != null ? '__other__' : ''
+                )
                 setEditOpen(true)
               }}
             >編集</button>
@@ -415,10 +424,26 @@ export default function ProjectDetailPage() {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">基本料金</label>
-                  <select name="base_fee" className="input" defaultValue={project.base_fee ?? ''}>
+                  <select
+                    name="base_fee"
+                    className="input"
+                    value={baseFeeChoice}
+                    onChange={e => setBaseFeeChoice(e.target.value)}
+                  >
                     <option value="">未設定</option>
                     {BASE_FEE_OPTIONS.map(v => <option key={v} value={v}>{(v / 10_000).toFixed(0)}万円</option>)}
+                    <option value="__other__">その他（自由入力）</option>
                   </select>
+                  {baseFeeChoice === '__other__' && (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <input
+                        name="base_fee_other" type="number" required className="input"
+                        placeholder="130"
+                        defaultValue={project.base_fee != null && !BASE_FEE_OPTIONS.includes(project.base_fee) ? project.base_fee / 10_000 : ''}
+                      />
+                      <span className="flex-shrink-0 text-sm text-slate-500">万円</span>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">成功報酬</label>
