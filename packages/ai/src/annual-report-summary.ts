@@ -23,13 +23,40 @@ const SYSTEM_PROMPT =
   '複数の役員が1年間、月ごとに書いてきた月報（今月の活動・営業・年間目標への進捗・課題・議論したいこと・来月の計画など）を' +
   'まとめて読み、年末や期首の振り返りで使える「年間の振り返り」を作成してください。' +
   '単月の出来事の羅列ではなく、月を追って見える傾向・積み上がった成果・繰り返し出てくる課題・年間目標への到達度に注目してください。' +
-  '出力は次のJSON形式のみとし、前後に説明文やマークダウンのコードブロック記法を付けないこと: ' +
-  '{"overview": string, "highlights": string[], "risks": string[], "discussionAgenda": string[], "advice": string[]}。' +
-  'overview は1年間の総括を4〜6文程度の日本語で。' +
-  'highlights（1年間の主な成果・前進した点）/ risks（1年を通じて繰り返し出てきた・未解決のまま残っている課題）/ ' +
-  'discussionAgenda（来年に向けて役員間で議論・意思決定すべきテーマ）/ ' +
-  'advice（来年に向けた経営への具体的な提言。一般論・精神論は避け、実行可能な内容にする）は、' +
-  'それぞれ簡潔な日本語の箇条書き（3〜6件程度）とし、該当する内容が無ければ空配列にすること。'
+  '分析結果は必ず record_summary ツールを使って報告してください。'
+
+const SUMMARY_TOOL: Anthropic.Tool = {
+  name: 'record_summary',
+  description: '年間の月報を横断分析した結果を構造化して報告する',
+  input_schema: {
+    type: 'object',
+    properties: {
+      overview: { type: 'string', description: '1年間の総括を4〜6文程度の日本語で' },
+      highlights: {
+        type: 'array',
+        items: { type: 'string' },
+        description: '1年間の主な成果・前進した点。簡潔な日本語の箇条書き3〜6件、該当が無ければ空配列',
+      },
+      risks: {
+        type: 'array',
+        items: { type: 'string' },
+        description: '1年を通じて繰り返し出てきた・未解決のまま残っている課題。簡潔な日本語の箇条書き3〜6件、該当が無ければ空配列',
+      },
+      discussionAgenda: {
+        type: 'array',
+        items: { type: 'string' },
+        description: '来年に向けて役員間で議論・意思決定すべきテーマ。簡潔な日本語の箇条書き3〜6件、該当が無ければ空配列',
+      },
+      advice: {
+        type: 'array',
+        items: { type: 'string' },
+        description:
+          '来年に向けた経営への具体的な提言。一般論・精神論は避け実行可能な内容にする。簡潔な日本語の箇条書き3〜6件、該当が無ければ空配列',
+      },
+    },
+    required: ['overview', 'highlights', 'risks', 'discussionAgenda', 'advice'],
+  },
+}
 
 /** 1年分（複数役員×複数月）の月報をまとめてClaudeに渡し、年間の振り返りを生成する */
 export async function summarizeAnnualReports(
@@ -58,29 +85,23 @@ export async function summarizeAnnualReports(
     model: 'claude-opus-5',
     max_tokens: 4096,
     system: SYSTEM_PROMPT,
+    tools: [SUMMARY_TOOL],
+    tool_choice: { type: 'tool', name: SUMMARY_TOOL.name },
     messages: [{ role: 'user', content: userContent }],
   })
 
-  const textBlock = response.content.find((block) => block.type === 'text')
-  if (!textBlock || textBlock.type !== 'text') {
-    throw new Error('AI分析の結果を取得できませんでした')
-  }
   if (response.stop_reason === 'max_tokens') {
     throw new Error('AIの応答が長すぎて途中で切れました。もう一度お試しください')
   }
 
-  const jsonText = textBlock.text
-    .trim()
-    .replace(/^```(json)?/, '')
-    .replace(/```$/, '')
-    .trim()
-
-  let parsed: Partial<AnnualReportSummary>
-  try {
-    parsed = JSON.parse(jsonText) as Partial<AnnualReportSummary>
-  } catch {
-    throw new Error('AIの応答を解析できませんでした')
+  const toolBlock = response.content.find(
+    (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use' && block.name === SUMMARY_TOOL.name,
+  )
+  if (!toolBlock) {
+    throw new Error('AI分析の結果を取得できませんでした')
   }
+
+  const parsed = toolBlock.input as Partial<AnnualReportSummary>
 
   return {
     overview: parsed.overview ?? '',
