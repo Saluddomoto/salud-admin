@@ -7,7 +7,8 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   fetchMyProfile, fetchProfiles, updateMyProfile, updateMyNotificationPrefs, updateMyPassword,
   updateMemberTasksSharing, updateMemberActive, updateMemberDigest, updateMemberExecutive, updateMemberChatworkId,
-  type DbProfile, type NotificationPrefs,
+  fetchLoginHistory,
+  type DbProfile, type NotificationPrefs, type DbLoginHistory,
 } from '@/lib/db'
 
 const NOTIFICATION_ITEMS: { key: keyof NotificationPrefs; label: string }[] = [
@@ -21,6 +22,7 @@ const NOTIFICATION_ITEMS: { key: keyof NotificationPrefs; label: string }[] = [
 const TABS = [
   { key: 'profile',       label: 'プロフィール' },
   { key: 'members',       label: 'メンバー管理' },
+  { key: 'login_history', label: 'ログイン履歴' },
   { key: 'notifications', label: '通知設定' },
   { key: 'security',      label: 'セキュリティ' },
   { key: 'integrations',  label: '連携サービス' },
@@ -66,6 +68,9 @@ export default function SettingsPage() {
   const [resetPwBusyId, setResetPwBusyId] = useState<string | null>(null)
   const [resetPwResult, setResetPwResult] = useState<{ name: string; tempPassword: string } | null>(null)
 
+  const [loginHistory,      setLoginHistory]      = useState<DbLoginHistory[] | null>(null)
+  const [loginHistoryError, setLoginHistoryError] = useState(false)
+
   const [prefs,         setPrefs]         = useState<NotificationPrefs | null>(null)
   const [prefsSaving,   setPrefsSaving]   = useState(false)
   const [prefsSaved,    setPrefsSaved]    = useState(false)
@@ -91,6 +96,11 @@ export default function SettingsPage() {
     // Google 認証から戻ってきた場合は連携サービスタブを開く
     if (new URLSearchParams(window.location.search).get('google')) setTab('integrations')
   }, [])
+
+  useEffect(() => {
+    if (tab !== 'login_history' || loginHistory !== null) return
+    fetchLoginHistory().then(setLoginHistory).catch(() => setLoginHistoryError(true))
+  }, [tab, loginHistory])
 
   const selectCalendar = async (calendar_id: string, calendar_name: string) => {
     setGoogleBusy(true)
@@ -305,7 +315,7 @@ export default function SettingsPage() {
 
   // 全員が自分のプロフィール・通知設定・パスワードを管理できる。
   // 「メンバー管理」「連携サービス」（会社共通のGoogle/LINE連携）は管理者のみに絞り込む。
-  const ADMIN_ONLY_TABS: TabKey[] = ['members', 'integrations']
+  const ADMIN_ONLY_TABS: TabKey[] = ['members', 'login_history', 'integrations']
   const visibleTabs = TABS.filter(t => role === 'admin' || !ADMIN_ONLY_TABS.includes(t.key))
 
   useEffect(() => {
@@ -473,6 +483,59 @@ export default function SettingsPage() {
                   <p className="py-8 text-center text-sm text-slate-400">
                     メンバー一覧を表示する権限がありません
                   </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {tab === 'login_history' && (
+            <div className="space-y-6">
+              <div className="card p-6">
+                <h3 className="mb-4 font-semibold text-slate-900">メンバーごとの最終ログイン</h3>
+                <div className="divide-y divide-slate-50">
+                  {members.map(m => {
+                    const last = loginHistory?.find(h => h.user_id === m.id)
+                    return (
+                      <div key={m.id} className="flex flex-wrap items-center gap-3 py-3">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
+                          {m.full_name[0] ?? '?'}
+                        </span>
+                        <div className="min-w-[120px] flex-1">
+                          <p className="text-sm font-medium text-slate-800">{m.full_name || '（未設定）'}</p>
+                        </div>
+                        <p className="text-sm text-slate-500">
+                          {last ? new Date(last.logged_in_at).toLocaleString('ja-JP') : 'ログイン記録なし'}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="card p-6">
+                <h3 className="mb-4 font-semibold text-slate-900">ログイン履歴（直近{loginHistory?.length ?? 0}件）</h3>
+                {loginHistoryError && (
+                  <p className="text-sm text-rose-600">ログイン履歴の取得に失敗しました</p>
+                )}
+                {!loginHistoryError && !loginHistory && (
+                  <p className="text-sm text-slate-400">読み込み中...</p>
+                )}
+                {!loginHistoryError && loginHistory && loginHistory.length === 0 && (
+                  <p className="text-sm text-slate-400">ログイン履歴はまだありません</p>
+                )}
+                {!loginHistoryError && loginHistory && loginHistory.length > 0 && (
+                  <div className="max-h-[480px] overflow-y-auto divide-y divide-slate-50">
+                    {loginHistory.map(h => (
+                      <div key={h.id} className="flex items-center gap-3 py-2 text-sm">
+                        <span className="min-w-[100px] font-medium text-slate-700">
+                          {h.profiles?.full_name || '（不明）'}
+                        </span>
+                        <span className="text-slate-500">
+                          {new Date(h.logged_in_at).toLocaleString('ja-JP')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

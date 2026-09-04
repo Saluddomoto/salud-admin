@@ -42,8 +42,14 @@ export function useAuth(): AuthState & {
 
   const signIn = async (email: string, password: string) => {
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
+    if (data.user) {
+      // ログイン履歴の記録。失敗してもログイン自体は継続させる。
+      supabase.from('login_history').insert({ user_id: data.user.id }).then(({ error: e }) => {
+        if (e) console.error('login_history insert failed', e)
+      })
+    }
   }
 
   const signOut = async () => {

@@ -824,6 +824,24 @@ export async function updateMemberChatworkId(id: string, chatworkAccountId: stri
   if (error) throw error
 }
 
+export type DbLoginHistory = {
+  id: string
+  user_id: string
+  logged_in_at: string
+  profiles: { full_name: string } | null
+}
+
+// ログイン履歴（admin のみ RLS で許可）。直近 limit 件をログイン日時の新しい順で返す。
+export async function fetchLoginHistory(limit = 200): Promise<DbLoginHistory[]> {
+  const { data, error } = await db()
+    .from('login_history')
+    .select('id, user_id, logged_in_at, profiles(full_name)')
+    .order('logged_in_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return data as unknown as DbLoginHistory[]
+}
+
 // ── ダッシュボード ───────────────────────────────────
 export async function fetchCustomerCount(): Promise<number> {
   const { count, error } = await db()
