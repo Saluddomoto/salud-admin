@@ -1399,6 +1399,11 @@ export type DbRevenueEntry = {
   fee_type: 'base_fee' | 'success_fee' | null
   // 顧客管理（customers）との紐付け（任意）
   customer_id: string | null
+  // この売上明細にかかった経費（任意・内訳として1件のみ）
+  expense_category: string | null
+  expense_amount: number | null
+  // expense_category が「外注費」の場合の外注先・担当者名（任意）
+  expense_vendor: string | null
 }
 
 export type RevenueEntryInput = {
@@ -1412,6 +1417,9 @@ export type RevenueEntryInput = {
   memo: string | null
   fee_type?: 'base_fee' | 'success_fee' | null
   customer_id?: string | null
+  expense_category?: string | null
+  expense_amount?: number | null
+  expense_vendor?: string | null
 }
 
 export async function fetchRevenueLedger(): Promise<DbRevenueEntry[]> {

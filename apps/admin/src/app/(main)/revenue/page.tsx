@@ -19,6 +19,7 @@ import {
 } from '@/lib/db'
 import {
   REVENUE_CATEGORIES, REVENUE_CATEGORY_NAMES, annualTargetAmount, BUSINESS_LINE_LABELS,
+  EXPENSE_CATEGORIES, EXPENSE_VENDORS,
   type RevenueCategory, type RevenueBusinessLine,
 } from '@/lib/revenueCategories'
 import { deriveProjectRows, derivePipelineForecastRows, deriveFutureContractForecastRows, sumRowsByBusinessLine, type Row } from '@/lib/revenueRows'
@@ -151,6 +152,11 @@ export default function RevenuePage() {
   const [contractModalOpen, setContractModalOpen] = useState(false)
   const [editingContract, setEditingContract] = useState<DbRecurringContract | null>(null)
 
+  // 経費内訳フォーム用: カテゴリが「外注費」の時だけ外注先の選択欄を出す。
+  // 外注先はプリセット（EXPENSE_VENDORS）＋「その他（自由入力）」。
+  const [expenseCategoryDraft, setExpenseCategoryDraft] = useState('')
+  const [expenseVendorChoice, setExpenseVendorChoice] = useState('')
+
   // 目標設定（会社全体KGI・カテゴリ別前提）— 年ごとにDBの上書きを読み込みデフォルトとマージする
   const [settingsOverride, setSettingsOverride] = useState<DbRevenueSettings | null>(null)
   const [categoryOverrides, setCategoryOverrides] = useState<DbRevenueCategoryTarget[]>([])
@@ -275,8 +281,22 @@ export default function RevenuePage() {
 
   const canAccess = role === 'admin'
 
-  const openCreate = () => { setEditing(null); setModalOpen(true) }
-  const openEdit = (r: DbRevenueEntry) => { setEditing(r); setModalOpen(true) }
+  const openCreate = () => {
+    setEditing(null)
+    setExpenseCategoryDraft('')
+    setExpenseVendorChoice('')
+    setModalOpen(true)
+  }
+  const openEdit = (r: DbRevenueEntry) => {
+    setEditing(r)
+    setExpenseCategoryDraft(r.expense_category ?? '')
+    setExpenseVendorChoice(
+      r.expense_vendor == null ? ''
+        : (EXPENSE_VENDORS as readonly string[]).includes(r.expense_vendor) ? r.expense_vendor
+        : '__other__'
+    )
+    setModalOpen(true)
+  }
 
   const handleToggleStatus = async (entry: DbRevenueEntry) => {
     const next: 'confirmed' | 'forecast' = entry.status === 'confirmed' ? 'forecast' : 'confirmed'
@@ -305,6 +325,10 @@ export default function RevenuePage() {
     setError('')
     const f = new FormData(e.currentTarget)
     const feeType = f.get('fee_type') as string
+    const expenseCategory = f.get('expense_category') as string
+    const expenseVendorRaw = f.get('expense_vendor') as string
+    const expenseVendorOther = (f.get('expense_vendor_other') as string)?.trim()
+    const expenseVendor = expenseVendorRaw === '__other__' ? (expenseVendorOther || null) : (expenseVendorRaw || null)
     const input: RevenueEntryInput = {
       entry_date:             f.get('entry_date') as string,
       payer_name:             f.get('payer_name') as string,
@@ -315,6 +339,9 @@ export default function RevenuePage() {
       payment_received_date:   (f.get('payment_received_date') as string) || null,
       memo:                     (f.get('memo') as string)?.trim() || null,
       customer_id:              (f.get('customer_id') as string) || null,
+      expense_category:        expenseCategory || null,
+      expense_amount:          expenseCategory ? Number(f.get('expense_amount') || 0) : null,
+      expense_vendor:          expenseCategory === '外注費' ? expenseVendor : null,
       // 未選択なら送らない（revenue_ledger.fee_type 列が未マイグレーションの環境でも壊れないように）
       ...(feeType ? { fee_type: feeType as 'base_fee' | 'success_fee' } : {}),
     }
@@ -441,6 +468,23 @@ export default function RevenuePage() {
   }, [projects, year])
   const pendingSuccessFeeTotal = pendingSuccessFeeItems.reduce((s, r) => s + r.amount, 0)
 
+  // 売上台帳に手入力した経費内訳（確定分）の年間合計と、売上に対する比率・粗利（実績）
+  const yearExpenseTotal = useMemo(() => manual
+    .filter(m => m.status === 'confirmed' && m.expense_amount && m.entry_date && new Date(m.entry_date).getFullYear() === year)
+    .reduce((s, m) => s + (m.expense_amount ?? 0), 0), [manual, year])
+  const yearExpenseRatio = yearTotalConfirmed ? yearExpenseTotal / yearTotalConfirmed : 0
+  const yearGrossProfitActual = yearTotalConfirmed - yearExpenseTotal
+  const expenseByCategory = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const e of manual) {
+      if (e.status !== 'confirmed' || !e.expense_amount || !e.entry_date) continue
+      if (new Date(e.entry_date).getFullYear() !== year) continue
+      const key = e.expense_category ?? 'その他'
+      m.set(key, (m.get(key) ?? 0) + e.expense_amount)
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1])
+  }, [manual, year])
+
   if (!authLoading && !canAccess) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-6 text-center">
@@ -508,6 +552,7 @@ export default function RevenuePage() {
                 <SortableTh label="カテゴリ" sortKey="category" current={sortKey} dir={sortDir} onClick={toggleSort} />
                 <SortableTh label="金額（税抜）" sortKey="amount_excl_tax" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
                 <th className="px-3 py-2.5">内訳（基本／成功報酬）</th>
+                <th className="px-3 py-2.5">経費</th>
                 <SortableTh label="区分" sortKey="status" current={sortKey} dir={sortDir} onClick={toggleSort} />
                 <th className="px-3 py-2.5">入金予定日</th>
                 <th className="px-3 py-2.5">入金日</th>
@@ -544,6 +589,11 @@ export default function RevenuePage() {
                       : r.successFee != null ? '成功報酬'
                       : r.fee_type === 'base_fee' ? '基本料金'
                       : r.fee_type === 'success_fee' ? '成功報酬'
+                      : '—'}
+                  </td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-xs text-slate-500">
+                    {r.expense_category
+                      ? `${r.expense_category} ${formatAmount(r.expense_amount ?? 0)}${r.expense_vendor ? `（${r.expense_vendor}）` : ''}`
                       : '—'}
                   </td>
                   <td className="px-3 py-2.5">
@@ -586,7 +636,7 @@ export default function RevenuePage() {
                 </tr>
               ))}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={10} className="py-10 text-center text-sm text-slate-300">売上明細はまだありません</td></tr>
+                <tr><td colSpan={11} className="py-10 text-center text-sm text-slate-300">売上明細はまだありません</td></tr>
               )}
             </tbody>
           </table>
@@ -641,6 +691,52 @@ export default function RevenuePage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* 売上台帳に手入力した経費内訳（確定分）の年間集計。売上に対する経費比率・粗利（実績）を確認できるようにする */}
+          <div className="card overflow-x-auto p-0">
+            <div className="border-b border-slate-100 px-4 py-3">
+              <h3 className="text-sm font-semibold text-slate-900">売上・経費比率（実績・{year}年）</h3>
+              <p className="mt-0.5 text-xs text-slate-400">売上台帳の各明細に入力した「経費内訳」（確定分）の集計です。</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-4">
+              <div>
+                <p className="text-xs text-slate-400">確定売上</p>
+                <p className="mt-1 text-lg font-bold text-emerald-600">{formatAmount(yearTotalConfirmed)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">経費合計</p>
+                <p className="mt-1 text-lg font-bold text-rose-600">{formatAmount(yearExpenseTotal)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">経費比率（対売上）</p>
+                <p className="mt-1 text-lg font-bold text-slate-900">{Math.round(yearExpenseRatio * 1000) / 10}%</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">粗利（実績）</p>
+                <p className="mt-1 text-lg font-bold text-slate-900">{formatAmount(yearGrossProfitActual)}</p>
+              </div>
+            </div>
+            {expenseByCategory.length > 0 && (
+              <table className="w-full min-w-[400px] border-t border-slate-100 text-xs">
+                <thead>
+                  <tr className="text-left text-slate-400">
+                    <th className="px-4 py-2">経費カテゴリ</th>
+                    <th className="px-4 py-2 text-right">金額</th>
+                    <th className="px-4 py-2 text-right">構成比</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expenseByCategory.map(([cat, amt]) => (
+                    <tr key={cat} className="border-t border-slate-50">
+                      <td className="px-4 py-2 text-slate-700">{cat}</td>
+                      <td className="px-4 py-2 text-right font-medium">{formatAmount(amt)}</td>
+                      <td className="px-4 py-2 text-right text-slate-400">{yearExpenseTotal ? Math.round((amt / yearExpenseTotal) * 1000) / 10 : 0}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {/* 申請済み（審査結果待ち）補助金案件の成功報酬見込み。採択率での加重はせず、
@@ -1201,6 +1297,49 @@ export default function RevenuePage() {
             </div>
             <div className="sm:col-span-2">
               <TaxAmountInput name="amount_excl_tax" label="金額 *" defaultValueExclTax={editing?.amount_excl_tax} />
+            </div>
+            <div className="sm:col-span-2 rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+              <p className="mb-2 text-xs font-semibold text-slate-500">経費内訳（任意）</p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">経費カテゴリ</label>
+                  <select
+                    name="expense_category" className="input"
+                    value={expenseCategoryDraft}
+                    onChange={e => setExpenseCategoryDraft(e.target.value)}
+                  >
+                    <option value="">なし</option>
+                    {EXPENSE_CATEGORIES.map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">経費金額</label>
+                  <input
+                    name="expense_amount" type="number" className="input"
+                    defaultValue={editing?.expense_amount ?? ''}
+                  />
+                </div>
+                {expenseCategoryDraft === '外注費' && (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">外注先・担当</label>
+                    <select
+                      name="expense_vendor" className="input"
+                      value={expenseVendorChoice}
+                      onChange={e => setExpenseVendorChoice(e.target.value)}
+                    >
+                      <option value="">未選択</option>
+                      {EXPENSE_VENDORS.map(n => <option key={n} value={n}>{n}</option>)}
+                      <option value="__other__">その他（自由入力）</option>
+                    </select>
+                    {expenseVendorChoice === '__other__' && (
+                      <input
+                        name="expense_vendor_other" className="input mt-2" placeholder="外注先・担当者名"
+                        defaultValue={editing?.expense_vendor && !(EXPENSE_VENDORS as readonly string[]).includes(editing.expense_vendor) ? editing.expense_vendor : ''}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">入金予定日</label>

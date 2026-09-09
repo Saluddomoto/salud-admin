@@ -42,6 +42,13 @@ export const REVENUE_CATEGORIES: RevenueCategory[] = [
 
 export const REVENUE_CATEGORY_NAMES = REVENUE_CATEGORIES.map(c => c.name)
 
+// 売上明細に紐づける経費の内訳カテゴリ（1明細につき1カテゴリ＋金額）。
+export const EXPENSE_CATEGORIES = ['外注費', '人件費', '広告費', '交通費', '消耗品費', 'その他'] as const
+export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number]
+
+// 「外注費」を選んだ場合の外注先・担当者の選択肢。リストに無い場合は「その他（自由入力）」を使う。
+export const EXPENSE_VENDORS = ['栗原', '三戸部', '和家'] as const
+
 export function findRevenueCategory(name: string): RevenueCategory | null {
   return REVENUE_CATEGORIES.find(c => c.name === name) ?? null
 }

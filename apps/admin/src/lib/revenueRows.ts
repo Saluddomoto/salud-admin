@@ -27,6 +27,10 @@ export type Row = {
   successFee?: number
   // 手入力行のみ設定。1件＝基本料金 or 成功報酬のどちらか（案件由来の内訳とは別の入力方法）。
   fee_type?: 'base_fee' | 'success_fee' | null
+  // 手入力行のみ設定。売上明細1件に紐づく経費の内訳（任意）。
+  expense_category?: string | null
+  expense_amount?: number | null
+  expense_vendor?: string | null
 }
 
 export function deriveProjectRows(projects: DbProject[]): Row[] {
