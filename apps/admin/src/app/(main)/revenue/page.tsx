@@ -446,6 +446,18 @@ export default function RevenuePage() {
       ? yearRows
       : yearRows.filter(r => r.status === breakdownStatusTab)
 
+  // 月次実績（確定分のみ）の各月の金額をクリックしたときの内訳（category: null は「合計」行＝全カテゴリ）
+  const [monthBreakdown, setMonthBreakdown] = useState<{ month: number; category: string | null } | null>(null)
+  const monthBreakdownRows = useMemo(() => {
+    if (!monthBreakdown) return []
+    return yearRows.filter(r =>
+      r.status === 'confirmed' &&
+      r.entry_date &&
+      new Date(r.entry_date).getMonth() + 1 === monthBreakdown.month &&
+      (monthBreakdown.category === null || r.category === monthBreakdown.category)
+    )
+  }, [yearRows, monthBreakdown])
+
   // 事業別（補助金事業／WEB事業）の内訳。「ウェブ売上」と「補助金事業の売上」を分けて見せる。
   const lineTotalsConfirmed = useMemo(
     () => sumRowsByBusinessLine(yearRows.filter(r => r.status === 'confirmed')), [yearRows]
@@ -826,7 +838,17 @@ export default function RevenuePage() {
                         <tr className="border-b border-slate-50">
                           <td className="px-3 py-2 font-medium text-slate-700">{cat.name}</td>
                           {arr.map((v, mi) => (
-                            <td key={mi} className="px-2 py-2 text-right text-slate-500">{v ? formatAmount(v) : '—'}</td>
+                            <td key={mi} className="px-2 py-2 text-right text-slate-500">
+                              {v && block.key === 'confirmed' ? (
+                                <button
+                                  type="button"
+                                  className="hover:underline hover:text-brand-600"
+                                  onClick={() => setMonthBreakdown({ month: mi + 1, category: cat.name })}
+                                >
+                                  {formatAmount(v)}
+                                </button>
+                              ) : v ? formatAmount(v) : '—'}
+                            </td>
                           ))}
                           <td className="px-3 py-2 text-right font-semibold text-slate-900">{formatAmount(total)}</td>
                           <td className="px-3 py-2 text-right text-slate-400">{target ? formatAmount(target) : '—'}</td>
@@ -855,7 +877,15 @@ export default function RevenuePage() {
                       )
                       return (
                         <td key={m} className="px-2 py-2 text-right font-semibold text-slate-900">
-                          {monthTotal ? formatAmount(monthTotal) : '—'}
+                          {monthTotal && block.key === 'confirmed' ? (
+                            <button
+                              type="button"
+                              className="hover:underline"
+                              onClick={() => setMonthBreakdown({ month: i + 1, category: null })}
+                            >
+                              {formatAmount(monthTotal)}
+                            </button>
+                          ) : monthTotal ? formatAmount(monthTotal) : '—'}
                         </td>
                       )
                     })}
@@ -1240,6 +1270,65 @@ export default function RevenuePage() {
                   {formatAmount(breakdownRows.reduce((s, r) => s + r.amount_excl_tax, 0))}
                 </td>
                 <td colSpan={2} />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </Modal>
+
+      <Modal
+        title={monthBreakdown
+          ? `${monthBreakdown.month}月の内訳${monthBreakdown.category ? `（${monthBreakdown.category}）` : ''}`
+          : ''}
+        open={monthBreakdown !== null}
+        onClose={() => setMonthBreakdown(null)}
+      >
+        <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+          <table className="w-full min-w-[520px] text-xs">
+            <thead>
+              <tr className="border-b border-slate-100 text-left text-slate-400">
+                <th className="px-2 py-2">日付</th>
+                <th className="px-2 py-2">顧客</th>
+                <th className="px-2 py-2">カテゴリ</th>
+                <th className="px-2 py-2 text-right">金額</th>
+                <th className="px-2 py-2">根拠</th>
+              </tr>
+            </thead>
+            <tbody>
+              {monthBreakdownRows.map(r => (
+                <tr
+                  key={r.id}
+                  className={`border-b border-slate-50 ${r.projectId ? 'cursor-pointer hover:bg-slate-50' : ''}`}
+                  onClick={r.projectId ? () => router.push(`/projects/${r.projectId}`) : undefined}
+                  title={r.projectId ? '案件詳細を開く' : undefined}
+                >
+                  <td className="px-2 py-2 whitespace-nowrap">{r.entry_date}</td>
+                  <td className="px-2 py-2">
+                    {r.payer_name}
+                    {r.projectId && <span className="ml-1 text-slate-300">›</span>}
+                  </td>
+                  <td className="px-2 py-2">{r.category}</td>
+                  <td className="px-2 py-2 text-right font-medium">{formatAmount(r.amount_excl_tax)}</td>
+                  <td className="px-2 py-2 text-slate-500">
+                    {r.memo ??
+                      (r.id.startsWith('pipeline-') ? 'パイプライン見込み'
+                        : r.id.startsWith('contract-forecast-') ? '月額契約の見込み'
+                        : r.source === 'project' ? '案件由来'
+                        : '手入力')}
+                  </td>
+                </tr>
+              ))}
+              {monthBreakdownRows.length === 0 && (
+                <tr><td colSpan={5} className="py-8 text-center text-slate-300">該当する明細はありません</td></tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-slate-200 bg-slate-50/70">
+                <td colSpan={3} className="px-2 py-2 font-semibold text-slate-900">合計</td>
+                <td className="px-2 py-2 text-right font-semibold text-slate-900">
+                  {formatAmount(monthBreakdownRows.reduce((s, r) => s + r.amount_excl_tax, 0))}
+                </td>
+                <td />
               </tr>
             </tfoot>
           </table>
