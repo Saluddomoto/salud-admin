@@ -207,6 +207,11 @@ export default function MonthlyReportsPage() {
     const total = y * 12 + (m - 1) + 1
     return `${Math.floor(total / 12)}-${pad((total % 12) + 1)}-01`
   }, [y, m])
+  const prevYm = useMemo(() => {
+    const total = y * 12 + (m - 1) - 1
+    return { y: Math.floor(total / 12), m: (total % 12) + 1 }
+  }, [y, m])
+  const prevPeriod = useMemo(() => `${prevYm.y}-${pad(prevYm.m)}-01`, [prevYm])
 
   useEffect(() => {
     fetchMyProfile().then(setMe).finally(() => setMeLoading(false))
@@ -231,6 +236,18 @@ export default function MonthlyReportsPage() {
   }, [period])
 
   useEffect(load, [load])
+
+  // 先月自分が書いた「⑥ 来月の取り組み・成果」を、今月の月報記入時の参考として表示するために読み込む
+  const [prevReport, setPrevReport] = useState<DbMonthlyReport | null>(null)
+
+  useEffect(() => {
+    if (!me) { setPrevReport(null); return }
+    fetchMonthlyReports(prevPeriod)
+      .then(list => setPrevReport(list.find(r => r.user_id === me.id) ?? null))
+      .catch(() => setPrevReport(null))
+  }, [prevPeriod, me])
+
+  const prevPlan = prevReport ? mergedNextMonth(prevReport) : ''
 
   // 月末MTG（役員会議）の議事録・録画。個人の月報とは別に、月ごとに1本以上を紐付けられる
   const [meetingNotes,        setMeetingNotes]        = useState<DbMeetingNote[]>([])
@@ -750,6 +767,19 @@ export default function MonthlyReportsPage() {
 
           {editing ? (
             <div className="space-y-5">
+              {prevPlan && (
+                <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 sm:p-5">
+                  <p className="text-xs font-bold text-amber-700">
+                    {prevYm.y}年{prevYm.m}月に書いた「⑥ 来月の取り組み・成果」（参考）
+                  </p>
+                  <p className="mt-1 text-xs text-amber-600">
+                    先月時点でこの月に向けて立てた計画です。今月の実績と照らし合わせて記入の参考にしてください。
+                  </p>
+                  <div className="mt-2 rounded-xl bg-white p-3">
+                    <ReportText text={prevPlan} />
+                  </div>
+                </div>
+              )}
               {REPORT_BLOCKS.map(block => (
                 <div key={block.heading} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 sm:p-5">
                   <h3 className="text-sm font-bold text-slate-800">{block.heading}</h3>
