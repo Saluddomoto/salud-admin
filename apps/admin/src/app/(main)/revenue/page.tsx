@@ -19,7 +19,7 @@ import {
 } from '@/lib/db'
 import {
   REVENUE_CATEGORIES, REVENUE_CATEGORY_NAMES, annualTargetAmount, BUSINESS_LINE_LABELS,
-  EXPENSE_CATEGORIES, EXPENSE_VENDORS,
+  EXPENSE_CATEGORIES, EXPENSE_VENDORS, businessLineOfCategory,
   type RevenueCategory, type RevenueBusinessLine,
 } from '@/lib/revenueCategories'
 import { deriveProjectRows, derivePipelineForecastRows, deriveFutureContractForecastRows, sumRowsByBusinessLine, type Row } from '@/lib/revenueRows'
@@ -464,6 +464,16 @@ export default function RevenuePage() {
   )
   const lineTotalsWithForecast = useMemo(() => sumRowsByBusinessLine(yearRows), [yearRows])
 
+  // 事業別の売上テーブルの金額をクリックしたときの内訳（対象の事業ライン＋確定のみ／確定＋見込み）
+  const [lineBreakdown, setLineBreakdown] = useState<{ line: RevenueBusinessLine; status: 'confirmed' | 'all' } | null>(null)
+  const lineBreakdownRows = useMemo(() => {
+    if (!lineBreakdown) return []
+    return yearRows.filter(r =>
+      businessLineOfCategory(r.category) === lineBreakdown.line &&
+      (lineBreakdown.status === 'all' || r.status === 'confirmed')
+    )
+  }, [yearRows, lineBreakdown])
+
   // 申請済み（審査結果待ち）の補助金案件の成功報酬見込み一覧。採択率での加重はせず、
   // 採択された場合にもらえる満額ベースで、資金繰り・見込み確認用に単独で集計する。
   const pendingSuccessFeeItems = useMemo(() => {
@@ -697,8 +707,24 @@ export default function RevenuePage() {
                 {BUSINESS_LINES.filter(line => lineTotalsConfirmed[line] || lineTotalsWithForecast[line]).map(line => (
                   <tr key={line} className="border-b border-slate-50">
                     <td className="px-3 py-2 font-medium text-slate-700">{BUSINESS_LINE_LABELS[line]}</td>
-                    <td className="px-3 py-2 text-right text-emerald-600">{formatAmount(lineTotalsConfirmed[line])}</td>
-                    <td className="px-3 py-2 text-right text-amber-600">{formatAmount(lineTotalsWithForecast[line])}</td>
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        type="button"
+                        className="text-emerald-600 hover:underline"
+                        onClick={() => setLineBreakdown({ line, status: 'confirmed' })}
+                      >
+                        {formatAmount(lineTotalsConfirmed[line])}
+                      </button>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        type="button"
+                        className="text-amber-600 hover:underline"
+                        onClick={() => setLineBreakdown({ line, status: 'all' })}
+                      >
+                        {formatAmount(lineTotalsWithForecast[line])}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1329,6 +1355,71 @@ export default function RevenuePage() {
                   {formatAmount(monthBreakdownRows.reduce((s, r) => s + r.amount_excl_tax, 0))}
                 </td>
                 <td />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </Modal>
+
+      <Modal
+        title={lineBreakdown
+          ? `${BUSINESS_LINE_LABELS[lineBreakdown.line]}の内訳（${year}年・${lineBreakdown.status === 'confirmed' ? '確定実績' : '確定＋見込み'}）`
+          : ''}
+        open={lineBreakdown !== null}
+        onClose={() => setLineBreakdown(null)}
+      >
+        <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
+          <table className="w-full min-w-[520px] text-xs">
+            <thead>
+              <tr className="border-b border-slate-100 text-left text-slate-400">
+                <th className="px-2 py-2">日付</th>
+                <th className="px-2 py-2">顧客</th>
+                <th className="px-2 py-2">カテゴリ</th>
+                <th className="px-2 py-2 text-right">金額</th>
+                <th className="px-2 py-2">区分</th>
+                <th className="px-2 py-2">根拠</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lineBreakdownRows.map(r => (
+                <tr
+                  key={r.id}
+                  className={`border-b border-slate-50 ${r.projectId ? 'cursor-pointer hover:bg-slate-50' : ''}`}
+                  onClick={r.projectId ? () => router.push(`/projects/${r.projectId}`) : undefined}
+                  title={r.projectId ? '案件詳細を開く' : undefined}
+                >
+                  <td className="px-2 py-2 whitespace-nowrap">{r.entry_date}</td>
+                  <td className="px-2 py-2">
+                    {r.payer_name}
+                    {r.projectId && <span className="ml-1 text-slate-300">›</span>}
+                  </td>
+                  <td className="px-2 py-2">{r.category}</td>
+                  <td className="px-2 py-2 text-right font-medium">{formatAmount(r.amount_excl_tax)}</td>
+                  <td className="px-2 py-2">
+                    <span className={`badge text-xs ${r.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {r.status === 'confirmed' ? '確定' : '見込み'}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2 text-slate-500">
+                    {r.memo ??
+                      (r.id.startsWith('pipeline-') ? 'パイプライン見込み'
+                        : r.id.startsWith('contract-forecast-') ? '月額契約の見込み'
+                        : r.source === 'project' ? '案件由来'
+                        : '手入力')}
+                  </td>
+                </tr>
+              ))}
+              {lineBreakdownRows.length === 0 && (
+                <tr><td colSpan={6} className="py-8 text-center text-slate-300">該当する明細はありません</td></tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-slate-200 bg-slate-50/70">
+                <td colSpan={3} className="px-2 py-2 font-semibold text-slate-900">合計</td>
+                <td className="px-2 py-2 text-right font-semibold text-slate-900">
+                  {formatAmount(lineBreakdownRows.reduce((s, r) => s + r.amount_excl_tax, 0))}
+                </td>
+                <td colSpan={2} />
               </tr>
             </tfoot>
           </table>
