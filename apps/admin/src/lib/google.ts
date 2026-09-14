@@ -266,7 +266,11 @@ export async function syncGoogleMeetMinutes(opts: { force?: boolean } = {}): Pro
             created_by:    conn.user_id,
             updated_at:    new Date().toISOString(),
           }, { onConflict: 'drive_file_id' })
-        if (error) { console.error('meeting_notes upsert failed', error); continue }
+        if (error) {
+          console.error('meeting_notes upsert failed', error)
+          errors.push(`${f.name}: ${error.message}`)
+          continue
+        }
         processed++
       }
 

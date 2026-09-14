@@ -916,22 +916,30 @@ export type DbMeetingNote = {
   project_id: string | null
   source: 'zoom' | 'manual' | 'google_meet'
   period: string | null // 'YYYY-MM-01'。役員月報の月末MTG議事録として紐付けた場合のみ設定
+  is_weekly: boolean // 週次定例MTGとして登録されたものか
   created_at: string
   customers: { company_name: string } | null
   projects: { title: string } | null
 }
 
 const MEETING_NOTE_SELECT =
-  'id, title, meeting_date, duration_min, host_name, recording_url, transcript, summary, customer_id, project_id, source, period, created_at, customers(company_name), projects(title)'
+  'id, title, meeting_date, duration_min, host_name, recording_url, transcript, summary, customer_id, project_id, source, period, is_weekly, created_at, customers(company_name), projects(title)'
+
+// 日時が未入力の議事録（手動追加直後など）も「開催日時 ?? 登録日時」で新しい順に並ぶようにする
+function sortByRecency(notes: DbMeetingNote[]): DbMeetingNote[] {
+  return [...notes].sort((a, b) => {
+    const ad = new Date(a.meeting_date ?? a.created_at).getTime()
+    const bd = new Date(b.meeting_date ?? b.created_at).getTime()
+    return bd - ad
+  })
+}
 
 export async function fetchMeetingNotes(): Promise<DbMeetingNote[]> {
   const { data, error } = await db()
     .from('meeting_notes')
     .select(MEETING_NOTE_SELECT)
-    .order('meeting_date', { ascending: false, nullsFirst: false })
-    .order('created_at', { ascending: false })
   if (error) throw error
-  return (data ?? []) as unknown as DbMeetingNote[]
+  return sortByRecency((data ?? []) as unknown as DbMeetingNote[])
 }
 
 /** 指定の月報期間（'YYYY-MM-01'）に紐付けられた月末MTG議事録を返す */
@@ -940,9 +948,8 @@ export async function fetchMeetingNotesByPeriod(period: string): Promise<DbMeeti
     .from('meeting_notes')
     .select(MEETING_NOTE_SELECT)
     .eq('period', period)
-    .order('meeting_date', { ascending: false, nullsFirst: false })
   if (error) throw error
-  return (data ?? []) as unknown as DbMeetingNote[]
+  return sortByRecency((data ?? []) as unknown as DbMeetingNote[])
 }
 
 export async function insertMeetingNote(input: {
@@ -956,6 +963,7 @@ export async function insertMeetingNote(input: {
   project_id?: string | null
   source?: 'manual' | 'google_meet'
   period?: string | null
+  is_weekly?: boolean
 }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
@@ -976,6 +984,7 @@ export async function updateMeetingNote(id: string, patch: {
   customer_id?: string | null
   project_id?: string | null
   period?: string | null
+  is_weekly?: boolean
 }) {
   const { error } = await db()
     .from('meeting_notes')

@@ -33,6 +33,7 @@ export default function MinutesPage() {
   const [loading,   setLoading]   = useState(true)
   const [error,     setError]     = useState('')
 
+  const [weeklyOnly, setWeeklyOnly] = useState(false)
   const [addOpen,  setAddOpen]  = useState(false)
   const [saving,   setSaving]   = useState(false)
   const [detail,   setDetail]   = useState<DbMeetingNote | null>(null)
@@ -48,6 +49,7 @@ export default function MinutesPage() {
   useEffect(load, [])
 
   const zoomCount = useMemo(() => notes.filter(n => n.source === 'zoom').length, [notes])
+  const visibleNotes = useMemo(() => weeklyOnly ? notes.filter(n => n.is_weekly) : notes, [notes, weeklyOnly])
 
   const syncNow = async () => {
     setSyncing(true)
@@ -86,6 +88,7 @@ export default function MinutesPage() {
         customer_id:   (f.get('customer_id') as string) || null,
         project_id:    (f.get('project_id') as string) || null,
         source:        source === 'google_meet' ? 'google_meet' : 'manual',
+        is_weekly:     f.get('is_weekly') === 'on',
       })
       setAddOpen(false)
       load()
@@ -100,6 +103,12 @@ export default function MinutesPage() {
     <div className="flex flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="議事録" description={`社内MTG・Zoom連携（Zoom取込 ${zoomCount} 件）`}>
         <div className="flex gap-2">
+          <button
+            className={`btn-secondary text-sm ${weeklyOnly ? 'bg-brand-600 text-white hover:bg-brand-700' : ''}`}
+            onClick={() => setWeeklyOnly(v => !v)}
+          >
+            週次MTGのみ表示
+          </button>
           <button className="btn-secondary text-sm" onClick={syncNow} disabled={syncing}>
             {syncing ? '取込中...' : '今すぐ取込'}
           </button>
@@ -117,7 +126,7 @@ export default function MinutesPage() {
       <div className="flex flex-col gap-2.5">
         {loading && <p className="p-12 text-center text-sm text-slate-400">読み込み中...</p>}
 
-        {!loading && notes.map(n => (
+        {!loading && visibleNotes.map(n => (
           <button
             key={n.id}
             onClick={() => setDetail(n)}
@@ -126,6 +135,7 @@ export default function MinutesPage() {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className={`badge text-xs ${SOURCE_META[n.source].cls}`}>{SOURCE_META[n.source].label}</span>
+                {n.is_weekly && <span className="badge bg-teal-50 text-xs text-teal-700">週次MTG</span>}
                 <p className="text-sm font-semibold text-slate-900">{n.title}</p>
               </div>
               <p className="mt-1 text-xs text-slate-400">
@@ -151,10 +161,11 @@ export default function MinutesPage() {
           </button>
         ))}
 
-        {!loading && notes.length === 0 && (
+        {!loading && visibleNotes.length === 0 && (
           <div className="card p-12 text-center text-sm text-slate-400">
-            議事録がまだありません。Zoomのクラウド録画が完了すると自動で追加されます。<br />
-            手動で残す場合は「＋議事録を追加」からどうぞ。
+            {weeklyOnly
+              ? '週次MTGとして登録された議事録はまだありません。'
+              : <>議事録がまだありません。Zoomのクラウド録画が完了すると自動で追加されます。<br />手動で残す場合は「＋議事録を追加」からどうぞ。</>}
           </div>
         )}
       </div>
@@ -179,6 +190,10 @@ export default function MinutesPage() {
               </label>
             </div>
           </div>
+          <label className="flex items-center gap-1.5 text-sm text-slate-700">
+            <input type="checkbox" name="is_weekly" />
+            週次定例MTGとして登録する
+          </label>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">日時</label>
@@ -250,6 +265,7 @@ function DetailModal({ note, customers, projects, canDelete, onClose, onSaved }:
   const [customerId,   setCustomerId]   = useState(note.customer_id ?? '')
   const [projectId,    setProjectId]    = useState(note.project_id ?? '')
   const [period,       setPeriod]       = useState(note.period?.slice(0, 7) ?? '') // 'YYYY-MM'
+  const [isWeekly,     setIsWeekly]     = useState(note.is_weekly)
   const [busy,         setBusy]         = useState(false)
   const [analyzing,    setAnalyzing]    = useState(false)
   const [actionItems,  setActionItems]  = useState('')
@@ -317,6 +333,7 @@ function DetailModal({ note, customers, projects, canDelete, onClose, onSaved }:
         customer_id:   customerId || null,
         project_id:    projectId || null,
         period:        period ? `${period}-01` : null,
+        is_weekly:     isWeekly,
       })
       onSaved()
     } catch {
@@ -378,6 +395,11 @@ function DetailModal({ note, customers, projects, canDelete, onClose, onSaved }:
             </select>
           </div>
         </div>
+
+        <label className="flex items-center gap-1.5 text-sm text-slate-700">
+          <input type="checkbox" checked={isWeekly} onChange={e => setIsWeekly(e.target.checked)} />
+          週次定例MTGとして登録する
+        </label>
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-700">役員月報の月末MTGとして紐付け</label>
