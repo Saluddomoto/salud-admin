@@ -365,6 +365,7 @@ export async function insertProject(input: {
   title: string
   subsidy_name: string | null
   project_type?: 'subsidy' | 'web'
+  status?: DbProject['status']
   customer_id: string | null
   applied_amount: number | null
   deadline: string | null
@@ -381,7 +382,7 @@ export async function insertProject(input: {
   const { data: { user } } = await client.auth.getUser()
   const { error } = await client.from('projects').insert({
     ...input,
-    status: 'planning',
+    status: input.status ?? 'planning',
     // 担当1は未指定なら作成者を既定に。担当2はそのまま（未指定=null）
     assigned_user_id:   input.assigned_user_id ?? user?.id ?? null,
     assigned_user_id_2: input.assigned_user_id_2 ?? null,

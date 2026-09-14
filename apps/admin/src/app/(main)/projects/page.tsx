@@ -101,6 +101,8 @@ export default function ProjectsPage() {
       await insertProject({
         title:             f.get('title') as string,
         project_type:      projectType,
+        // 実績報告サポートから追加した場合は採択済み扱いで登録（案件進捗の見込み〜申請フェーズを経由せず、この一覧に直接表示するため）
+        status:            view === 'result_report' ? 'accepted' : 'planning',
         subsidy_name:      projectType === 'web' ? null : subsidyName,
         customer_id:       (f.get('customer_id') as string) || null,
         applied_amount:    projectType === 'web' ? null : (f.get('amount') ? Number(f.get('amount')) * 10_000 : null),
@@ -195,7 +197,15 @@ export default function ProjectsPage() {
             ))}
           </div>
         )}
-        <button className="btn-primary text-sm" onClick={() => setModalOpen(true)}>+ 新規案件</button>
+        <button
+          className="btn-primary text-sm"
+          onClick={() => {
+            if (view === 'result_report') setProjectType('subsidy')
+            setModalOpen(true)
+          }}
+        >
+          + 新規案件
+        </button>
       </PageHeader>
 
       {error && (
@@ -338,13 +348,19 @@ export default function ProjectsPage() {
       </div>
       )}
 
-      <Modal title="新規案件" open={modalOpen} onClose={() => setModalOpen(false)}>
+      <Modal title={view === 'result_report' ? '実績報告サポート対象の新規登録' : '新規案件'} open={modalOpen} onClose={() => setModalOpen(false)}>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {view === 'result_report' && (
+            <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-3 py-2 text-xs text-amber-700">
+              採択済みとして登録し、この一覧（見積書準備）に直接追加します。
+            </div>
+          )}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">案件名 *</label>
             <input name="title" required className="input" placeholder="ものづくり補助金 第18回" />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {view !== 'result_report' && (
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-sm font-medium text-slate-700">案件区分 *</label>
               <div className="flex gap-2">
@@ -363,6 +379,7 @@ export default function ProjectsPage() {
                 ))}
               </div>
             </div>
+            )}
             {projectType === 'subsidy' ? (
               <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">補助金名 *</label>
