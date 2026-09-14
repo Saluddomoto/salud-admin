@@ -54,6 +54,7 @@ export type DbProject = {
   project_type: 'subsidy' | 'web'
   status: 'planning' | 'in_progress' | 'submitted' | 'accepted' | 'rejected' | 'lost' | 'completed'
   result_report_status: 'estimate_prep' | 'grant_application' | 'in_execution' | 'result_report' | null
+  pipeline_hidden: boolean
   applied_amount: number | null
   subsidy_amount: number | null
   base_fee: number | null
@@ -366,6 +367,7 @@ export async function insertProject(input: {
   subsidy_name: string | null
   project_type?: 'subsidy' | 'web'
   status?: DbProject['status']
+  pipeline_hidden?: boolean
   customer_id: string | null
   applied_amount: number | null
   deadline: string | null

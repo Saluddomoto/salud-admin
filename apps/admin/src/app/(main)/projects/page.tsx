@@ -103,6 +103,8 @@ export default function ProjectsPage() {
         project_type:      projectType,
         // 実績報告サポートから追加した場合は採択済み扱いで登録（案件進捗の見込み〜申請フェーズを経由せず、この一覧に直接表示するため）
         status:            view === 'result_report' ? 'accepted' : 'planning',
+        // 案件進捗ボードには出さず、実績報告サポート画面だけに表示する
+        pipeline_hidden:   view === 'result_report',
         subsidy_name:      projectType === 'web' ? null : subsidyName,
         customer_id:       (f.get('customer_id') as string) || null,
         applied_amount:    projectType === 'web' ? null : (f.get('amount') ? Number(f.get('amount')) * 10_000 : null),
@@ -149,7 +151,7 @@ export default function ProjectsPage() {
     }
   }
 
-  const visibleProjects = projects.filter(p => typeFilter === 'all' || p.project_type === typeFilter)
+  const visibleProjects = projects.filter(p => !p.pipeline_hidden && (typeFilter === 'all' || p.project_type === typeFilter))
   const legendItems = typeFilter === 'web'
     ? LEGEND_ITEMS.filter(item => item.name === 'WEB制作')
     : typeFilter === 'subsidy'
