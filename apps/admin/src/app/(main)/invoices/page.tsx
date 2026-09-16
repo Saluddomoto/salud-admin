@@ -142,16 +142,28 @@ function ItemsEditor({ items, setItems }: {
               </button>
             </div>
             <div className="grid flex-1 grid-cols-2 gap-2">
-              <input
-                placeholder="項目" value={it.name}
+              <textarea
+                placeholder="項目" value={it.name} rows={1}
                 onChange={e => update(idx, { name: e.target.value })}
-                className="input text-sm"
+                className="input resize-y text-sm"
               />
-              <input
-                placeholder="作業内容" value={it.work}
-                onChange={e => update(idx, { work: e.target.value })}
-                className="input text-sm"
-              />
+              <div className="relative">
+                <textarea
+                  placeholder="作業内容" value={it.work} rows={1}
+                  onChange={e => update(idx, { work: e.target.value })}
+                  className="input resize-y pr-7 text-sm"
+                />
+                {it.work && (
+                  <button
+                    type="button"
+                    onClick={() => update(idx, { work: '' })}
+                    aria-label="作業内容をクリア"
+                    className="absolute right-1.5 top-1.5 text-slate-300 hover:text-slate-600"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2">

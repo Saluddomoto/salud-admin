@@ -35,7 +35,6 @@ export const ISSUER = {
   addressLine1: '東京都渋谷区道玄坂1丁目10番8号',
   addressLine2: '渋谷道玄坂東急ビル2F−C',
   tel: '050-6869-6588',
-  mail: 'domoto@salud-web.jp',
   invoiceRegistrationNo: 'T6011001152105',
 }
 
@@ -91,8 +90,8 @@ export function buildInvoiceHtml(invoice: InvoiceLike): string {
 
   const itemRows = rows.map(it => `
     <tr>
-      <td class="cell">${escapeHtml(it.name)}</td>
-      ${showWork ? `<td class="cell">${escapeHtml(it.work)}</td>` : ''}
+      <td class="cell">${nl2br(it.name)}</td>
+      ${showWork ? `<td class="cell">${nl2br(it.work)}</td>` : ''}
       <td class="cell num">${it.quantity ? it.quantity.toLocaleString() : ''}</td>
       <td class="cell num">${it.unit_price ? formatYen(it.unit_price) : ''}</td>
       <td class="cell num">${it.name || it.quantity || it.unit_price ? formatYen(it.quantity * it.unit_price) : ''}</td>
@@ -111,7 +110,6 @@ export function buildInvoiceHtml(invoice: InvoiceLike): string {
           <div>${escapeHtml(ISSUER.addressLine1)}</div>
           <div>${escapeHtml(ISSUER.addressLine2)}</div>
           <div>tel:${escapeHtml(ISSUER.tel)}</div>
-          <div>mail:${escapeHtml(ISSUER.mail)}</div>
           <div>適格請求書発行事業者登録番号${escapeHtml(ISSUER.invoiceRegistrationNo)}</div>
         </div>
         <div class="billing">
@@ -154,8 +152,8 @@ const PRINT_STYLE = `
   .head { display: flex; justify-content: space-between; gap: 2rem; font-size: 12px; margin-bottom: 1.75rem; }
   .issuer, .billing { flex: 1; }
   .issuer-name-row { display: flex; align-items: center; gap: 10px; margin-bottom: 0.25rem; }
-  .issuer-name, .billing-name { font-size: 14px; font-weight: 700; }
-  .billing-name { border-bottom: 2px solid #1e293b; padding-bottom: 0.35rem; margin-bottom: 0.5rem; display: inline-block; }
+  .issuer-name { font-size: 18px; font-weight: 700; }
+  .billing-name { font-size: 14px; font-weight: 700; border-bottom: 2px solid #1e293b; padding-bottom: 0.35rem; margin-bottom: 0.5rem; display: inline-block; }
   .seal { width: 52px; height: 52px; opacity: 0.9; flex-shrink: 0; }
   .invoice-no { font-size: 11px; color: #64748b; margin-bottom: 0.75rem; }
   .greeting { margin-top: 0.75rem; }
@@ -166,7 +164,7 @@ const PRINT_STYLE = `
   table.items tfoot td { padding: 4px 9px; border: none; }
   table.items tfoot td.label { text-align: right; font-weight: 700; }
   table.items tfoot td.total { font-size: 15px; color: ${BRAND}; border-top: 2px solid ${BRAND}; }
-  p.due { text-align: right; font-size: 12px; margin: 0 0 1rem; }
+  p.due { text-align: right; font-size: 15px; font-weight: 700; color: ${BRAND}; margin: 0 0 1.25rem; }
   .notes { font-size: 11px; white-space: normal; border-top: 1px solid #cbd5e1; padding-top: 0.75rem; }
   @media print { body { padding: 0; } }
 `
