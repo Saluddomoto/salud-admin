@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { Modal } from '@/components/Modal'
 import {
   fetchCustomerCount, fetchEvents, fetchMyProfile, fetchNeedsReplyCount, fetchProjects, fetchTasks,
   fetchRevenueLedger, fetchRecurringContracts, fetchTaskCompletions, setTaskCompletion,
@@ -80,6 +81,7 @@ export default function DashboardPage() {
   const [meetCopied,    setMeetCopied]    = useState(false)
   const [nameCopied,    setNameCopied]    = useState(false)
   const [meetError,     setMeetError]     = useState('')
+  const [acceptedModalOpen, setAcceptedModalOpen] = useState(false)
 
   const now = new Date()
   const today = toISODate(now)
@@ -115,7 +117,7 @@ export default function DashboardPage() {
     { label: '管理中の案件', value: `${active.length}件`, sub: `申請済み ${projects.filter(p => p.status === 'submitted').length}件`, iconBg: 'bg-brand-600' },
     { label: '申請総額',     value: formatAmount(totalApplied), sub: `採択分 ${formatAmount(acceptedApplied)}`, iconBg: 'bg-emerald-500' },
     { label: '顧客数',       value: `${customerCount}`, sub: '登録済みの顧客', iconBg: 'bg-amber-500' },
-    { label: '採択実績',     value: `${accepted.length}件`, sub: acceptRate != null ? `採択率 ${acceptRate}%` : '結果待ち', iconBg: 'bg-rose-500' },
+    { label: '採択実績',     value: `${accepted.length}件`, sub: acceptRate != null ? `採択率 ${acceptRate}%` : '結果待ち', iconBg: 'bg-rose-500', onClick: () => setAcceptedModalOpen(true) },
   ]
 
   // 売上（管理者のみ）: /revenue（売上台帳・月次実績）と同じ導出関数を使って今年分を集計する。
@@ -461,7 +463,11 @@ export default function DashboardPage() {
       {/* KPI */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {kpiCards.map(card => (
-          <div key={card.label} className="card p-5">
+          <div
+            key={card.label}
+            onClick={card.onClick}
+            className={`card p-5 ${card.onClick ? 'cursor-pointer transition-shadow hover:shadow-md' : ''}`}
+          >
             <div className="mb-3 flex items-center justify-between">
               <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${card.iconBg}`}>
                 <div className="h-5 w-5 rounded bg-white/30" />
@@ -473,6 +479,30 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      <Modal title={`採択実績（${accepted.length}件）`} open={acceptedModalOpen} onClose={() => setAcceptedModalOpen(false)}>
+        {accepted.length === 0 ? (
+          <p className="py-6 text-center text-sm text-slate-400">採択された案件はまだありません</p>
+        ) : (
+          <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+            {accepted.map(p => (
+              <Link
+                key={p.id}
+                href={`/projects/${p.id}`}
+                onClick={() => setAcceptedModalOpen(false)}
+                className="block rounded-lg border border-slate-100 px-3 py-2 text-sm transition-colors hover:border-brand-200 hover:bg-brand-50/50"
+              >
+                <p className="font-medium text-slate-800">{p.title}</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {p.customers?.company_name ?? '顧客未設定'}
+                  {p.subsidy_name ? ` · ${p.subsidy_name}` : ''}
+                  {p.applied_amount != null ? ` · ${formatAmount(p.applied_amount)}` : ''}
+                </p>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Modal>
 
       {/* 売上管理（管理者のみ）: /revenue と同じ計算元(lib/revenueRows.ts)を使い、数字が一致するようにしている */}
       {!loading && isAdmin && (
