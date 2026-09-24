@@ -72,6 +72,34 @@ function formToInput(form: FormState): InvoiceInput {
   }
 }
 
+const NOTICE_FORM_TEXT = '【注意事項確認フォーム】\n  https://forms.gle/JjS8DD16XXjxn3vZA'
+
+function NoticeFormCopyCard() {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(NOTICE_FORM_TEXT)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // clipboard unavailable — silently ignore
+    }
+  }
+
+  return (
+    <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-slate-800">【注意事項確認フォーム】</p>
+        <p className="truncate text-xs text-slate-400">https://forms.gle/JjS8DD16XXjxn3vZA</p>
+      </div>
+      <button type="button" onClick={handleCopy} className="btn-secondary shrink-0 text-sm">
+        {copied ? 'コピーしました ✓' : 'コピー'}
+      </button>
+    </div>
+  )
+}
+
 function CustomerFillPicker({ customers, onPick }: {
   customers: DbCustomer[]
   onPick: (customer: DbCustomer) => void
@@ -424,6 +452,8 @@ export default function InvoicesPage() {
       <PageHeader title="請求書・見積書発行" description="明細を入力して請求書・見積書を作成・プレビュー・印刷/PDF化します">
         <button className="btn-primary text-sm" onClick={() => setAddOpen(true)}>＋ {DOC_TYPE_LABELS[activeType]}を作成</button>
       </PageHeader>
+
+      <NoticeFormCopyCard />
 
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
