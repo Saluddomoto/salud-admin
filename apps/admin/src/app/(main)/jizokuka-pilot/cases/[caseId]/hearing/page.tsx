@@ -7,6 +7,7 @@ import {
   fetchCaseDetail, saveHearing, generateInitialDraft,
   type JizokukaCase, type JizokukaHearing,
 } from '@/lib/jizokuka/db'
+import { StepNav } from '@/components/jizokuka/step-nav'
 
 type FormState = {
   industry: string
@@ -53,8 +54,6 @@ export default function HearingPage() {
   const [form, setForm] = useState<FormState>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
-  const [savingDraft, setSavingDraft] = useState(false)
-  const [savedAt, setSavedAt] = useState<Date | null>(null)
 
   useEffect(() => {
     fetchCaseDetail(caseId).then(({ case: c, hearing }) => {
@@ -81,18 +80,6 @@ export default function HearingPage() {
     subsidy_goal: form.subsidy_goal || null,
   })
 
-  const handleSaveDraft = async () => {
-    setSavingDraft(true)
-    try {
-      await saveHearing(caseId, buildHearingPayload())
-      setSavedAt(new Date())
-    } catch (e) {
-      alert(`一時保存に失敗しました: ${e instanceof Error ? e.message : e}`)
-    } finally {
-      setSavingDraft(false)
-    }
-  }
-
   const handleSubmit = async (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault()
     setGenerating(true)
@@ -114,12 +101,7 @@ export default function HearingPage() {
         title={`ヒアリング — ${caseInfo?.business_name ?? ''}`}
         description="AIが下書きを作成するための基礎情報を入力してください（数値中心の売上表・経費見積もりはここでは扱いません）"
       >
-        <button className="btn-secondary" onClick={() => router.push(`/jizokuka-pilot/cases/${caseId}/basic-info`)}>
-          会社登記情報・応募者概要を入力
-        </button>
-        <button className="btn-secondary" onClick={() => router.push(`/jizokuka-pilot/cases/${caseId}/expenses`)}>
-          経費明細・資金調達を入力
-        </button>
+        <StepNav caseId={caseId} step="hearing" onSave={() => saveHearing(caseId, buildHearingPayload())} />
       </PageHeader>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -188,13 +170,7 @@ export default function HearingPage() {
         </div>
 
         <div className="flex items-center justify-end gap-3">
-          {savedAt && !savingDraft && (
-            <span className="text-xs text-slate-400">{savedAt.toLocaleTimeString('ja-JP')} に一時保存しました</span>
-          )}
-          <button type="button" className="btn-secondary" onClick={handleSaveDraft} disabled={savingDraft || generating}>
-            {savingDraft ? '保存中…' : '一時保存（後で続きから入力）'}
-          </button>
-          <button type="submit" className="btn-primary" disabled={generating || savingDraft}>
+          <button type="submit" className="btn-primary" disabled={generating}>
             {generating ? 'AIが下書きを作成中…' : '保存してAI下書きを生成'}
           </button>
         </div>

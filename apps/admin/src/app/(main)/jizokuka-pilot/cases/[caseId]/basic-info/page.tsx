@@ -1,9 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { fetchBasicInfo, saveBasicInfo, type JizokukaBasicInfo } from '@/lib/jizokuka/db'
+import { StepNav } from '@/components/jizokuka/step-nav'
+// Salud本体の顧客管理データを読むためだけの依存（自動反映の利便性のため）。
+// 書き込みは行わず、選んだ時点の値をこのケース独自のフォームへコピーするだけなので、
+// jizokuka側のデータは引き続きこのテーブル単体で完結する。
+import { fetchCustomers, type DbCustomer } from '@/lib/db'
 
 type FormState = Record<keyof Omit<JizokukaBasicInfo, 'case_id'>, string>
 
@@ -66,31 +71,58 @@ function Select({ label, value, onChange, options }: {
 
 export default function BasicInfoPage() {
   const { caseId } = useParams<{ caseId: string }>()
-  const router = useRouter()
   const [form, setForm] = useState<FormState | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
+  const [customers, setCustomers] = useState<DbCustomer[]>([])
+  const [selectedCustomerId, setSelectedCustomerId] = useState('')
 
   useEffect(() => {
     fetchBasicInfo(caseId).then(info => setForm(toFormState(info))).finally(() => setLoading(false))
+    fetchCustomers().then(setCustomers).catch(() => {})
   }, [caseId])
 
   const set = (key: keyof FormState) => (v: string) => setForm(f => (f ? { ...f, [key]: v } : f))
 
-  const handleSave = async () => {
+  const applyCustomer = (customerId: string) => {
+    setSelectedCustomerId(customerId)
+    const customer = customers.find(c => c.id === customerId)
+    if (!customer) return
+    const primaryContact = customer.customer_contacts.find(c => c.is_primary) ?? customer.customer_contacts[0]
+    const [contactLast, ...contactFirstParts] = (primaryContact?.name ?? '').split(/\s+/)
+    setForm(f => (f ? {
+      ...f,
+      company_name_kana: customer.company_name_kana || f.company_name_kana,
+      industry_category: customer.industry || f.industry_category,
+      website_url: customer.website || f.website_url,
+      company_phone: customer.phone || f.company_phone,
+      address_detail: customer.address || f.address_detail,
+      contact_last_name: contactLast || f.contact_last_name,
+      contact_first_name: contactFirstParts.join(' ') || f.contact_first_name,
+      contact_title: primaryContact?.title || f.contact_title,
+      contact_phone: primaryContact?.phone || f.contact_phone,
+      contact_email: primaryContact?.email || f.contact_email,
+    } : f))
+  }
+
+  const persist = async () => {
     if (!form) return
+    const payload: Record<string, string | number | boolean | null> = {}
+    for (const key of FIELD_KEYS) {
+      const raw = form[key]
+      if (raw === '') { payload[key] = null; continue }
+      if (BOOLEAN_KEYS.has(key)) payload[key] = raw === 'true'
+      else if (NUMBER_KEYS.has(key)) payload[key] = Number(raw)
+      else payload[key] = raw
+    }
+    await saveBasicInfo(caseId, payload)
+  }
+
+  const handleSave = async () => {
     setSaving(true)
     try {
-      const payload: Record<string, string | number | boolean | null> = {}
-      for (const key of FIELD_KEYS) {
-        const raw = form[key]
-        if (raw === '') { payload[key] = null; continue }
-        if (BOOLEAN_KEYS.has(key)) payload[key] = raw === 'true'
-        else if (NUMBER_KEYS.has(key)) payload[key] = Number(raw)
-        else payload[key] = raw
-      }
-      await saveBasicInfo(caseId, payload)
+      await persist()
       setSavedAt(new Date())
     } catch (e) {
       alert(`保存に失敗しました: ${e instanceof Error ? e.message : e}`)
@@ -107,10 +139,23 @@ export default function BasicInfoPage() {
         title="基本情報（会社登記情報・応募者概要）"
         description="電子申請ポータルの「申請情報」「基本情報」「応募者の概要」「確認事項」「特例」入力にそのまま転記できる項目です"
       >
-        <button className="btn-secondary" onClick={() => router.push(`/jizokuka-pilot/cases/${caseId}/hearing`)}>
-          ヒアリングへ
-        </button>
+        <StepNav caseId={caseId} step="basic-info" onSave={persist} />
       </PageHeader>
+
+      <div className="card flex flex-col gap-2 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900">顧客管理から自動反映</h3>
+          <p className="text-xs text-slate-500">選択すると、会社名カナ・業種・電話番号・住所・担当者情報を下のフォームにコピーします（その後は自由に編集できます）</p>
+        </div>
+        <select
+          className="input sm:w-72"
+          value={selectedCustomerId}
+          onChange={ev => applyCustomer(ev.target.value)}
+        >
+          <option value="">顧客を選択…</option>
+          {customers.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+        </select>
+      </div>
 
       <div className="card grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
         <h3 className="text-sm font-bold text-slate-900 sm:col-span-2">申請情報</h3>

@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import {
   fetchCaseDetail, fetchExpenseItems, addExpenseItem, updateExpenseItem, deleteExpenseItem, updateCaseFunding,
   type JizokukaCase, type JizokukaExpenseItem,
 } from '@/lib/jizokuka/db'
+import { StepNav } from '@/components/jizokuka/step-nav'
 
 const CATEGORIES = [
   '①機械装置等費', '②広報費', '③ウェブサイト関連費', '④展示会等出展費',
@@ -67,7 +68,6 @@ function ExpenseRow({ item, onChange, onDelete }: {
 
 export default function ExpensesPage() {
   const { caseId } = useParams<{ caseId: string }>()
-  const router = useRouter()
   const [caseInfo, setCaseInfo] = useState<JizokukaCase | null>(null)
   const [items, setItems] = useState<JizokukaExpenseItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -104,16 +104,18 @@ export default function ExpensesPage() {
     setItems(list => list.filter(i => i.id !== id))
   }
 
+  const persistFunding = () => updateCaseFunding(caseId, {
+    subsidy_rate: Number(rate) || 0.6667,
+    subsidy_cap: Number(cap) || 500000,
+    self_funds: selfFunds ? Number(selfFunds) : null,
+    loan_funds: loanFunds ? Number(loanFunds) : null,
+    other_funds: otherFunds ? Number(otherFunds) : null,
+  })
+
   const handleSaveFunding = async () => {
     setSaving(true)
     try {
-      await updateCaseFunding(caseId, {
-        subsidy_rate: Number(rate) || 0.6667,
-        subsidy_cap: Number(cap) || 500000,
-        self_funds: selfFunds ? Number(selfFunds) : null,
-        loan_funds: loanFunds ? Number(loanFunds) : null,
-        other_funds: otherFunds ? Number(otherFunds) : null,
-      })
+      await persistFunding()
     } catch (e) {
       alert(`保存に失敗しました: ${e instanceof Error ? e.message : e}`)
     } finally {
@@ -139,9 +141,7 @@ export default function ExpensesPage() {
         title={`経費明細・資金調達 — ${caseInfo?.business_name ?? ''}`}
         description="見積金額を入力すると、補助対象経費・交付申請額を自動計算します（目安。最終的な金額は電子申請ポータルで必ず確認してください）"
       >
-        <button className="btn-secondary" onClick={() => router.push(`/jizokuka-pilot/cases/${caseId}/hearing`)}>
-          ヒアリングへ戻る
-        </button>
+        <StepNav caseId={caseId} step="expenses" onSave={persistFunding} />
       </PageHeader>
 
       <div className="card flex flex-col gap-3 p-5">

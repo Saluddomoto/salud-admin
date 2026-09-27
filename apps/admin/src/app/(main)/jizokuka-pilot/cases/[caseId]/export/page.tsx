@@ -1,15 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { fetchCaseDetail, type JizokukaCase, type JizokukaDraftSection } from '@/lib/jizokuka/db'
 import { splitSectionTitle } from '@/lib/jizokuka/sections'
 import { buildApplicationDocxBlob, downloadBlob } from '@/lib/jizokuka/word-export'
+import { StepNav } from '@/components/jizokuka/step-nav'
 
 export default function ExportPage() {
   const { caseId } = useParams<{ caseId: string }>()
-  const router = useRouter()
   const [caseInfo, setCaseInfo] = useState<JizokukaCase | null>(null)
   const [sections, setSections] = useState<JizokukaDraftSection[]>([])
   const [loading, setLoading] = useState(true)
@@ -58,9 +58,7 @@ export default function ExportPage() {
         title={`電子申請システムへのコピー用テキスト — ${caseInfo?.business_name ?? ''}`}
         description="jizokuka-portal.info への入力用にセクションごとコピーできます"
       >
-        <button className="btn-secondary" onClick={() => router.push(`/jizokuka-pilot/cases/${caseId}/review`)}>
-          レビューに戻る
-        </button>
+        <StepNav caseId={caseId} step="export" onSave={async () => {}} />
         <button className="btn-secondary" onClick={downloadWord} disabled={downloading}>
           {downloading ? '作成中…' : 'Wordでダウンロード'}
         </button>

@@ -9,6 +9,7 @@ import {
   type JizokukaCase, type JizokukaDraftSection,
 } from '@/lib/jizokuka/db'
 import { splitSectionTitle } from '@/lib/jizokuka/sections'
+import { StepNav } from '@/components/jizokuka/step-nav'
 
 function SectionCard({ section, onChange }: {
   section: JizokukaDraftSection
@@ -114,9 +115,7 @@ export default function ReviewPage() {
         description="本文を直接編集するか、修正指示を入力してAIに再生成させてください"
       >
         {caseInfo && <StatusPill status={caseInfo.status} />}
-        <button className="btn-secondary" onClick={() => router.push(`/jizokuka-pilot/cases/${caseId}/hearing`)}>
-          ヒアリングに戻る
-        </button>
+        <StepNav caseId={caseId} step="review" onSave={async () => {}} />
         <button className="btn-primary" onClick={handleConfirm} disabled={confirming}>
           {confirming ? '確定中…' : '確定してエクスポートへ'}
         </button>
