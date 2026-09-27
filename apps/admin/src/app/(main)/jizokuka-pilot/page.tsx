@@ -31,7 +31,7 @@ export default function JizokukaPilotPage() {
         deadline_date: String(f.get('deadline_date')) || null,
       })
       setModalOpen(false)
-      router.push(`/jizokuka-pilot/cases/${id}/hearing`)
+      router.push(`/jizokuka-pilot/cases/${id}/basic-info`)
     } catch (e) {
       alert(`作成に失敗しました: ${e instanceof Error ? e.message : e}`)
     } finally {
@@ -45,6 +45,9 @@ export default function JizokukaPilotPage() {
         title="持続化パイロット（テスト版）"
         description="小規模事業者持続化補助金の申請書AI下書きツール"
       >
+        <button className="btn-secondary" onClick={() => router.push('/jizokuka-pilot/guide')}>
+          使い方ガイド
+        </button>
         <button className="btn-primary" onClick={() => setModalOpen(true)}>
           + 新規案件を作成
         </button>
