@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { fetchBasicInfo, saveBasicInfo, type JizokukaBasicInfo } from '@/lib/jizokuka/db'
-import { StepNav } from '@/components/jizokuka/step-nav'
+import { fetchBasicInfo, saveBasicInfo, fetchCaseDetail, type JizokukaBasicInfo } from '@/lib/jizokuka/db'
+import { StepNav, StepTabs } from '@/components/jizokuka/step-nav'
 // Salud本体の顧客管理データを読むためだけの依存（自動反映の利便性のため）。
 // 書き込みは行わず、選んだ時点の値をこのケース独自のフォームへコピーするだけなので、
 // jizokuka側のデータは引き続きこのテーブル単体で完結する。
 import { fetchCustomers, type DbCustomer } from '@/lib/db'
+import { buildFieldsDocxBlob, downloadBlob } from '@/lib/jizokuka/word-export'
 
 type FormState = Record<keyof Omit<JizokukaBasicInfo, 'case_id'>, string>
 
@@ -77,10 +78,13 @@ export default function BasicInfoPage() {
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [customers, setCustomers] = useState<DbCustomer[]>([])
   const [selectedCustomerId, setSelectedCustomerId] = useState('')
+  const [businessName, setBusinessName] = useState('')
+  const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
     fetchBasicInfo(caseId).then(info => setForm(toFormState(info))).finally(() => setLoading(false))
     fetchCustomers().then(setCustomers).catch(() => {})
+    fetchCaseDetail(caseId).then(({ case: c }) => setBusinessName(c.business_name)).catch(() => {})
   }, [caseId])
 
   const set = (key: keyof FormState) => (v: string) => setForm(f => (f ? { ...f, [key]: v } : f))
@@ -131,15 +135,95 @@ export default function BasicInfoPage() {
     }
   }
 
+  const handleDownload = async () => {
+    if (!form) return
+    setDownloading(true)
+    try {
+      const blob = await buildFieldsDocxBlob(`${businessName || '申請書'} 基本情報`, [
+        {
+          heading: '申請情報',
+          fields: [
+            { label: '事業開始日の決定方法', value: form.project_start_method },
+            { label: '事業終了日（公募・交付申請時）', value: form.project_end_date },
+            { label: '補助事業に関して生ずる収入金', value: form.has_project_income === 'true' ? '収入金有り' : form.has_project_income === 'false' ? '収入金無し' : '' },
+            { label: '収入の内容', value: form.income_detail },
+            { label: 'インボイス特例の希望', value: form.invoice_exception },
+            { label: '賃金引上げ特例の希望', value: form.wage_increase_exception },
+            { label: '依頼する商工会議所', value: form.referred_chamber },
+            { label: '会員/非会員の選択', value: form.chamber_membership === 'はい' ? '会員' : form.chamber_membership === 'いいえ' ? '非会員' : '' },
+          ],
+        },
+        {
+          heading: '基本情報（会社登記情報）',
+          fields: [
+            { label: '本社郵便番号', value: form.postal_code },
+            { label: '本社所在地（都道府県）', value: form.prefecture },
+            { label: '本社所在地（市区町村）', value: form.city },
+            { label: '本社所在地（番地・建物名等）', value: form.address_detail },
+            { label: '法人番号/事業者識別番号', value: form.corporate_number },
+            { label: '法人名/屋号（カナ）', value: form.company_name_kana },
+            { label: '事業形態', value: form.business_form },
+            { label: '消費税の適用に関する事項', value: form.tax_status },
+            { label: '代表者役職', value: form.representative_title },
+            { label: '代表者生年月日', value: form.representative_birthdate },
+            { label: '代表者電話番号', value: form.representative_phone },
+            { label: '会社代表電話番号', value: form.company_phone },
+            { label: '適格請求書発行事業者の登録番号', value: form.invoice_registration_number },
+          ],
+        },
+        {
+          heading: '応募者の概要（様式2）',
+          fields: [
+            { label: '自社ホームページのURL', value: form.website_url },
+            { label: '業種（日本標準産業分類）', value: form.industry_category },
+            { label: '資本金額（円）', value: form.capital_amount },
+            { label: '設立年月日', value: form.established_date },
+            { label: '事業所数', value: form.office_count },
+            { label: '事業実施場所の郵便番号', value: form.business_location_postal },
+            { label: '事業実施場所の住所', value: form.business_location_address },
+            { label: '直近1期の売上総利益（円）', value: form.gross_profit_recent },
+            { label: '直近1期の経常利益（円）', value: form.operating_profit_recent },
+            { label: '担当者（姓）', value: form.contact_last_name },
+            { label: '担当者（名）', value: form.contact_first_name },
+            { label: '担当者 役職名', value: form.contact_title },
+            { label: '担当者 連絡先電話番号', value: form.contact_phone },
+            { label: '担当者 携帯電話番号', value: form.contact_mobile },
+            { label: '担当者メールアドレス', value: form.contact_email },
+          ],
+        },
+        {
+          heading: '確認事項・希望する特例（様式2）',
+          fields: [
+            { label: '商工会・商工会議所以外からのアドバイスの有無', value: form.advice_from_other === 'true' ? 'はい' : form.advice_from_other === 'false' ? 'いいえ' : '' },
+            { label: 'アドバイス料の金額（円）', value: form.advice_amount },
+            { label: 'アドバイスをした第3者の名称', value: form.advice_provider },
+            { label: '過去の補助事業の販路開拓先・方法・成果との違い', value: form.past_adoption_summary },
+            { label: '重点政策加点', value: form.priority_policy_points },
+            { label: '政策加点', value: form.policy_points },
+          ],
+        },
+      ])
+      downloadBlob(blob, `${businessName || '申請書'}_基本情報.docx`)
+    } catch {
+      alert('Wordファイルの作成に失敗しました')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   if (loading || !form) return <div className="p-6 text-slate-400">読み込み中…</div>
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
+      <StepTabs caseId={caseId} current="basic-info" onSave={persist} />
       <PageHeader
         title="基本情報（会社登記情報・応募者概要）"
         description="電子申請ポータルの「申請情報」「基本情報」「応募者の概要」「確認事項」「特例」入力にそのまま転記できる項目です"
       >
-        <StepNav caseId={caseId} step="basic-info" onSave={persist} />
+        <StepNav onSave={persist} />
+        <button className="btn-secondary" onClick={handleDownload} disabled={downloading}>
+          {downloading ? '作成中…' : 'Wordでダウンロード'}
+        </button>
       </PageHeader>
 
       <div className="card flex flex-col gap-2 p-5 sm:flex-row sm:items-center sm:justify-between">

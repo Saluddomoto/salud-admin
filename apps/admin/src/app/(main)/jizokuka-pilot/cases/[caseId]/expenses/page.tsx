@@ -7,7 +7,8 @@ import {
   fetchCaseDetail, fetchExpenseItems, addExpenseItem, updateExpenseItem, deleteExpenseItem, updateCaseFunding,
   type JizokukaCase, type JizokukaExpenseItem,
 } from '@/lib/jizokuka/db'
-import { StepNav } from '@/components/jizokuka/step-nav'
+import { StepNav, StepTabs } from '@/components/jizokuka/step-nav'
+import { buildFieldsDocxBlob, downloadBlob } from '@/lib/jizokuka/word-export'
 
 const CATEGORIES = [
   '①機械装置等費', '②広報費', '③ウェブサイト関連費', '④展示会等出展費',
@@ -77,6 +78,7 @@ export default function ExpensesPage() {
   const [loanFunds, setLoanFunds] = useState('')
   const [otherFunds, setOtherFunds] = useState('')
   const [saving, setSaving] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
     Promise.all([fetchCaseDetail(caseId), fetchExpenseItems(caseId)]).then(([{ case: c }, expenseItems]) => {
@@ -135,13 +137,64 @@ export default function ExpensesPage() {
   const totalGrant = grantNonWeb + grantWeb
   const fundingTotal = totalGrant + (Number(selfFunds) || 0) + (Number(loanFunds) || 0) + (Number(otherFunds) || 0)
 
+  const handleDownload = async () => {
+    setDownloading(true)
+    try {
+      const blob = await buildFieldsDocxBlob(`${caseInfo?.business_name ?? '申請書'} 経費明細・資金調達`, [
+        {
+          heading: '経費明細表',
+          fields: items.map((item, i) => ({
+            label: `${i + 1}. ${item.category ?? '（未選択）'}`,
+            value: `${item.description ?? ''}（${formatYen(item.amount || 0)}）`,
+          })),
+        },
+        {
+          heading: '補助率・上限額',
+          fields: [
+            { label: '補助率', value: rate },
+            { label: '補助上限額（円・ウェブ除く）', value: cap },
+          ],
+        },
+        {
+          heading: '資金調達方法',
+          fields: [
+            { label: '自己資金（円）', value: selfFunds },
+            { label: '金融機関からの借入金（円）', value: loanFunds },
+            { label: 'その他（円）', value: otherFunds },
+          ],
+        },
+        {
+          heading: '計算結果（目安）',
+          fields: [
+            { label: '(a) 補助対象経費小計（ウェブ除く）', value: formatYen(nonWebTotal) },
+            { label: '(b) 補助金交付申請額（ウェブ除く）', value: formatYen(grantNonWeb) },
+            { label: '(c) ウェブサイト関連費小計', value: formatYen(webTotal) },
+            { label: '(d) ウェブサイト関連費 交付申請額', value: formatYen(grantWeb) },
+            { label: '(e) 補助対象経費合計', value: formatYen(totalExpense) },
+            { label: '(f) 補助金交付申請額合計', value: formatYen(totalGrant) },
+            { label: '資金調達合計', value: formatYen(fundingTotal) },
+          ],
+        },
+      ])
+      downloadBlob(blob, `${caseInfo?.business_name ?? '申請書'}_経費明細.docx`)
+    } catch {
+      alert('Wordファイルの作成に失敗しました')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
+      <StepTabs caseId={caseId} current="expenses" onSave={persistFunding} />
       <PageHeader
         title={`経費明細・資金調達 — ${caseInfo?.business_name ?? ''}`}
         description="見積金額を入力すると、補助対象経費・交付申請額を自動計算します（目安。最終的な金額は電子申請ポータルで必ず確認してください）"
       >
-        <StepNav caseId={caseId} step="expenses" onSave={persistFunding} />
+        <StepNav onSave={persistFunding} />
+        <button className="btn-secondary" onClick={handleDownload} disabled={downloading}>
+          {downloading ? '作成中…' : 'Wordでダウンロード'}
+        </button>
       </PageHeader>
 
       <div className="card flex flex-col gap-3 p-5">

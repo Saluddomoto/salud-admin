@@ -7,7 +7,8 @@ import {
   fetchCaseDetail, saveHearing, generateInitialDraft,
   type JizokukaCase, type JizokukaHearing,
 } from '@/lib/jizokuka/db'
-import { StepNav } from '@/components/jizokuka/step-nav'
+import { StepNav, StepTabs } from '@/components/jizokuka/step-nav'
+import { buildFieldsDocxBlob, downloadBlob } from '@/lib/jizokuka/word-export'
 
 type FormState = {
   industry: string
@@ -54,6 +55,7 @@ export default function HearingPage() {
   const [form, setForm] = useState<FormState>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
     fetchCaseDetail(caseId).then(({ case: c, hearing }) => {
@@ -93,15 +95,66 @@ export default function HearingPage() {
     }
   }
 
+  const persist = () => saveHearing(caseId, buildHearingPayload())
+
+  const handleDownload = async () => {
+    setDownloading(true)
+    try {
+      const blob = await buildFieldsDocxBlob(`${caseInfo?.business_name ?? '申請書'} ヒアリング内容`, [
+        {
+          heading: 'AI下書き用の基礎情報',
+          fields: [
+            { label: '業種', value: form.industry },
+            { label: '従業員数', value: form.employee_count },
+            { label: '直近売上（円）', value: form.recent_revenue },
+          ],
+        },
+        {
+          heading: '強み・弱み（SWOT）',
+          fields: [
+            { label: '強み', value: form.swot_strength },
+            { label: '弱み', value: form.swot_weakness },
+            { label: '機会', value: form.swot_opportunity },
+            { label: '脅威', value: form.swot_threat },
+          ],
+        },
+        {
+          heading: '市場・顧客',
+          fields: [
+            { label: '市場の動向', value: form.market_trends },
+            { label: '顧客ニーズ', value: form.customer_needs },
+          ],
+        },
+        {
+          heading: '経営方針・補助事業',
+          fields: [
+            { label: '経営方針・目標', value: form.business_policy_goal },
+            { label: '今後のプラン', value: form.future_plan },
+            { label: '補助事業で目指すこと', value: form.subsidy_goal },
+          ],
+        },
+      ])
+      downloadBlob(blob, `${caseInfo?.business_name ?? '申請書'}_ヒアリング内容.docx`)
+    } catch {
+      alert('Wordファイルの作成に失敗しました')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   if (loading) return <div className="p-6 text-slate-400">読み込み中…</div>
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
+      <StepTabs caseId={caseId} current="hearing" onSave={persist} />
       <PageHeader
         title={`ヒアリング — ${caseInfo?.business_name ?? ''}`}
         description="AIが下書きを作成するための基礎情報を入力してください（数値中心の売上表・経費見積もりはここでは扱いません）"
       >
-        <StepNav caseId={caseId} step="hearing" onSave={() => saveHearing(caseId, buildHearingPayload())} />
+        <StepNav onSave={persist} />
+        <button className="btn-secondary" onClick={handleDownload} disabled={downloading}>
+          {downloading ? '作成中…' : 'Wordでダウンロード'}
+        </button>
       </PageHeader>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">

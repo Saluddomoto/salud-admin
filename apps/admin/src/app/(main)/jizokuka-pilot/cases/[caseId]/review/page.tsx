@@ -9,7 +9,8 @@ import {
   type JizokukaCase, type JizokukaDraftSection,
 } from '@/lib/jizokuka/db'
 import { splitSectionTitle } from '@/lib/jizokuka/sections'
-import { StepNav } from '@/components/jizokuka/step-nav'
+import { StepNav, StepTabs } from '@/components/jizokuka/step-nav'
+import { buildApplicationDocxBlob, downloadBlob } from '@/lib/jizokuka/word-export'
 
 function SectionCard({ section, onChange }: {
   section: JizokukaDraftSection
@@ -84,6 +85,7 @@ export default function ReviewPage() {
   const [sections, setSections] = useState<JizokukaDraftSection[]>([])
   const [loading, setLoading] = useState(true)
   const [confirming, setConfirming] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
     fetchCaseDetail(caseId).then(({ case: c, sections: s }) => {
@@ -106,16 +108,32 @@ export default function ReviewPage() {
     }
   }
 
+  const handleDownload = async () => {
+    setDownloading(true)
+    try {
+      const blob = await buildApplicationDocxBlob(caseInfo?.business_name ?? '申請書', sections)
+      downloadBlob(blob, `${caseInfo?.business_name ?? '申請書'}_持続化補助金下書き.docx`)
+    } catch {
+      alert('Wordファイルの作成に失敗しました')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   if (loading) return <div className="p-6 text-slate-400">読み込み中…</div>
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
+      <StepTabs caseId={caseId} current="review" onSave={async () => {}} />
       <PageHeader
         title={`下書きレビュー — ${caseInfo?.business_name ?? ''}`}
         description="本文を直接編集するか、修正指示を入力してAIに再生成させてください"
       >
         {caseInfo && <StatusPill status={caseInfo.status} />}
-        <StepNav caseId={caseId} step="review" onSave={async () => {}} />
+        <StepNav onSave={async () => {}} />
+        <button className="btn-secondary" onClick={handleDownload} disabled={downloading}>
+          {downloading ? '作成中…' : 'Wordでダウンロード'}
+        </button>
         <button className="btn-primary" onClick={handleConfirm} disabled={confirming}>
           {confirming ? '確定中…' : '確定してエクスポートへ'}
         </button>

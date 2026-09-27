@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { fetchCaseDetail, type JizokukaCase, type JizokukaDraftSection } from '@/lib/jizokuka/db'
 import { splitSectionTitle } from '@/lib/jizokuka/sections'
 import { buildApplicationDocxBlob, downloadBlob } from '@/lib/jizokuka/word-export'
-import { StepNav } from '@/components/jizokuka/step-nav'
+import { StepNav, StepTabs } from '@/components/jizokuka/step-nav'
 
 export default function ExportPage() {
   const { caseId } = useParams<{ caseId: string }>()
@@ -54,11 +54,12 @@ export default function ExportPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
+      <StepTabs caseId={caseId} current="export" onSave={async () => {}} />
       <PageHeader
         title={`電子申請システムへのコピー用テキスト — ${caseInfo?.business_name ?? ''}`}
         description="jizokuka-portal.info への入力用にセクションごとコピーできます"
       >
-        <StepNav caseId={caseId} step="export" onSave={async () => {}} />
+        <StepNav onSave={async () => {}} />
         <button className="btn-secondary" onClick={downloadWord} disabled={downloading}>
           {downloading ? '作成中…' : 'Wordでダウンロード'}
         </button>
