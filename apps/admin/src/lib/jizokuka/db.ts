@@ -48,7 +48,7 @@ export async function fetchCases(): Promise<JizokukaCase[]> {
     .from('cases')
     .select('id, business_name, representative, status, deadline_date, created_at, updated_at')
     .order('updated_at', { ascending: false })
-  if (error) throw error
+  if (error) throw new Error(error.message)
   return data as JizokukaCase[]
 }
 
@@ -58,17 +58,23 @@ export async function createCase(input: {
   deadline_date: string | null
 }): Promise<string> {
   const client = createClient()
-  const { data: { user } } = await client.auth.getUser()
+  const [{ data: { user } }, { data: tenant, error: tenantErr }] = await Promise.all([
+    client.auth.getUser(),
+    client.schema('jizokuka').from('tenants').select('id').limit(1).single(),
+  ])
+  if (tenantErr || !tenant) throw new Error(tenantErr?.message ?? 'テナント情報の取得に失敗しました')
+
   const { data, error } = await client.schema('jizokuka').from('cases').insert({
     ...input,
+    tenant_id: tenant.id,
     staff_user_id: user?.id ?? null,
   }).select('id').single()
-  if (error) throw error
+  if (error) throw new Error(error.message)
 
   const { error: hearingErr } = await client.schema('jizokuka').from('case_hearings').insert({
     case_id: data.id,
   })
-  if (hearingErr) throw hearingErr
+  if (hearingErr) throw new Error(hearingErr.message)
 
   return data.id as string
 }
@@ -85,9 +91,9 @@ export async function fetchCaseDetail(caseId: string): Promise<{
       client.from('case_hearings').select('*').eq('case_id', caseId).single(),
       client.from('case_draft_sections').select('*').eq('case_id', caseId).order('sort_order'),
     ])
-  if (caseErr) throw caseErr
-  if (hearingErr) throw hearingErr
-  if (sectionsErr) throw sectionsErr
+  if (caseErr) throw new Error(caseErr.message)
+  if (hearingErr) throw new Error(hearingErr.message)
+  if (sectionsErr) throw new Error(sectionsErr.message)
   return {
     case: caseRow as JizokukaCase,
     hearing: hearing as JizokukaHearing,
@@ -103,7 +109,7 @@ export async function saveHearing(
     .from('case_hearings')
     .update({ ...input, updated_at: new Date().toISOString() })
     .eq('case_id', caseId)
-  if (error) throw error
+  if (error) throw new Error(error.message)
 }
 
 export async function updateCaseStatus(caseId: string, status: JizokukaCaseStatus): Promise<void> {
@@ -111,7 +117,7 @@ export async function updateCaseStatus(caseId: string, status: JizokukaCaseStatu
     .from('cases')
     .update({ status, updated_at: new Date().toISOString() })
     .eq('id', caseId)
-  if (error) throw error
+  if (error) throw new Error(error.message)
 }
 
 export async function updateSectionBody(sectionId: string, body: string): Promise<void> {
@@ -119,7 +125,7 @@ export async function updateSectionBody(sectionId: string, body: string): Promis
     .from('case_draft_sections')
     .update({ body, updated_at: new Date().toISOString() })
     .eq('id', sectionId)
-  if (error) throw error
+  if (error) throw new Error(error.message)
 }
 
 export async function generateInitialDraft(caseId: string): Promise<void> {
