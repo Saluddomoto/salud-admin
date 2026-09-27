@@ -14,6 +14,11 @@ export interface JizokukaCase {
   deadline_date: string | null
   created_at: string
   updated_at: string
+  subsidy_rate: number
+  subsidy_cap: number
+  self_funds: number | null
+  loan_funds: number | null
+  other_funds: number | null
 }
 
 export interface JizokukaHearing {
@@ -40,6 +45,75 @@ export interface JizokukaDraftSection {
   char_target: number | null
   sort_order: number
 }
+
+export interface JizokukaBasicInfo {
+  case_id: string
+  project_start_method: string | null
+  project_end_date: string | null
+  has_project_income: boolean | null
+  income_detail: string | null
+  invoice_exception: string | null
+  wage_increase_exception: string | null
+  referred_chamber: string | null
+  chamber_membership: string | null
+  postal_code: string | null
+  prefecture: string | null
+  city: string | null
+  address_detail: string | null
+  corporate_number: string | null
+  company_name_kana: string | null
+  business_form: string | null
+  tax_status: string | null
+  representative_title: string | null
+  representative_birthdate: string | null
+  representative_phone: string | null
+  company_phone: string | null
+  invoice_registration_number: string | null
+  website_url: string | null
+  industry_category: string | null
+  capital_amount: number | null
+  established_date: string | null
+  office_count: number | null
+  business_location_postal: string | null
+  business_location_address: string | null
+  gross_profit_recent: number | null
+  operating_profit_recent: number | null
+  contact_last_name: string | null
+  contact_first_name: string | null
+  contact_title: string | null
+  contact_phone: string | null
+  contact_mobile: string | null
+  contact_email: string | null
+  advice_from_other: boolean | null
+  advice_amount: number | null
+  advice_provider: string | null
+  past_adoption_summary: string | null
+  priority_policy_points: string | null
+  policy_points: string | null
+}
+
+export interface JizokukaExpenseItem {
+  id: string
+  case_id: string
+  category: string | null
+  description: string | null
+  amount: number
+  is_website_related: boolean
+  sort_order: number
+}
+
+const EMPTY_BASIC_INFO_KEYS: (keyof Omit<JizokukaBasicInfo, 'case_id'>)[] = [
+  'project_start_method', 'project_end_date', 'has_project_income', 'income_detail',
+  'invoice_exception', 'wage_increase_exception', 'referred_chamber', 'chamber_membership',
+  'postal_code', 'prefecture', 'city', 'address_detail', 'corporate_number', 'company_name_kana',
+  'business_form', 'tax_status', 'representative_title', 'representative_birthdate',
+  'representative_phone', 'company_phone', 'invoice_registration_number', 'website_url',
+  'industry_category', 'capital_amount', 'established_date', 'office_count',
+  'business_location_postal', 'business_location_address', 'gross_profit_recent',
+  'operating_profit_recent', 'contact_last_name', 'contact_first_name', 'contact_title',
+  'contact_phone', 'contact_mobile', 'contact_email', 'advice_from_other', 'advice_amount',
+  'advice_provider', 'past_adoption_summary', 'priority_policy_points', 'policy_points',
+]
 
 const jz = () => createClient().schema('jizokuka')
 
@@ -75,6 +149,11 @@ export async function createCase(input: {
     case_id: data.id,
   })
   if (hearingErr) throw new Error(hearingErr.message)
+
+  const { error: basicInfoErr } = await client.schema('jizokuka').from('case_basic_info').insert({
+    case_id: data.id,
+  })
+  if (basicInfoErr) throw new Error(basicInfoErr.message)
 
   return data.id as string
 }
@@ -134,6 +213,74 @@ export async function generateInitialDraft(caseId: string): Promise<void> {
     const body = await res.json().catch(() => ({}))
     throw new Error(body.error ?? 'AI下書きの生成に失敗しました')
   }
+}
+
+export async function fetchBasicInfo(caseId: string): Promise<JizokukaBasicInfo> {
+  const { data, error } = await jz().from('case_basic_info').select('*').eq('case_id', caseId).maybeSingle()
+  if (error) throw new Error(error.message)
+  if (data) return data as JizokukaBasicInfo
+  const empty = { case_id: caseId } as JizokukaBasicInfo
+  for (const key of EMPTY_BASIC_INFO_KEYS) {
+    (empty as unknown as Record<string, null>)[key] = null
+  }
+  return empty
+}
+
+export async function saveBasicInfo(
+  caseId: string,
+  input: Partial<Omit<JizokukaBasicInfo, 'case_id'>>,
+): Promise<void> {
+  const { error } = await jz()
+    .from('case_basic_info')
+    .upsert({ case_id: caseId, ...input, updated_at: new Date().toISOString() })
+  if (error) throw new Error(error.message)
+}
+
+export async function fetchExpenseItems(caseId: string): Promise<JizokukaExpenseItem[]> {
+  const { data, error } = await jz()
+    .from('case_expense_items')
+    .select('*')
+    .eq('case_id', caseId)
+    .order('sort_order')
+  if (error) throw new Error(error.message)
+  return (data ?? []) as JizokukaExpenseItem[]
+}
+
+export async function addExpenseItem(caseId: string, sortOrder: number): Promise<JizokukaExpenseItem> {
+  const { data, error } = await jz()
+    .from('case_expense_items')
+    .insert({ case_id: caseId, sort_order: sortOrder })
+    .select('*')
+    .single()
+  if (error) throw new Error(error.message)
+  return data as JizokukaExpenseItem
+}
+
+export async function updateExpenseItem(
+  id: string,
+  input: Partial<Pick<JizokukaExpenseItem, 'category' | 'description' | 'amount' | 'is_website_related'>>,
+): Promise<void> {
+  const { error } = await jz().from('case_expense_items').update(input).eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function deleteExpenseItem(id: string): Promise<void> {
+  const { error } = await jz().from('case_expense_items').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function updateCaseFunding(caseId: string, input: {
+  subsidy_rate?: number
+  subsidy_cap?: number
+  self_funds?: number | null
+  loan_funds?: number | null
+  other_funds?: number | null
+}): Promise<void> {
+  const { error } = await jz()
+    .from('cases')
+    .update({ ...input, updated_at: new Date().toISOString() })
+    .eq('id', caseId)
+  if (error) throw new Error(error.message)
 }
 
 export async function regenerateSection(sectionId: string, instruction: string): Promise<string> {

@@ -113,11 +113,18 @@ export default function HearingPage() {
       <PageHeader
         title={`ヒアリング — ${caseInfo?.business_name ?? ''}`}
         description="AIが下書きを作成するための基礎情報を入力してください（数値中心の売上表・経費見積もりはここでは扱いません）"
-      />
+      >
+        <button className="btn-secondary" onClick={() => router.push(`/jizokuka-pilot/cases/${caseId}/basic-info`)}>
+          会社登記情報・応募者概要を入力
+        </button>
+        <button className="btn-secondary" onClick={() => router.push(`/jizokuka-pilot/cases/${caseId}/expenses`)}>
+          経費明細・資金調達を入力
+        </button>
+      </PageHeader>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         <div className="card grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
-          <h3 className="text-sm font-bold text-slate-900 sm:col-span-2">基本情報</h3>
+          <h3 className="text-sm font-bold text-slate-900 sm:col-span-2">AI下書き用の基礎情報</h3>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">業種</label>
             <input className="input" value={form.industry} onChange={set('industry')} placeholder="例: 飲食サービス業" />
