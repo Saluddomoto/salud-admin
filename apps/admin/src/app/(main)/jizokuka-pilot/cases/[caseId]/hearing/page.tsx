@@ -53,6 +53,8 @@ export default function HearingPage() {
   const [form, setForm] = useState<FormState>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [savingDraft, setSavingDraft] = useState(false)
+  const [savedAt, setSavedAt] = useState<Date | null>(null)
 
   useEffect(() => {
     fetchCaseDetail(caseId).then(({ case: c, hearing }) => {
@@ -64,24 +66,38 @@ export default function HearingPage() {
   const set = (key: keyof FormState) => (ev: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [key]: ev.target.value }))
 
+  const buildHearingPayload = () => ({
+    industry: form.industry || null,
+    employee_count: form.employee_count ? Number(form.employee_count) : null,
+    recent_revenue: form.recent_revenue ? Number(form.recent_revenue) : null,
+    swot_strength: form.swot_strength || null,
+    swot_weakness: form.swot_weakness || null,
+    swot_opportunity: form.swot_opportunity || null,
+    swot_threat: form.swot_threat || null,
+    market_trends: form.market_trends || null,
+    customer_needs: form.customer_needs || null,
+    business_policy_goal: form.business_policy_goal || null,
+    future_plan: form.future_plan || null,
+    subsidy_goal: form.subsidy_goal || null,
+  })
+
+  const handleSaveDraft = async () => {
+    setSavingDraft(true)
+    try {
+      await saveHearing(caseId, buildHearingPayload())
+      setSavedAt(new Date())
+    } catch (e) {
+      alert(`一時保存に失敗しました: ${e instanceof Error ? e.message : e}`)
+    } finally {
+      setSavingDraft(false)
+    }
+  }
+
   const handleSubmit = async (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault()
     setGenerating(true)
     try {
-      await saveHearing(caseId, {
-        industry: form.industry || null,
-        employee_count: form.employee_count ? Number(form.employee_count) : null,
-        recent_revenue: form.recent_revenue ? Number(form.recent_revenue) : null,
-        swot_strength: form.swot_strength || null,
-        swot_weakness: form.swot_weakness || null,
-        swot_opportunity: form.swot_opportunity || null,
-        swot_threat: form.swot_threat || null,
-        market_trends: form.market_trends || null,
-        customer_needs: form.customer_needs || null,
-        business_policy_goal: form.business_policy_goal || null,
-        future_plan: form.future_plan || null,
-        subsidy_goal: form.subsidy_goal || null,
-      })
+      await saveHearing(caseId, buildHearingPayload())
       await generateInitialDraft(caseId)
       router.push(`/jizokuka-pilot/cases/${caseId}/review`)
     } catch (e) {
@@ -164,8 +180,14 @@ export default function HearingPage() {
           </div>
         </div>
 
-        <div className="flex justify-end">
-          <button type="submit" className="btn-primary" disabled={generating}>
+        <div className="flex items-center justify-end gap-3">
+          {savedAt && !savingDraft && (
+            <span className="text-xs text-slate-400">{savedAt.toLocaleTimeString('ja-JP')} に一時保存しました</span>
+          )}
+          <button type="button" className="btn-secondary" onClick={handleSaveDraft} disabled={savingDraft || generating}>
+            {savingDraft ? '保存中…' : '一時保存（後で続きから入力）'}
+          </button>
+          <button type="submit" className="btn-primary" disabled={generating || savingDraft}>
             {generating ? 'AIが下書きを作成中…' : '保存してAI下書きを生成'}
           </button>
         </div>

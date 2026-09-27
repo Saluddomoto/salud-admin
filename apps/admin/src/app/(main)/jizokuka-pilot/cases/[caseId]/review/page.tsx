@@ -8,11 +8,13 @@ import {
   fetchCaseDetail, updateSectionBody, updateCaseStatus, regenerateSection,
   type JizokukaCase, type JizokukaDraftSection,
 } from '@/lib/jizokuka/db'
+import { splitSectionTitle } from '@/lib/jizokuka/sections'
 
 function SectionCard({ section, onChange }: {
   section: JizokukaDraftSection
   onChange: (id: string, body: string) => void
 }) {
+  const { label } = splitSectionTitle(section.title)
   const [body, setBody] = useState(section.body)
   const [instruction, setInstruction] = useState('')
   const [saving, setSaving] = useState(false)
@@ -47,7 +49,7 @@ function SectionCard({ section, onChange }: {
   return (
     <div className="card flex flex-col gap-3 p-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-slate-900">{section.title}</h3>
+        <h3 className="text-sm font-bold text-slate-900">{label}</h3>
         <span className="text-xs text-slate-400">
           {body.length}{section.char_target ? ` / ${section.char_target}文字` : '文字'}
         </span>
@@ -125,9 +127,19 @@ export default function ReviewPage() {
       )}
 
       <div className="flex flex-col gap-4">
-        {sections.map(s => (
-          <SectionCard key={s.id} section={s} onChange={handleSectionChange} />
-        ))}
+        {sections.map((s, i) => {
+          const group = splitSectionTitle(s.title).group
+          const prevSection = sections[i - 1]
+          const prevGroup = prevSection ? splitSectionTitle(prevSection.title).group : null
+          return (
+            <div key={s.id} className="flex flex-col gap-4">
+              {group !== prevGroup && (
+                <h2 className="mt-2 text-base font-bold text-slate-900 first:mt-0">{group}</h2>
+              )}
+              <SectionCard section={s} onChange={handleSectionChange} />
+            </div>
+          )
+        })}
       </div>
     </div>
   )
