@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 
 const GUIDES: { title: string; steps: string[] }[] = [
@@ -56,11 +57,16 @@ const GUIDES: { title: string; steps: string[] }[] = [
 ]
 
 export default function JizokukaGuidePage() {
+  const router = useRouter()
   const [open, setOpen] = useState<number | null>(0)
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
-      <PageHeader title="持続化パイロット ガイド" description="小規模事業者持続化補助金の申請準備を手伝うAIツールです（社内テスト中）" />
+      <PageHeader title="持続化パイロット ガイド" description="小規模事業者持続化補助金の申請準備を手伝うAIツールです（社内テスト中）">
+        <button className="btn-secondary" onClick={() => router.push('/jizokuka-pilot/hearing-sheet')}>
+          初回ヒアリングシートを見る
+        </button>
+      </PageHeader>
 
       <section className="card p-5">
         <h2 className="text-sm font-bold text-slate-800">これは何のツール？</h2>

@@ -45,6 +45,9 @@ export default function JizokukaPilotPage() {
         title="持続化パイロット（テスト版）"
         description="小規模事業者持続化補助金の申請書AI下書きツール"
       >
+        <button className="btn-secondary" onClick={() => router.push('/jizokuka-pilot/hearing-sheet')}>
+          初回ヒアリングシート
+        </button>
         <button className="btn-secondary" onClick={() => router.push('/jizokuka-pilot/guide')}>
           使い方ガイド
         </button>

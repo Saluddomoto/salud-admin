@@ -283,6 +283,24 @@ export async function updateCaseFunding(caseId: string, input: {
   if (error) throw new Error(error.message)
 }
 
+export interface JizokukaEvaluationCriterion {
+  label: string
+  verdict: '十分' | 'やや不足' | '不足'
+  comment: string
+}
+
+export interface JizokukaEvaluation {
+  criteria: JizokukaEvaluationCriterion[]
+  overallComment: string
+}
+
+export async function evaluateCase(caseId: string): Promise<JizokukaEvaluation> {
+  const res = await fetch(`/api/jizokuka/cases/${caseId}/evaluate`, { method: 'POST' })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.error ?? '審査基準のチェックに失敗しました')
+  return body as JizokukaEvaluation
+}
+
 export async function regenerateSection(sectionId: string, instruction: string): Promise<string> {
   const res = await fetch(`/api/jizokuka/sections/${sectionId}/regenerate`, {
     method: 'POST',

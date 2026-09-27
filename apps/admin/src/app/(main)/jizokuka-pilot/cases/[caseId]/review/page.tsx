@@ -5,8 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { StatusPill } from '@/components/jizokuka/status-pill'
 import {
-  fetchCaseDetail, updateSectionBody, updateCaseStatus, regenerateSection,
-  type JizokukaCase, type JizokukaDraftSection,
+  fetchCaseDetail, updateSectionBody, updateCaseStatus, regenerateSection, evaluateCase,
+  type JizokukaCase, type JizokukaDraftSection, type JizokukaEvaluation,
 } from '@/lib/jizokuka/db'
 import { splitSectionTitle } from '@/lib/jizokuka/sections'
 import { StepNav, StepTabs } from '@/components/jizokuka/step-nav'
@@ -86,6 +86,8 @@ export default function ReviewPage() {
   const [loading, setLoading] = useState(true)
   const [confirming, setConfirming] = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [evaluating, setEvaluating] = useState(false)
+  const [evaluation, setEvaluation] = useState<JizokukaEvaluation | null>(null)
 
   useEffect(() => {
     fetchCaseDetail(caseId).then(({ case: c, sections: s }) => {
@@ -120,6 +122,18 @@ export default function ReviewPage() {
     }
   }
 
+  const handleEvaluate = async () => {
+    setEvaluating(true)
+    try {
+      const result = await evaluateCase(caseId)
+      setEvaluation(result)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e))
+    } finally {
+      setEvaluating(false)
+    }
+  }
+
   if (loading) return <div className="p-6 text-slate-400">読み込み中…</div>
 
   return (
@@ -131,6 +145,9 @@ export default function ReviewPage() {
       >
         {caseInfo && <StatusPill status={caseInfo.status} />}
         <StepNav onSave={async () => {}} />
+        <button className="btn-secondary" onClick={handleEvaluate} disabled={evaluating || sections.length === 0}>
+          {evaluating ? 'チェック中…' : '審査基準を確認'}
+        </button>
         <button className="btn-secondary" onClick={handleDownload} disabled={downloading}>
           {downloading ? '作成中…' : 'Wordでダウンロード'}
         </button>
@@ -141,6 +158,30 @@ export default function ReviewPage() {
 
       {sections.length === 0 && (
         <div className="card p-6 text-center text-slate-400">下書きがまだ生成されていません</div>
+      )}
+
+      {evaluation && (
+        <div className="card flex flex-col gap-4 p-5">
+          <h3 className="text-sm font-bold text-slate-900">審査基準チェック結果（AIによる目安）</h3>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {evaluation.criteria.map(c => (
+              <div key={c.label} className="rounded-xl border border-slate-100 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-slate-800">{c.label}</span>
+                  <span className={`badge shrink-0 ${
+                    c.verdict === '十分' ? 'bg-emerald-100 text-emerald-700'
+                      : c.verdict === 'やや不足' ? 'bg-amber-100 text-amber-700'
+                        : 'bg-rose-100 text-rose-700'
+                  }`}>{c.verdict}</span>
+                </div>
+                <p className="mt-1.5 text-xs leading-relaxed text-slate-600">{c.comment}</p>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-slate-100 pt-3 text-sm text-slate-700">
+            <span className="font-medium">総評：</span>{evaluation.overallComment}
+          </div>
+        </div>
       )}
 
       <div className="flex flex-col gap-4">
