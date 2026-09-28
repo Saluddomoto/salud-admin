@@ -43,7 +43,7 @@ const SUBSIDY_COLORS: Record<string, { border: string; badge: string; dot: strin
   '成長加速化補助金':             { border: 'border-l-rose-400', badge: 'bg-rose-100 text-rose-700', dot: 'bg-rose-400' },
   '事業承継・M&A補助金':          { border: 'border-l-purple-400', badge: 'bg-purple-100 text-purple-700', dot: 'bg-purple-400' },
 }
-const WEB_COLOR   = { border: 'border-l-teal-400',  badge: 'bg-teal-100 text-teal-700',   dot: 'bg-teal-400' }
+const WEB_COLOR   = { border: 'border-l-lime-400',  badge: 'bg-lime-100 text-lime-700',   dot: 'bg-lime-400' }
 const OTHER_COLOR = { border: 'border-l-slate-300', badge: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' }
 
 function getProjectColor(p: DbProject) {
@@ -74,11 +74,21 @@ export default function ProjectsPage() {
   const [typeFilter, setTypeFilter] = useState<'all' | 'subsidy' | 'web'>('all')
   const [view, setView] = useState<'progress' | 'result_report'>('progress')
   const [baseFeeChoice, setBaseFeeChoice] = useState<string>('')
+  // ブラウザごとの個人設定 — WEB事業に関係のないメンバー（例: 栗原さん）が
+  // 自分の進捗管理からWEB案件のカードを常時非表示にできるようにする。
+  const [hideWebCards, setHideWebCards] = useState(false)
 
   useEffect(() => {
     const v = new URLSearchParams(window.location.search).get('view')
     if (v === 'result_report') setView('result_report')
+    setHideWebCards(localStorage.getItem('projects_hideWebCards') === 'true')
   }, [])
+
+  const toggleHideWebCards = (checked: boolean) => {
+    setHideWebCards(checked)
+    localStorage.setItem('projects_hideWebCards', String(checked))
+    if (checked && typeFilter === 'web') setTypeFilter('all')
+  }
 
   const load = () => {
     Promise.all([fetchProjects(), fetchCustomers(), fetchProfiles()])
@@ -151,10 +161,14 @@ export default function ProjectsPage() {
     }
   }
 
-  const visibleProjects = projects.filter(p => !p.pipeline_hidden && (typeFilter === 'all' || p.project_type === typeFilter))
+  const visibleProjects = projects.filter(p =>
+    !p.pipeline_hidden &&
+    (typeFilter === 'all' || p.project_type === typeFilter) &&
+    !(hideWebCards && p.project_type === 'web'),
+  )
   const legendItems = typeFilter === 'web'
     ? LEGEND_ITEMS.filter(item => item.name === 'WEB制作')
-    : typeFilter === 'subsidy'
+    : (typeFilter === 'subsidy' || hideWebCards)
       ? LEGEND_ITEMS.filter(item => item.name !== 'WEB制作')
       : LEGEND_ITEMS
 
@@ -185,19 +199,32 @@ export default function ProjectsPage() {
         </div>
         {view === 'progress' && (
           <div className="inline-flex rounded-lg border border-slate-200 p-1">
-            {([['all', '全案件'], ['subsidy', '補助金'], ['web', 'WEB']] as const).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setTypeFilter(key)}
-                className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-                  typeFilter === key ? 'bg-brand-600 text-white' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+            {([['all', '全案件'], ['subsidy', '補助金'], ['web', 'WEB']] as const)
+              .filter(([key]) => !(hideWebCards && key === 'web'))
+              .map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setTypeFilter(key)}
+                  className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+                    typeFilter === key ? 'bg-brand-600 text-white' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
           </div>
+        )}
+        {view === 'progress' && (
+          <label className="flex items-center gap-1.5 text-xs text-slate-500">
+            <input
+              type="checkbox"
+              checked={hideWebCards}
+              onChange={e => toggleHideWebCards(e.target.checked)}
+              className="rounded border-slate-300"
+            />
+            WEB案件を表示しない
+          </label>
         )}
         <button
           className="btn-primary text-sm"
@@ -247,12 +274,25 @@ export default function ProjectsPage() {
                   const color = getProjectColor(p)
                   return (
                   <div key={p.id} className={`card border-l-4 ${color.border} p-2.5 transition-shadow hover:shadow-md`}>
-                    <span className={`badge mb-1.5 text-[10px] ${color.badge}`}>
-                      {p.project_type === 'web' ? 'WEB制作' : (p.subsidy_name ?? 'その他')}
-                    </span>
+                    <div className="mb-1.5 flex items-center gap-1.5">
+                      <span className={`badge text-[10px] ${color.badge}`}>
+                        {p.project_type === 'web' ? 'WEB制作' : (p.subsidy_name ?? 'その他')}
+                      </span>
+                      {p.project_type === 'web' && (
+                        <span
+                          className={`badge text-[10px] ${
+                            p.payment_received_date
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}
+                        >
+                          {p.payment_received_date ? '入金済み' : '未入金'}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-start justify-between gap-2">
                       <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-sm font-semibold leading-snug text-slate-900 hover:text-brand-600 hover:underline">
-                        {p.title}
+                        {p.customers?.company_name ?? '—'}
                       </Link>
                       <span className="flex-shrink-0 text-xs font-semibold text-slate-700">
                         {p.project_type === 'web'
@@ -260,8 +300,7 @@ export default function ProjectsPage() {
                           : formatAmount(p.applied_amount)}
                       </span>
                     </div>
-                    <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-500">
-                      <span className="min-w-0 truncate">{p.customers?.company_name ?? '—'}</span>
+                    <div className="mt-1 flex items-center justify-end gap-2 text-xs text-slate-500">
                       <span className="flex-shrink-0 text-slate-400">
                         {p.project_type === 'web' ? `入金 ${formatDate(p.payment_due_date)}` : `〆 ${formatDate(p.deadline)}`}
                       </span>
@@ -315,14 +354,13 @@ export default function ProjectsPage() {
                     </span>
                     <div className="flex items-start justify-between gap-2">
                       <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-sm font-semibold leading-snug text-slate-900 hover:text-brand-600 hover:underline">
-                        {p.title}
+                        {p.customers?.company_name ?? '—'}
                       </Link>
                       <span className="flex-shrink-0 text-xs font-semibold text-slate-700">
                         {formatAmount(p.applied_amount)}
                       </span>
                     </div>
-                    <div className="mt-1 flex items-center justify-between gap-2 text-xs text-slate-500">
-                      <span className="min-w-0 truncate">{p.customers?.company_name ?? '—'}</span>
+                    <div className="mt-1 flex items-center justify-end gap-2 text-xs text-slate-500">
                       <span className="flex-shrink-0 text-slate-400">採択 {formatDate(p.result_at)}</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-50 pt-2">
