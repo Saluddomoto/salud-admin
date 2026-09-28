@@ -269,12 +269,12 @@ export default function ProjectsPage() {
                 <h3 className="text-sm font-semibold text-slate-700">{col.label}</h3>
                 <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">{items.length}</span>
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 {items.map(p => {
                   const color = getProjectColor(p)
                   return (
-                  <div key={p.id} className={`card border-l-4 ${color.border} p-2.5 transition-shadow hover:shadow-md`}>
-                    <div className="mb-1.5 flex items-center gap-1.5">
+                  <div key={p.id} className={`card border-l-4 ${color.border} p-2 transition-shadow hover:shadow-md`}>
+                    <div className="mb-1 flex items-center gap-1">
                       <span className={`badge text-[10px] ${color.badge}`}>
                         {p.project_type === 'web' ? 'WEB制作' : (p.subsidy_name ?? 'その他')}
                       </span>
@@ -300,12 +300,10 @@ export default function ProjectsPage() {
                           : formatAmount(p.applied_amount)}
                       </span>
                     </div>
-                    <div className="mt-1 flex items-center justify-end gap-2 text-xs text-slate-500">
-                      <span className="flex-shrink-0 text-slate-400">
-                        {p.project_type === 'web' ? `入金 ${formatDate(p.payment_due_date)}` : `〆 ${formatDate(p.deadline)}`}
-                      </span>
+                    <div className="mt-1 text-xs text-slate-400">
+                      {p.project_type === 'web' ? `入金 ${formatDate(p.payment_due_date)}` : `〆 ${formatDate(p.deadline)}`}
                     </div>
-                    <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-50 pt-2">
+                    <div className="mt-1 flex items-center justify-between gap-1.5 border-t border-slate-50 pt-1">
                       <span className="min-w-0 truncate text-xs text-slate-500">
                         {[p.profiles?.full_name, p.assignee2?.full_name].filter(Boolean).join('・') || '—'}
                       </span>
@@ -344,12 +342,12 @@ export default function ProjectsPage() {
                 <h3 className="text-sm font-semibold text-slate-700">{col.label}</h3>
                 <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">{items.length}</span>
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 {items.map(p => {
                   const color = getProjectColor(p)
                   return (
-                  <div key={p.id} className={`card border-l-4 ${color.border} p-2.5 transition-shadow hover:shadow-md`}>
-                    <span className={`badge mb-1.5 text-[10px] ${color.badge}`}>
+                  <div key={p.id} className={`card border-l-4 ${color.border} p-2 transition-shadow hover:shadow-md`}>
+                    <span className={`badge mb-1 text-[10px] ${color.badge}`}>
                       {p.subsidy_name ?? 'その他'}
                     </span>
                     <div className="flex items-start justify-between gap-2">
@@ -360,10 +358,8 @@ export default function ProjectsPage() {
                         {formatAmount(p.applied_amount)}
                       </span>
                     </div>
-                    <div className="mt-1 flex items-center justify-end gap-2 text-xs text-slate-500">
-                      <span className="flex-shrink-0 text-slate-400">採択 {formatDate(p.result_at)}</span>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-50 pt-2">
+                    <div className="mt-1 text-xs text-slate-400">採択 {formatDate(p.result_at)}</div>
+                    <div className="mt-1 flex items-center justify-between gap-1.5 border-t border-slate-50 pt-1">
                       <span className="min-w-0 truncate text-xs text-slate-500">
                         {[p.profiles?.full_name, p.assignee2?.full_name].filter(Boolean).join('・') || '—'}
                       </span>
