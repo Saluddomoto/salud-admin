@@ -276,11 +276,11 @@ export default function ProjectsPage() {
                   <div key={p.id} className={`card border-l-4 ${color.border} p-1.5 transition-shadow hover:shadow-md`}>
                     <div className="flex items-center justify-between gap-1">
                       <div className="flex min-w-0 items-center gap-1">
-                        <span className={`badge px-1.5 py-0 text-[9px] leading-4 ${color.badge}`}>
+                        <span className={`badge max-w-[92px] truncate whitespace-nowrap px-1.5 py-0 text-[9px] leading-4 ${color.badge}`}>
                           {p.project_type === 'web' ? 'WEB制作' : (p.subsidy_name ?? 'その他')}
                         </span>
                         <span
-                          className={`badge px-1.5 py-0 text-[9px] leading-4 ${
+                          className={`badge flex-shrink-0 whitespace-nowrap px-1.5 py-0 text-[9px] leading-4 ${
                             p.payment_received_date
                               ? 'bg-blue-100 text-blue-700'
                               : 'bg-red-100 text-red-700'
@@ -349,11 +349,11 @@ export default function ProjectsPage() {
                   <div key={p.id} className={`card border-l-4 ${color.border} p-1.5 transition-shadow hover:shadow-md`}>
                     <div className="flex items-center justify-between gap-1">
                       <div className="flex min-w-0 items-center gap-1">
-                        <span className={`badge px-1.5 py-0 text-[9px] leading-4 ${color.badge}`}>
+                        <span className={`badge max-w-[92px] truncate whitespace-nowrap px-1.5 py-0 text-[9px] leading-4 ${color.badge}`}>
                           {p.subsidy_name ?? 'その他'}
                         </span>
                         <span
-                          className={`badge px-1.5 py-0 text-[9px] leading-4 ${
+                          className={`badge flex-shrink-0 whitespace-nowrap px-1.5 py-0 text-[9px] leading-4 ${
                             p.payment_received_date
                               ? 'bg-blue-100 text-blue-700'
                               : 'bg-red-100 text-red-700'
