@@ -56,14 +56,6 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    href: '/jizokuka-pilot',
-    label: '持続化パイロット（テスト）',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-        d="M9 12h6m-6 4h3m-6-9h9a2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2z" />
-    ),
-  },
-  {
     href: '/tasks',
     label: 'タスク管理',
     icon: (
@@ -177,6 +169,14 @@ const NAV_ITEMS: NavItem[] = [
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M9 12h6m-6 4h3m-3-8h6M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
+    ),
+  },
+  {
+    href: '/jizokuka-pilot',
+    label: '持続化パイロット（テスト）',
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M9 12h6m-6 4h3m-6-9h9a2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2z" />
     ),
   },
   {
