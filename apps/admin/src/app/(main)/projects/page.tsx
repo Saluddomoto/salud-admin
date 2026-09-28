@@ -295,8 +295,8 @@ export default function ProjectsPage() {
                           : formatAmount(p.applied_amount)}
                       </span>
                     </div>
-                    <div className="mt-0.5 flex items-center justify-between gap-1.5">
-                      <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-sm font-semibold leading-tight text-slate-900 hover:text-brand-600 hover:underline">
+                    <div className="mt-0.5 flex items-start justify-between gap-1.5">
+                      <Link href={`/projects/${p.id}`} className="min-w-0 text-sm font-semibold leading-tight text-slate-900 hover:text-brand-600 hover:underline">
                         {p.customers?.company_name ?? '—'}
                       </Link>
                       <select
@@ -366,8 +366,8 @@ export default function ProjectsPage() {
                         {formatAmount(p.applied_amount)}
                       </span>
                     </div>
-                    <div className="mt-0.5 flex items-center justify-between gap-1.5">
-                      <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-sm font-semibold leading-tight text-slate-900 hover:text-brand-600 hover:underline">
+                    <div className="mt-0.5 flex items-start justify-between gap-1.5">
+                      <Link href={`/projects/${p.id}`} className="min-w-0 text-sm font-semibold leading-tight text-slate-900 hover:text-brand-600 hover:underline">
                         {p.customers?.company_name ?? '—'}
                       </Link>
                       <select
