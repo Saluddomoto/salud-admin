@@ -278,17 +278,15 @@ export default function ProjectsPage() {
                       <span className={`badge text-[10px] ${color.badge}`}>
                         {p.project_type === 'web' ? 'WEB制作' : (p.subsidy_name ?? 'その他')}
                       </span>
-                      {p.project_type === 'web' && (
-                        <span
-                          className={`badge text-[10px] ${
-                            p.payment_received_date
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-red-100 text-red-700'
-                          }`}
-                        >
-                          {p.payment_received_date ? '入金済み' : '未入金'}
-                        </span>
-                      )}
+                      <span
+                        className={`badge text-[10px] ${
+                          p.payment_received_date
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-red-100 text-red-700'
+                        }`}
+                      >
+                        {p.payment_received_date ? '入金済み' : '未入金'}
+                      </span>
                     </div>
                     <div className="flex items-start justify-between gap-2">
                       <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-sm font-semibold leading-snug text-slate-900 hover:text-brand-600 hover:underline">
@@ -347,9 +345,20 @@ export default function ProjectsPage() {
                   const color = getProjectColor(p)
                   return (
                   <div key={p.id} className={`card border-l-4 ${color.border} p-2 transition-shadow hover:shadow-md`}>
-                    <span className={`badge mb-1 text-[10px] ${color.badge}`}>
-                      {p.subsidy_name ?? 'その他'}
-                    </span>
+                    <div className="mb-1 flex items-center gap-1">
+                      <span className={`badge text-[10px] ${color.badge}`}>
+                        {p.subsidy_name ?? 'その他'}
+                      </span>
+                      <span
+                        className={`badge text-[10px] ${
+                          p.payment_received_date
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-red-100 text-red-700'
+                        }`}
+                      >
+                        {p.payment_received_date ? '入金済み' : '未入金'}
+                      </span>
+                    </div>
                     <div className="flex items-start justify-between gap-2">
                       <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-sm font-semibold leading-snug text-slate-900 hover:text-brand-600 hover:underline">
                         {p.customers?.company_name ?? '—'}
