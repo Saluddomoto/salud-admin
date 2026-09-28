@@ -273,40 +273,34 @@ export default function ProjectsPage() {
                 {items.map(p => {
                   const color = getProjectColor(p)
                   return (
-                  <div key={p.id} className={`card border-l-4 ${color.border} p-2 transition-shadow hover:shadow-md`}>
-                    <div className="mb-1 flex items-center gap-1">
-                      <span className={`badge text-[10px] ${color.badge}`}>
-                        {p.project_type === 'web' ? 'WEB制作' : (p.subsidy_name ?? 'その他')}
-                      </span>
-                      <span
-                        className={`badge text-[10px] ${
-                          p.payment_received_date
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {p.payment_received_date ? '入金済み' : '未入金'}
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between gap-2">
-                      <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-sm font-semibold leading-snug text-slate-900 hover:text-brand-600 hover:underline">
-                        {p.customers?.company_name ?? '—'}
-                      </Link>
+                  <div key={p.id} className={`card border-l-4 ${color.border} p-1.5 transition-shadow hover:shadow-md`}>
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex min-w-0 items-center gap-1">
+                        <span className={`badge px-1.5 py-0 text-[9px] leading-4 ${color.badge}`}>
+                          {p.project_type === 'web' ? 'WEB制作' : (p.subsidy_name ?? 'その他')}
+                        </span>
+                        <span
+                          className={`badge px-1.5 py-0 text-[9px] leading-4 ${
+                            p.payment_received_date
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}
+                        >
+                          {p.payment_received_date ? '入金済み' : '未入金'}
+                        </span>
+                      </div>
                       <span className="flex-shrink-0 text-xs font-semibold text-slate-700">
                         {p.project_type === 'web'
                           ? formatAmount(p.web_fee_excl_tax)
                           : formatAmount(p.applied_amount)}
                       </span>
                     </div>
-                    <div className="mt-1 text-xs text-slate-400">
-                      {p.project_type === 'web' ? `入金 ${formatDate(p.payment_due_date)}` : `〆 ${formatDate(p.deadline)}`}
-                    </div>
-                    <div className="mt-1 flex items-center justify-between gap-1.5 border-t border-slate-50 pt-1">
-                      <span className="min-w-0 truncate text-xs text-slate-500">
-                        {[p.profiles?.full_name, p.assignee2?.full_name].filter(Boolean).join('・') || '—'}
-                      </span>
+                    <div className="mt-0.5 flex items-center justify-between gap-1.5">
+                      <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-sm font-semibold leading-tight text-slate-900 hover:text-brand-600 hover:underline">
+                        {p.customers?.company_name ?? '—'}
+                      </Link>
                       <select
-                        className="flex-shrink-0 rounded-lg border border-slate-200 px-1 py-0.5 text-xs text-slate-600"
+                        className="w-24 flex-shrink-0 rounded-lg border border-slate-200 px-1 py-0 text-[11px] leading-5 text-slate-600"
                         value={p.status}
                         onChange={e => moveStatus(p.id, e.target.value)}
                       >
@@ -315,6 +309,14 @@ export default function ProjectsPage() {
                         <option value="lost">失注</option>
                         <option value="completed">完了</option>
                       </select>
+                    </div>
+                    <div className="mt-0.5 flex items-center justify-between gap-1.5 text-[10px] text-slate-400">
+                      <span className="min-w-0 truncate">
+                        {[p.profiles?.full_name, p.assignee2?.full_name].filter(Boolean).join('・') || '—'}
+                      </span>
+                      <span className="flex-shrink-0">
+                        {p.project_type === 'web' ? `入金 ${formatDate(p.payment_due_date)}` : `〆 ${formatDate(p.deadline)}`}
+                      </span>
                     </div>
                   </div>
                   )
@@ -344,41 +346,43 @@ export default function ProjectsPage() {
                 {items.map(p => {
                   const color = getProjectColor(p)
                   return (
-                  <div key={p.id} className={`card border-l-4 ${color.border} p-2 transition-shadow hover:shadow-md`}>
-                    <div className="mb-1 flex items-center gap-1">
-                      <span className={`badge text-[10px] ${color.badge}`}>
-                        {p.subsidy_name ?? 'その他'}
-                      </span>
-                      <span
-                        className={`badge text-[10px] ${
-                          p.payment_received_date
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {p.payment_received_date ? '入金済み' : '未入金'}
-                      </span>
-                    </div>
-                    <div className="flex items-start justify-between gap-2">
-                      <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-sm font-semibold leading-snug text-slate-900 hover:text-brand-600 hover:underline">
-                        {p.customers?.company_name ?? '—'}
-                      </Link>
+                  <div key={p.id} className={`card border-l-4 ${color.border} p-1.5 transition-shadow hover:shadow-md`}>
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex min-w-0 items-center gap-1">
+                        <span className={`badge px-1.5 py-0 text-[9px] leading-4 ${color.badge}`}>
+                          {p.subsidy_name ?? 'その他'}
+                        </span>
+                        <span
+                          className={`badge px-1.5 py-0 text-[9px] leading-4 ${
+                            p.payment_received_date
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}
+                        >
+                          {p.payment_received_date ? '入金済み' : '未入金'}
+                        </span>
+                      </div>
                       <span className="flex-shrink-0 text-xs font-semibold text-slate-700">
                         {formatAmount(p.applied_amount)}
                       </span>
                     </div>
-                    <div className="mt-1 text-xs text-slate-400">採択 {formatDate(p.result_at)}</div>
-                    <div className="mt-1 flex items-center justify-between gap-1.5 border-t border-slate-50 pt-1">
-                      <span className="min-w-0 truncate text-xs text-slate-500">
-                        {[p.profiles?.full_name, p.assignee2?.full_name].filter(Boolean).join('・') || '—'}
-                      </span>
+                    <div className="mt-0.5 flex items-center justify-between gap-1.5">
+                      <Link href={`/projects/${p.id}`} className="min-w-0 truncate text-sm font-semibold leading-tight text-slate-900 hover:text-brand-600 hover:underline">
+                        {p.customers?.company_name ?? '—'}
+                      </Link>
                       <select
-                        className="flex-shrink-0 rounded-lg border border-slate-200 px-1 py-0.5 text-xs text-slate-600"
+                        className="w-24 flex-shrink-0 rounded-lg border border-slate-200 px-1 py-0 text-[11px] leading-5 text-slate-600"
                         value={p.result_report_status ?? RESULT_REPORT_COLUMNS[0].key}
                         onChange={e => moveResultReportStatus(p.id, e.target.value)}
                       >
                         {RESULT_REPORT_COLUMNS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
                       </select>
+                    </div>
+                    <div className="mt-0.5 flex items-center justify-between gap-1.5 text-[10px] text-slate-400">
+                      <span className="min-w-0 truncate">
+                        {[p.profiles?.full_name, p.assignee2?.full_name].filter(Boolean).join('・') || '—'}
+                      </span>
+                      <span className="flex-shrink-0">採択 {formatDate(p.result_at)}</span>
                     </div>
                   </div>
                   )
