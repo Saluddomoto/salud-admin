@@ -295,12 +295,17 @@ export default function ProjectsPage() {
                           : formatAmount(p.applied_amount)}
                       </span>
                     </div>
-                    <div className="mt-0.5 flex items-start justify-between gap-1.5">
-                      <Link href={`/projects/${p.id}`} className="min-w-0 text-sm font-semibold leading-tight text-slate-900 hover:text-brand-600 hover:underline">
-                        {p.customers?.company_name ?? '—'}
-                      </Link>
+                    <Link href={`/projects/${p.id}`} className="mt-0.5 block truncate text-sm font-semibold leading-tight text-slate-900 hover:text-brand-600 hover:underline">
+                      {p.customers?.company_name ?? '—'}
+                    </Link>
+                    <div className="mt-0.5 flex items-center justify-between gap-1.5 text-[10px] text-slate-400">
+                      <span className="min-w-0 truncate">
+                        {[p.profiles?.full_name, p.assignee2?.full_name].filter(Boolean).join('・') || '—'}
+                        {' ・ '}
+                        {p.project_type === 'web' ? `入金 ${formatDate(p.payment_due_date)}` : `〆 ${formatDate(p.deadline)}`}
+                      </span>
                       <select
-                        className="w-24 flex-shrink-0 rounded-lg border border-slate-200 px-1 py-0 text-[11px] leading-5 text-slate-600"
+                        className="w-20 flex-shrink-0 rounded-lg border border-slate-200 px-1 py-0 text-[10px] leading-4 text-slate-600"
                         value={p.status}
                         onChange={e => moveStatus(p.id, e.target.value)}
                       >
@@ -309,14 +314,6 @@ export default function ProjectsPage() {
                         <option value="lost">失注</option>
                         <option value="completed">完了</option>
                       </select>
-                    </div>
-                    <div className="mt-0.5 flex items-center justify-between gap-1.5 text-[10px] text-slate-400">
-                      <span className="min-w-0 truncate">
-                        {[p.profiles?.full_name, p.assignee2?.full_name].filter(Boolean).join('・') || '—'}
-                      </span>
-                      <span className="flex-shrink-0">
-                        {p.project_type === 'web' ? `入金 ${formatDate(p.payment_due_date)}` : `〆 ${formatDate(p.deadline)}`}
-                      </span>
                     </div>
                   </div>
                   )
@@ -366,23 +363,21 @@ export default function ProjectsPage() {
                         {formatAmount(p.applied_amount)}
                       </span>
                     </div>
-                    <div className="mt-0.5 flex items-start justify-between gap-1.5">
-                      <Link href={`/projects/${p.id}`} className="min-w-0 text-sm font-semibold leading-tight text-slate-900 hover:text-brand-600 hover:underline">
-                        {p.customers?.company_name ?? '—'}
-                      </Link>
+                    <Link href={`/projects/${p.id}`} className="mt-0.5 block truncate text-sm font-semibold leading-tight text-slate-900 hover:text-brand-600 hover:underline">
+                      {p.customers?.company_name ?? '—'}
+                    </Link>
+                    <div className="mt-0.5 flex items-center justify-between gap-1.5 text-[10px] text-slate-400">
+                      <span className="min-w-0 truncate">
+                        {[p.profiles?.full_name, p.assignee2?.full_name].filter(Boolean).join('・') || '—'}
+                        {' ・ 採択 '}{formatDate(p.result_at)}
+                      </span>
                       <select
-                        className="w-24 flex-shrink-0 rounded-lg border border-slate-200 px-1 py-0 text-[11px] leading-5 text-slate-600"
+                        className="w-20 flex-shrink-0 rounded-lg border border-slate-200 px-1 py-0 text-[10px] leading-4 text-slate-600"
                         value={p.result_report_status ?? RESULT_REPORT_COLUMNS[0].key}
                         onChange={e => moveResultReportStatus(p.id, e.target.value)}
                       >
                         {RESULT_REPORT_COLUMNS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
                       </select>
-                    </div>
-                    <div className="mt-0.5 flex items-center justify-between gap-1.5 text-[10px] text-slate-400">
-                      <span className="min-w-0 truncate">
-                        {[p.profiles?.full_name, p.assignee2?.full_name].filter(Boolean).join('・') || '—'}
-                      </span>
-                      <span className="flex-shrink-0">採択 {formatDate(p.result_at)}</span>
                     </div>
                   </div>
                   )
