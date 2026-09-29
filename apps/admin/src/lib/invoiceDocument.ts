@@ -169,6 +169,24 @@ const PRINT_STYLE = `
   @media print { body { padding: 0; } }
 `
 
+// A4の印字可能領域（@pageのsize - margin）に収まる高さ(px, 96dpi換算)
+const A4_PRINTABLE_HEIGHT_PX = (297 - 16 * 2) * (96 / 25.4)
+
+// 明細行が多い請求書・見積書でも1ページに収まるよう、内容が印字可能領域を
+// 超える場合は文書全体を縮小する（項目を削ったり文字を切ったりはしない）。
+function fitToOnePage(win: Window) {
+  const doc = win.document.querySelector<HTMLElement>('.doc')
+  if (!doc) return
+  const contentHeight = doc.scrollHeight
+  if (contentHeight <= A4_PRINTABLE_HEIGHT_PX) return
+  const scale = A4_PRINTABLE_HEIGHT_PX / contentHeight
+  doc.style.transform = `scale(${scale})`
+  doc.style.transformOrigin = 'top center'
+  // 画面プレビューでスケール後の余白が間延びしないよう、縮小後の高さに詰める
+  win.document.body.style.height = `${contentHeight * scale}px`
+  win.document.body.style.overflow = 'hidden'
+}
+
 // autoPrint=false: プレビューとして表示のみ／true: 印刷ダイアログまで自動で開く
 export function openInvoiceWindow(invoice: InvoiceLike, autoPrint: boolean) {
   const w = window.open('', '_blank')
@@ -178,6 +196,7 @@ export function openInvoiceWindow(invoice: InvoiceLike, autoPrint: boolean) {
   style.textContent = PRINT_STYLE
   w.document.head.appendChild(style)
   w.document.body.innerHTML = buildInvoiceHtml(invoice)
+  fitToOnePage(w)
   w.focus()
   if (autoPrint) setTimeout(() => w.print(), 300)
 }
