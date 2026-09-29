@@ -176,17 +176,16 @@ const A4_PRINTABLE_HEIGHT_PX = (297 - 16 * 2) * (96 / 25.4) * 0.9
 
 // 明細行が多い請求書・見積書でも1ページに収まるよう、内容が印字可能領域を
 // 超える場合は文書全体を縮小する（項目を削ったり文字を切ったりはしない）。
+// transform: scale() は見た目だけを縮小し、Chromeの印刷ページ割り計算は
+// 縮小前のレイアウト高さのまま行われてしまう（＝画面では収まって見えても
+// 印刷/PDFでは2ページ目にあふれる）ため、レイアウト自体を縮めるzoomを使う。
 function fitToOnePage(win: Window) {
   const doc = win.document.querySelector<HTMLElement>('.doc')
   if (!doc) return
   const contentHeight = doc.scrollHeight
   if (contentHeight <= A4_PRINTABLE_HEIGHT_PX) return
   const scale = A4_PRINTABLE_HEIGHT_PX / contentHeight
-  doc.style.transform = `scale(${scale})`
-  doc.style.transformOrigin = 'top center'
-  // 画面プレビューでスケール後の余白が間延びしないよう、縮小後の高さに詰める
-  win.document.body.style.height = `${contentHeight * scale}px`
-  win.document.body.style.overflow = 'hidden'
+  ;(doc.style as CSSStyleDeclaration & { zoom: string }).zoom = String(scale)
 }
 
 // autoPrint=false: プレビューとして表示のみ／true: 印刷ダイアログまで自動で開く
