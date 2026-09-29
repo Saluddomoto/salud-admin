@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { TaxAmountInput } from '@/components/TaxAmountInput'
 import {
-  fetchProjects, fetchCustomers, fetchProfiles, insertProject, updateProjectStatus, updateResultReportStatus,
+  fetchProjects, fetchCustomers, fetchProfiles, insertProject, insertCustomer, updateProjectStatus, updateResultReportStatus,
   formatAmount, formatDate, type DbProject, type DbCustomer, type DbProfile,
 } from '@/lib/db'
 
@@ -70,6 +70,7 @@ export default function ProjectsPage() {
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
   const [subsidyChoice, setSubsidyChoice] = useState(SUBSIDY_NAMES[0]!)
+  const [customerChoice, setCustomerChoice] = useState('')
   const [projectType, setProjectType] = useState<'subsidy' | 'web'>('subsidy')
   const [typeFilter, setTypeFilter] = useState<'all' | 'subsidy' | 'web'>('all')
   const [view, setView] = useState<'progress' | 'result_report'>('progress')
@@ -108,6 +109,21 @@ export default function ProjectsPage() {
       ? (f.get('base_fee_other') ? Number(f.get('base_fee_other')) * 10_000 : null)
       : (f.get('base_fee') ? Number(f.get('base_fee')) : null)
     try {
+      let customerId = (f.get('customer_id') as string) || null
+      if (customerChoice === '__other__') {
+        const freeName = (f.get('customer_name_other') as string)?.trim()
+        if (freeName) {
+          customerId = await insertCustomer({
+            company_name: freeName,
+            industry: '',
+            employee_count: null,
+            status: 'prospect',
+            phone: '',
+            address: '',
+            contact_name: '',
+          })
+        }
+      }
       await insertProject({
         title:             f.get('title') as string,
         project_type:      projectType,
@@ -116,7 +132,7 @@ export default function ProjectsPage() {
         // 案件進捗ボードには出さず、実績報告サポート画面だけに表示する
         pipeline_hidden:   view === 'result_report',
         subsidy_name:      projectType === 'web' ? null : subsidyName,
-        customer_id:       (f.get('customer_id') as string) || null,
+        customer_id:       customerId,
         applied_amount:    projectType === 'web' ? null : (f.get('amount') ? Number(f.get('amount')) * 10_000 : null),
         deadline:          projectType === 'web' ? null : (f.get('deadline') as string) || null,
         base_fee:          projectType === 'web' ? null : baseFee,
@@ -132,6 +148,7 @@ export default function ProjectsPage() {
       setSubsidyChoice(SUBSIDY_NAMES[0]!)
       setProjectType('subsidy')
       setBaseFeeChoice('')
+      setCustomerChoice('')
       load()
     } catch {
       setError('保存に失敗しました')
@@ -445,10 +462,22 @@ export default function ProjectsPage() {
             ) : null}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">顧客</label>
-              <select name="customer_id" className="input" defaultValue="">
+              <select
+                name={customerChoice === '__other__' ? undefined : 'customer_id'}
+                className="input"
+                value={customerChoice}
+                onChange={e => setCustomerChoice(e.target.value)}
+              >
                 <option value="">未設定（あとで紐付け可）</option>
                 {customers.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+                <option value="__other__">その他（自由入力・新規顧客として登録）</option>
               </select>
+              {customerChoice === '__other__' && (
+                <input
+                  name="customer_name_other" required className="input mt-2"
+                  placeholder="顧客名（会社名）を入力"
+                />
+              )}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">社内担当1</label>
