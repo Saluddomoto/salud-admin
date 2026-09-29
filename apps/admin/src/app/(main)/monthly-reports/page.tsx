@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { useAuth } from '@/hooks/useAuth'
 import {
-  fetchMyProfile, fetchExecutiveProfiles, fetchMonthlyReports, upsertMonthlyReport, fetchTasks,
+  fetchMyProfile, fetchExecutiveProfiles, fetchMonthlyReports, upsertMonthlyReport, fetchTasks, deleteTask,
   fetchBoardPrepSheets, upsertBoardPrepSheet, fetchMonthlyReportAiSummary, fetchAnnualReportAiSummary,
   fetchMeetingNotesByPeriod, insertMeetingNote,
   type DbProfile, type DbMonthlyReport, type MonthlyReportInput, type DbTask,
@@ -394,6 +394,21 @@ export default function MonthlyReportsPage() {
     setSaving(true)
     try {
       await upsertMonthlyReport(period, form)
+
+      // 「タスク」欄に反映済み（＝本文中に箇条書きが載っている）の完了タスクは
+      // 月報側に記録が残るため、タスク管理からは自動的に削除してカードを片付ける。
+      // 本人の完了タスクのみ対象（他人のタスクは誤って消さない）。
+      if (me) {
+        const savedLines = new Set(form.tasks.split('\n').map(l => l.trim()))
+        const reflectedDone = myTasks.filter(
+          t => t.status === 'done' && t.assigned_user_id === me.id && savedLines.has(`・${t.title}`),
+        )
+        if (reflectedDone.length > 0) {
+          await Promise.all(reflectedDone.map(t => deleteTask(t.id).catch(() => {})))
+          fetchTasks().then(setMyTasks).catch(() => {})
+        }
+      }
+
       setEditing(false)
       load()
     } catch (e) {
@@ -824,6 +839,11 @@ export default function MonthlyReportsPage() {
                         </div>
                         <p className="text-sm text-slate-600">{f.question}</p>
                         <p className="mb-1.5 text-xs text-slate-400">{f.hint}</p>
+                        {f.key === 'tasks' && (
+                          <p className="mb-1.5 text-xs text-amber-600">
+                            ※ ここに書かれた完了タスクは、保存するとタスク管理からは自動的に削除されます
+                          </p>
+                        )}
                         <textarea
                           className="input min-h-[70px] resize-y"
                           value={form[f.key]}
