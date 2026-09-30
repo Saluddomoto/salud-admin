@@ -163,7 +163,7 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    href: 'https://hojokin-kanri-system.vercel.app',
+    href: 'https://hojokin-kanri-system.vercel.app/dashboard',
     label: '補助金申請管理',
     external: true,
     icon: (
