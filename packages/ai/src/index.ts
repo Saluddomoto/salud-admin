@@ -25,6 +25,8 @@ export {
   regenerateApplicationSection,
   APPLICATION_SECTION_LABELS,
   APPLICATION_SECTION_ORDER,
+  applicationSectionKeyFromTitle,
+  applicationDraftKeys,
   type ApplicationHearingInput,
   type ApplicationDraft,
 } from './application'

@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { regenerateApplicationSection, APPLICATION_SECTION_LABELS, type ApplicationDraft } from '@salud/ai'
+import { regenerateApplicationSection, applicationSectionKeyFromTitle } from '@salud/ai'
+import { buildDraftInput } from '@/lib/jizokuka/draft-input'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-const LABEL_TO_KEY = Object.fromEntries(
-  (Object.entries(APPLICATION_SECTION_LABELS) as [keyof ApplicationDraft, string][]).map(([key, label]) => [label, key]),
-) as Record<string, keyof ApplicationDraft>
 
 // 持続化パイロット: 担当者の追加指示を反映して1セクションだけ再生成する。
 export async function POST(req: Request, { params }: { params: { sectionId: string } }) {
@@ -23,34 +20,20 @@ export async function POST(req: Request, { params }: { params: { sectionId: stri
     .from('case_draft_sections').select('*').eq('id', params.sectionId).single()
   if (sectionErr || !section) return NextResponse.json({ error: 'セクションが見つかりません' }, { status: 404 })
 
-  const [{ data: caseRow, error: caseErr }, { data: hearing, error: hearingErr }] = await Promise.all([
+  const [{ data: caseRow, error: caseErr }, { data: hearing, error: hearingErr }, { data: expenses }] = await Promise.all([
     jz.from('cases').select('*').eq('id', section.case_id).single(),
     jz.from('case_hearings').select('*').eq('case_id', section.case_id).single(),
+    jz.from('case_expense_items').select('category, description, amount').eq('case_id', section.case_id).order('sort_order'),
   ])
   if (caseErr || !caseRow || hearingErr || !hearing) {
     return NextResponse.json({ error: '案件情報の取得に失敗しました' }, { status: 404 })
   }
 
-  const sectionKey = LABEL_TO_KEY[section.title] ?? 'overview'
+  const sectionKey = applicationSectionKeyFromTitle(section.title) ?? 'overview'
 
   try {
     const body = await regenerateApplicationSection(
-      {
-        businessName: caseRow.business_name,
-        representative: caseRow.representative ?? '',
-        industry: hearing.industry ?? '',
-        employeeCount: hearing.employee_count ?? 0,
-        recentRevenue: Number(hearing.recent_revenue) || 0,
-        swotStrength: hearing.swot_strength ?? '',
-        swotWeakness: hearing.swot_weakness ?? '',
-        swotOpportunity: hearing.swot_opportunity ?? '',
-        swotThreat: hearing.swot_threat ?? '',
-        marketTrends: hearing.market_trends ?? '',
-        customerNeeds: hearing.customer_needs ?? '',
-        businessPolicyGoal: hearing.business_policy_goal ?? '',
-        futurePlan: hearing.future_plan ?? '',
-        subsidyGoal: hearing.subsidy_goal ?? '',
-      },
+      buildDraftInput(caseRow, hearing, expenses ?? []),
       sectionKey,
       section.body,
       instruction,
