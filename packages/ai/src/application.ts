@@ -21,6 +21,12 @@ export interface ApplicationHearingInput {
   businessPolicyGoal: string
   futurePlan: string
   subsidyGoal: string
+  // ヒアリングシート由来（任意）
+  topServices?: string
+  customerSegments?: string
+  salesPlan?: string
+  appealPoints?: string
+  expenseSummary?: string
 }
 
 export interface ApplicationDraft {

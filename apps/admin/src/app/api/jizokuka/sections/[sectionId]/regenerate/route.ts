@@ -40,7 +40,7 @@ export async function POST(req: Request, { params }: { params: { sectionId: stri
         representative: caseRow.representative ?? '',
         industry: hearing.industry ?? '',
         employeeCount: hearing.employee_count ?? 0,
-        recentRevenue: hearing.recent_revenue ?? 0,
+        recentRevenue: Number(hearing.recent_revenue) || 0,
         swotStrength: hearing.swot_strength ?? '',
         swotWeakness: hearing.swot_weakness ?? '',
         swotOpportunity: hearing.swot_opportunity ?? '',

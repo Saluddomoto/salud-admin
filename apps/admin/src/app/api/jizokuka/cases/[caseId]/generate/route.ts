@@ -11,12 +11,31 @@ export async function POST(_req: Request, { params }: { params: { caseId: string
   const supabase = createServerSupabaseClient()
   const jz = supabase.schema('jizokuka')
 
-  const [{ data: caseRow, error: caseErr }, { data: hearing, error: hearingErr }] = await Promise.all([
+  const [{ data: caseRow, error: caseErr }, { data: hearing, error: hearingErr }, { data: expenses }] = await Promise.all([
     jz.from('cases').select('*').eq('id', params.caseId).single(),
     jz.from('case_hearings').select('*').eq('case_id', params.caseId).single(),
+    jz.from('case_expense_items').select('category, description, amount').eq('case_id', params.caseId).order('sort_order'),
   ])
   if (caseErr || !caseRow) return NextResponse.json({ error: '案件が見つかりません' }, { status: 404 })
   if (hearingErr || !hearing) return NextResponse.json({ error: 'ヒアリング情報が見つかりません' }, { status: 404 })
+
+  type Service = { name: string; ratio_pct: number | null; unit_price: number | null }
+  type Effect = { target: string; offering: string; unit_price: number | null; customers: number | null; frequency: number | null }
+  const topServices = ((hearing.top_services ?? []) as Service[])
+    .map((t, i) => `${i + 1}位 ${t.name}（売上比${t.ratio_pct ?? '—'}%・平均単価${t.unit_price ?? '—'}円）`)
+    .join('、')
+  const effects = (hearing.sales_effects ?? []) as Effect[]
+  const year1 = effects.reduce((sum, e) => sum + (e.unit_price ?? 0) * (e.customers ?? 0) * (e.frequency ?? 0), 0) * 12
+  const salesPlan = effects.length
+    ? effects.map(e => `${e.target}に「${e.offering}」を単価${e.unit_price ?? '—'}円×客数${e.customers ?? '—'}×月${e.frequency ?? '—'}回`).join('／') +
+      `。1年後の売上高見込み約${year1.toLocaleString()}円` +
+      (hearing.growth_pct != null ? `、以降年${hearing.growth_pct}%増` : '') +
+      (hearing.gross_margin_pct != null ? `、粗利率${hearing.gross_margin_pct}%` : '')
+    : ''
+  const expenseSummary = (expenses ?? [])
+    .filter(e => e.category || e.description)
+    .map(e => `${e.category ?? ''} ${e.description ?? ''}（${Number(e.amount).toLocaleString()}円）`)
+    .join('／')
 
   try {
     const draft = await generateApplicationDraft({
@@ -24,16 +43,21 @@ export async function POST(_req: Request, { params }: { params: { caseId: string
       representative: caseRow.representative ?? '',
       industry: hearing.industry ?? '',
       employeeCount: hearing.employee_count ?? 0,
-      recentRevenue: hearing.recent_revenue ?? 0,
+      recentRevenue: Number(hearing.recent_revenue) || 0,
       swotStrength: hearing.swot_strength ?? '',
       swotWeakness: hearing.swot_weakness ?? '',
       swotOpportunity: hearing.swot_opportunity ?? '',
       swotThreat: hearing.swot_threat ?? '',
-      marketTrends: hearing.market_trends ?? '',
-      customerNeeds: hearing.customer_needs ?? '',
+      marketTrends: hearing.market_trends || [hearing.swot_opportunity, hearing.swot_threat].filter(Boolean).join('\n'),
+      customerNeeds: hearing.customer_needs || hearing.customer_segments || '',
       businessPolicyGoal: hearing.business_policy_goal ?? '',
       futurePlan: hearing.future_plan ?? '',
       subsidyGoal: hearing.subsidy_goal ?? '',
+      topServices,
+      customerSegments: hearing.customer_segments ?? '',
+      salesPlan,
+      appealPoints: hearing.appeal_points ?? '',
+      expenseSummary,
     })
 
     const rows = APPLICATION_SECTION_ORDER.map((key, i) => ({

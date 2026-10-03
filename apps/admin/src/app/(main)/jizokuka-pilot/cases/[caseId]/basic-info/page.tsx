@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { fetchBasicInfo, saveBasicInfo, fetchCaseDetail, type JizokukaBasicInfo } from '@/lib/jizokuka/db'
 import { StepNav, StepTabs } from '@/components/jizokuka/step-nav'
+import { HearingSheetImport } from '@/components/jizokuka/hearing-sheet-import'
 // Salud本体の顧客管理データを読むためだけの依存（自動反映の利便性のため）。
 // 書き込みは行わず、選んだ時点の値をこのケース独自のフォームへコピーするだけなので、
 // jizokuka側のデータは引き続きこのテーブル単体で完結する。
@@ -220,6 +221,7 @@ export default function BasicInfoPage() {
         title="基本情報（会社登記情報・応募者概要）"
         description="電子申請ポータルの「申請情報」「基本情報」「応募者の概要」「確認事項」「特例」入力にそのまま転記できる項目です"
       >
+        <HearingSheetImport caseId={caseId} />
         <StepNav onSave={persist} />
         <button className="btn-secondary" onClick={handleDownload} disabled={downloading}>
           {downloading ? '作成中…' : 'Wordでダウンロード'}

@@ -21,11 +21,25 @@ export interface JizokukaCase {
   other_funds: number | null
 }
 
+export interface TopService {
+  name: string
+  ratio_pct: number | null
+  unit_price: number | null
+}
+
+export interface SalesEffect {
+  target: string
+  offering: string
+  unit_price: number | null
+  customers: number | null
+  frequency: number | null
+}
+
 export interface JizokukaHearing {
   case_id: string
   industry: string | null
   employee_count: number | null
-  recent_revenue: number | null
+  recent_revenue: string | null
   swot_strength: string | null
   swot_weakness: string | null
   swot_opportunity: string | null
@@ -35,6 +49,14 @@ export interface JizokukaHearing {
   business_policy_goal: string | null
   future_plan: string | null
   subsidy_goal: string | null
+  top_services: TopService[]
+  customer_segments: string | null
+  sales_effects: SalesEffect[]
+  gross_margin_pct: number | null
+  growth_pct: number | null
+  appeal_points: string | null
+  sheet_imported_at: string | null
+  sheet_file_name: string | null
 }
 
 export interface JizokukaDraftSection {
@@ -310,4 +332,47 @@ export async function regenerateSection(sectionId: string, instruction: string):
   const body = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(body.error ?? 'AI再生成に失敗しました')
   return body.body as string
+}
+
+/**
+ * 提出されたヒアリングシートの内容を各画面（基本情報・ヒアリング・経費明細）に反映する。
+ * シートに記入のある項目だけを上書きし、空欄の項目は既存の入力を残す。
+ * 経費明細は既存の行の後ろに追加する（二重取込の場合は呼び出し側で確認する）。
+ */
+export async function applyHearingSheet(
+  caseId: string,
+  parsed: {
+    basic: Partial<Omit<JizokukaBasicInfo, 'case_id'>>
+    hearing: Partial<Omit<JizokukaHearing, 'case_id'>>
+    expenses: { category: string; description: string; amount: number; is_website_related: boolean }[]
+  },
+  fileName: string,
+): Promise<void> {
+  const client = jz()
+  const now = new Date().toISOString()
+
+  const { error: basicErr } = await client
+    .from('case_basic_info')
+    .upsert({ case_id: caseId, ...parsed.basic, updated_at: now })
+  if (basicErr) throw new Error(`基本情報の反映に失敗しました: ${basicErr.message}`)
+
+  const { error: hearingErr } = await client
+    .from('case_hearings')
+    .update({ ...parsed.hearing, sheet_imported_at: now, sheet_file_name: fileName, updated_at: now })
+    .eq('case_id', caseId)
+  if (hearingErr) throw new Error(`ヒアリングの反映に失敗しました: ${hearingErr.message}`)
+
+  if (parsed.expenses.length) {
+    const { data: last } = await client
+      .from('case_expense_items')
+      .select('sort_order')
+      .eq('case_id', caseId)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+    const start = (last?.[0]?.sort_order ?? -1) + 1
+    const { error: expErr } = await client
+      .from('case_expense_items')
+      .insert(parsed.expenses.map((e, i) => ({ case_id: caseId, ...e, sort_order: start + i })))
+    if (expErr) throw new Error(`経費明細の反映に失敗しました: ${expErr.message}`)
+  }
 }
