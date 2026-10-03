@@ -48,6 +48,12 @@ type FormState = {
   target_sales_y3: string
   target_sales_basis: string
   profit_target: string
+  founder_background: string
+  company_history: string
+  market_sources: string
+  customer_examples: string
+  track_record: string
+  attachments_note: string
 }
 
 const ROWS = 3
@@ -99,6 +105,12 @@ function toFormState(h: JizokukaHearing): FormState {
     target_sales_y3: s(h.target_sales_y3),
     target_sales_basis: s(h.target_sales_basis),
     profit_target: s(h.profit_target),
+    founder_background: s(h.founder_background),
+    company_history: s(h.company_history),
+    market_sources: s(h.market_sources),
+    customer_examples: s(h.customer_examples),
+    track_record: s(h.track_record),
+    attachments_note: s(h.attachments_note),
   }
 }
 
@@ -195,6 +207,12 @@ export default function HearingPage() {
     target_sales_y3: numOrNull(form.target_sales_y3),
     target_sales_basis: form.target_sales_basis || null,
     profit_target: form.profit_target || null,
+    founder_background: form.founder_background || null,
+    company_history: form.company_history || null,
+    market_sources: form.market_sources || null,
+    customer_examples: form.customer_examples || null,
+    track_record: form.track_record || null,
+    attachments_note: form.attachments_note || null,
   })
 
   const handleSubmit = async (ev: React.FormEvent<HTMLFormElement>) => {
@@ -431,6 +449,16 @@ export default function HearingPage() {
               <Area label="利益率の目標" hint="例：現状2.5％→5％以上" value={form.profit_target} onChange={setText('profit_target')} />
             </div>
           </div>
+        </div>
+
+        <div className="card flex flex-col gap-4 p-5">
+          <h3 className="text-sm font-bold text-slate-900">（5）〜（7）会社の沿革・市場の裏付け・掲載資料（ヒアリングシート「4.補足情報」）</h3>
+          <Area label="代表者の経歴" hint="これまでの職歴・資格・独立の経緯" value={form.founder_background} onChange={setText('founder_background')} />
+          <Area label="創業・事業の沿革" hint="設立の経緯、これまでの主な出来事" value={form.company_history} onChange={setText('company_history')} />
+          <Area label="市場の動向の裏付けに使いたい統計・データ・出典" hint="公的統計・業界団体の発表など。AIは、ここに書かれた出典を優先して使います" value={form.market_sources} onChange={setText('market_sources')} />
+          <Area label="顧客の具体例" hint="どんなお客様が、なぜ選ぶか（個人名は不要）" value={form.customer_examples} onChange={setText('customer_examples')} />
+          <Area label="施工事例・実績" hint="件数・代表的な事例・お客様の声など" value={form.track_record} onChange={setText('track_record')} />
+          <Area label="申請書に載せたい写真・資料" hint="施工事例、現在のホームページ、事務所の予定地など（ファイル名・保管場所）。Wordの下書きに、あとで手作業で貼り付けます" value={form.attachments_note} onChange={setText('attachments_note')} />
         </div>
 
         <details className="card p-5">

@@ -77,6 +77,12 @@ export interface JizokukaHearing {
   target_sales_y3: number | null
   target_sales_basis: string | null
   profit_target: string | null
+  founder_background: string | null
+  company_history: string | null
+  market_sources: string | null
+  customer_examples: string | null
+  track_record: string | null
+  attachments_note: string | null
 }
 
 export interface JizokukaDraftSection {

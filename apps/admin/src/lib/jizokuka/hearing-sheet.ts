@@ -203,6 +203,12 @@ export async function parseHearingSheet(buffer: ArrayBuffer): Promise<ParsedHear
       target_sales_y3: num(s4, 'C27') ?? undefined,
       target_sales_basis: text('C28'),
       profit_target: text('C29'),
+      founder_background: text('C32'),
+      company_history: text('C33'),
+      market_sources: text('C36'),
+      customer_examples: text('C37'),
+      track_record: text('C38'),
+      attachments_note: text('C41'),
     }))
     if (schedule.length) supplement.implementation_schedule = schedule
   }

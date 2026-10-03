@@ -42,6 +42,12 @@ export interface ApplicationHearingInput {
   expansionPlans?: string
   salesTargetBasis?: string
   profitTarget?: string
+  founderBackground?: string
+  companyHistory?: string
+  marketSources?: string
+  customerExamples?: string
+  trackRecord?: string
+  attachmentsNote?: string
 }
 
 export interface ApplicationDraft {
@@ -121,7 +127,7 @@ const WRITING_STYLE =
   '(4)現状の問題点は具体的に書く: 「弱い」「不十分」で終わらず、何がどう機能していないかを、ヒアリング内容の範囲で具体的に書く。' +
   '(5)取組の詳細は「現状の課題（箇条書き）→本事業での解決策→期待される結果」の流れで書く。' +
   '(6)市場の動向には、公的統計など信頼できる出典名（例: 総務省「住宅・土地統計調査」）を添えてよいが、' +
-  '確証のない数値やURLは書かず、必要なら「【要確認：出典】」とする。' +
+  '確証のない数値やURLは書かず、必要なら「【要確認：出典】」とする。ヒアリングに「統計・データ・出典」の記載があれば、それを優先して使う。' +
   '(7)目標・効果は、現状→1年後→3年後の売上と現在比（％）、利益率の改善など、検証できる数値で示す。'
 
 const SYSTEM_PROMPT =
@@ -208,6 +214,12 @@ function buildHearingText(input: ApplicationHearingInput): string {
     input.expansionPlans ? `事務所・設備・人員の計画: ${input.expansionPlans}` : '',
     input.salesTargetBasis ? `売上目標の根拠: ${input.salesTargetBasis}` : '',
     input.profitTarget ? `利益率の目標: ${input.profitTarget}` : '',
+    input.founderBackground ? `代表者の経歴: ${input.founderBackground}` : '',
+    input.companyHistory ? `創業・事業の沿革: ${input.companyHistory}` : '',
+    input.marketSources ? `市場の動向の裏付けに使える統計・データ・出典（担当者が確認したもの）: ${input.marketSources}` : '',
+    input.customerExamples ? `顧客の具体例: ${input.customerExamples}` : '',
+    input.trackRecord ? `施工事例・実績: ${input.trackRecord}` : '',
+    input.attachmentsNote ? `申請書に載せたい写真・資料: ${input.attachmentsNote}` : '',
   ].filter(Boolean).join('\n')
 }
 

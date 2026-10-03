@@ -80,6 +80,12 @@ export function buildDraftInput(
     expansionPlans: text('expansion_plans'),
     salesTargetBasis: text('target_sales_basis'),
     profitTarget: text('profit_target'),
+    founderBackground: text('founder_background'),
+    companyHistory: text('company_history'),
+    marketSources: text('market_sources'),
+    customerExamples: text('customer_examples'),
+    trackRecord: text('track_record'),
+    attachmentsNote: text('attachments_note'),
     includeEfficiency: hearing.efficiency_enabled === false ? false : hearing.efficiency_enabled === true || expenses.some(e => EFFICIENCY_PATTERN.test(`${e.category ?? ''}${e.description ?? ''}`)),
   }
 }
