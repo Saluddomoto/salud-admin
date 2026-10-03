@@ -6,6 +6,15 @@ import type { JizokukaBasicInfo, JizokukaHearing, SalesEffect, TopService } from
 // Googleスプレッドシートの場合は「ファイル → ダウンロード → .xlsx」で保存したものを使う。
 // セル番地は上記シートのレイアウトに固定（シート構成を変えた場合はここを直す）。
 
+// 経費明細画面のカテゴリー（expenses/page.tsx の CATEGORIES と同じ）。シートの経費区分名をこの表記に合わせる
+const EXPENSE_CATEGORIES = [
+  '①機械装置等費', '②広報費', '③ウェブサイト関連費', '④展示会等出展費',
+  '⑤旅費', '⑥新商品開発費', '⑦借料', '⑧委託・外注費', '⑨設備処分費',
+]
+const plain = (t: string) => t.replace(/[①-⑩・\s]/g, '')
+const toExpenseCategory = (sheetName: string) =>
+  EXPENSE_CATEGORIES.find(c => plain(c) === plain(sheetName)) ?? sheetName
+
 export type ParsedExpense = {
   category: string
   description: string
@@ -159,7 +168,7 @@ export async function parseHearingSheet(buffer: ArrayBuffer): Promise<ParsedHear
 
   const expenses: ParsedExpense[] = [4, 5, 6, 7, 8, 9]
     .map(r => {
-      const category = str(s3, `B${r}`)
+      const category = toExpenseCategory(str(s3, `B${r}`))
       const item = str(s3, `E${r}`)
       const qty = num(s3, `M${r}`)
       const note = str(s3, `O${r}`)
@@ -167,7 +176,7 @@ export async function parseHearingSheet(buffer: ArrayBuffer): Promise<ParsedHear
         category,
         description: [item, qty && qty > 1 ? `×${qty}` : '', note ? `（${note}）` : ''].filter(Boolean).join(' '),
         amount: num(s3, `J${r}`) ?? 0,
-        is_website_related: category === 'ウェブサイト関連費',
+        is_website_related: plain(category) === 'ウェブサイト関連費',
       }
     })
     .filter(e => e.category || e.description || e.amount)

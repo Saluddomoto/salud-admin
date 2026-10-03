@@ -388,3 +388,127 @@ export async function updateCaseNames(
     .eq('id', caseId)
   if (error) throw new Error(error.message)
 }
+
+// ---- 案件一覧用: 案件ごとの入力状況・主要数値 ----
+
+export interface JizokukaCaseOverview extends JizokukaCase {
+  basicFilled: number
+  basicTotal: number
+  hearingFilled: number
+  hearingTotal: number
+  expenseCount: number
+  totalExpense: number
+  estimatedGrant: number
+  draftCount: number
+  employeeCount: number | null
+  recentRevenue: number | null
+  sheetImported: boolean
+}
+
+const BASIC_CHECK_KEYS = [
+  'company_name_kana', 'postal_code', 'prefecture', 'address_detail', 'business_form', 'tax_status',
+  'established_date', 'contact_last_name', 'contact_phone', 'contact_email',
+] as const
+
+const filled = (v: unknown) =>
+  Array.isArray(v) ? v.length > 0 : v !== null && v !== undefined && String(v).trim() !== ''
+
+export async function fetchCaseOverviews(): Promise<JizokukaCaseOverview[]> {
+  const client = jz()
+  const [cases, basics, hearings, expenses, sections] = await Promise.all([
+    client.from('cases').select('*').order('updated_at', { ascending: false }),
+    client.from('case_basic_info').select('*'),
+    client.from('case_hearings').select('*'),
+    client.from('case_expense_items').select('case_id, amount, is_website_related'),
+    client.from('case_draft_sections').select('case_id'),
+  ])
+  for (const r of [cases, basics, hearings, expenses, sections]) if (r.error) throw new Error(r.error.message)
+
+  const basicBy = new Map((basics.data ?? []).map(b => [b.case_id as string, b as Record<string, unknown>]))
+  const hearingBy = new Map((hearings.data ?? []).map(h => [h.case_id as string, h as Record<string, unknown>]))
+  const draftCount = new Map<string, number>()
+  for (const s of sections.data ?? []) draftCount.set(s.case_id, (draftCount.get(s.case_id) ?? 0) + 1)
+
+  return ((cases.data ?? []) as JizokukaCase[]).map(c => {
+    const b = basicBy.get(c.id) ?? {}
+    const h = hearingBy.get(c.id) ?? {}
+    const items = (expenses.data ?? []).filter(e => e.case_id === c.id)
+    const sum = (web: boolean) =>
+      items.filter(i => i.is_website_related === web).reduce((s, i) => s + (Number(i.amount) || 0), 0)
+    // 経費明細画面と同じ計算（通常経費は上限まで、ウェブサイト関連費は通常分の1/4・50万円が上限）
+    const rate = Number(c.subsidy_rate) || 0
+    const grantNonWeb = Math.min(Math.floor(sum(false) * rate), Number(c.subsidy_cap) || 0)
+    const grantWeb = Math.min(Math.floor(sum(true) * rate), Math.floor(grantNonWeb / 4), 500000)
+
+    const hearingChecks = [
+      'swot_strength', 'swot_weakness', 'swot_opportunity', 'swot_threat', 'customer_segments',
+      'subsidy_goal', 'top_services', 'sales_effects', 'appeal_points',
+    ]
+    return {
+      ...c,
+      basicFilled: BASIC_CHECK_KEYS.filter(k => filled(b[k])).length,
+      basicTotal: BASIC_CHECK_KEYS.length,
+      hearingFilled: hearingChecks.filter(k => filled(h[k])).length,
+      hearingTotal: hearingChecks.length,
+      expenseCount: items.length,
+      totalExpense: sum(false) + sum(true),
+      estimatedGrant: grantNonWeb + grantWeb,
+      draftCount: draftCount.get(c.id) ?? 0,
+      employeeCount: (h.employee_count as number | null) ?? null,
+      recentRevenue: h.recent_revenue ? Number(h.recent_revenue) || null : null,
+      sheetImported: !!h.sheet_imported_at,
+    }
+  })
+}
+
+/** 案件を削除する（ヒアリング・基本情報・経費・下書きも一緒に削除される） */
+export async function deleteCase(caseId: string): Promise<void> {
+  const { error } = await jz().from('cases').delete().eq('id', caseId)
+  if (error) throw new Error(error.message)
+}
+
+/** 案件を複製する（ヒアリング・基本情報・経費・下書きをコピー。ステータスは下書きに戻す） */
+export async function duplicateCase(caseId: string): Promise<string> {
+  const client = jz()
+  const { data: { user } } = await createClient().auth.getUser()
+  const [src, hearing, basic, items, sections] = await Promise.all([
+    client.from('cases').select('*').eq('id', caseId).single(),
+    client.from('case_hearings').select('*').eq('case_id', caseId).maybeSingle(),
+    client.from('case_basic_info').select('*').eq('case_id', caseId).maybeSingle(),
+    client.from('case_expense_items').select('*').eq('case_id', caseId).order('sort_order'),
+    client.from('case_draft_sections').select('*').eq('case_id', caseId).order('sort_order'),
+  ])
+  if (src.error || !src.data) throw new Error(src.error?.message ?? '案件が見つかりません')
+
+  const { id: _id, created_at: _c, updated_at: _u, ...rest } = src.data
+  const { data: created, error } = await client.from('cases').insert({
+    ...rest,
+    business_name: `${src.data.business_name}（コピー）`,
+    status: 'draft',
+    staff_user_id: user?.id ?? src.data.staff_user_id,
+  }).select('id').single()
+  if (error || !created) throw new Error(error?.message ?? '複製に失敗しました')
+  const newId = created.id as string
+
+  try {
+    const results = await Promise.all([
+      hearing.data ? client.from('case_hearings').insert({ ...hearing.data, case_id: newId }) : null,
+      basic.data ? client.from('case_basic_info').insert({ ...basic.data, case_id: newId }) : null,
+      items.data?.length
+        ? client.from('case_expense_items').insert(
+            items.data.map(({ id: _i, created_at: _t, ...e }) => ({ ...e, case_id: newId })),
+          )
+        : null,
+      sections.data?.length
+        ? client.from('case_draft_sections').insert(
+            sections.data.map(({ id: _i, updated_at: _t, ...s }) => ({ ...s, case_id: newId })),
+          )
+        : null,
+    ])
+    for (const r of results) if (r?.error) throw new Error(r.error.message)
+  } catch (e) {
+    await client.from('cases').delete().eq('id', newId)
+    throw e
+  }
+  return newId
+}
