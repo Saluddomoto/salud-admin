@@ -18,6 +18,7 @@ export type ParsedHearingSheet = {
   hearing: Partial<Omit<JizokukaHearing, 'case_id'>>
   expenses: ParsedExpense[]
   businessName: string
+  representative: string
 }
 
 type Sheet = ExcelJS.Worksheet
@@ -189,7 +190,7 @@ export async function parseHearingSheet(buffer: ArrayBuffer): Promise<ParsedHear
   if (topServices.length) hearing.top_services = topServices
   if (salesEffects.length) hearing.sales_effects = salesEffects
 
-  return { basic, hearing, expenses, businessName: str(s1, 'G5') }
+  return { basic, hearing, expenses, businessName: str(s1, 'G5'), representative: str(s1, 'G7') }
 }
 
 /** 売上見込み（シートの数式と同じ: Σ(単価×客数×月頻度)×12、以降は年あたり増加率で伸長） */

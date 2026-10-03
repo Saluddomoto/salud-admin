@@ -376,3 +376,15 @@ export async function applyHearingSheet(
     if (expErr) throw new Error(`経費明細の反映に失敗しました: ${expErr.message}`)
   }
 }
+
+/** ヒアリングシートの事業者名・代表者名に合わせて案件名を更新する（下書き・エクスポートはこの名称を使う） */
+export async function updateCaseNames(
+  caseId: string,
+  input: { business_name?: string; representative?: string },
+): Promise<void> {
+  const { error } = await jz()
+    .from('cases')
+    .update({ ...input, updated_at: new Date().toISOString() })
+    .eq('id', caseId)
+  if (error) throw new Error(error.message)
+}

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { applyHearingSheet, generateInitialDraft } from '@/lib/jizokuka/db'
+import { applyHearingSheet, fetchCaseDetail, generateInitialDraft, updateCaseNames } from '@/lib/jizokuka/db'
 import { parseHearingSheet } from '@/lib/jizokuka/hearing-sheet'
 
 // クライアントが記入したヒアリングシート（.xlsx）を選ぶと、基本情報・ヒアリング・経費明細に反映し、
@@ -25,6 +25,19 @@ export function HearingSheetImport({ caseId }: { caseId: string }) {
       if (!window.confirm(`「${file.name}」を反映します。\n${summary}\n\nシートに記入のある項目は、現在の入力内容を上書きします。よろしいですか？`)) return
 
       await applyHearingSheet(caseId, parsed, file.name)
+
+      // 下書き・エクスポートは案件の事業者名を使うため、シートの会社と違えば合わせるか確認する
+      const { case: current } = await fetchCaseDetail(caseId)
+      if (parsed.businessName && parsed.businessName !== current.business_name) {
+        if (window.confirm(`この案件の事業者名は「${current.business_name}」ですが、シートの事業者名は「${parsed.businessName}」です。
+案件の事業者名${parsed.representative ? '・代表者名' : ''}をシートの内容に更新しますか？
+（更新しないと、AI下書きやエクスポートが「${current.business_name}」のままになります）`)) {
+          await updateCaseNames(caseId, {
+            business_name: parsed.businessName,
+            ...(parsed.representative ? { representative: parsed.representative } : {}),
+          })
+        }
+      }
 
       if (window.confirm('反映しました。続けてAIで申請書用の下書きに肉付けしますか？\n（キャンセルすると反映のみで終わります。あとでヒアリング画面から生成できます）')) {
         setStatus('generating')
