@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import {
   fetchCaseDetail, saveHearing, generateInitialDraft,
-  type JizokukaCase, type JizokukaHearing, type SalesEffect, type TopService,
+  type JizokukaCase, type JizokukaHearing, type SalesEffect, type ScheduleItem, type TopService,
 } from '@/lib/jizokuka/db'
 import { forecastSales } from '@/lib/jizokuka/hearing-sheet'
 import { StepNav, StepTabs } from '@/components/jizokuka/step-nav'
@@ -34,9 +34,24 @@ type FormState = {
   market_trends: string
   business_policy_goal: string
   future_plan: string
+  // ヒアリングシート v2「4.補足情報」
+  implementation_schedule: { task: string; start: string; end: string }[]
+  efficiency_enabled: string // '' | 'true' | 'false'
+  efficiency_items: string
+  efficiency_current: string
+  efficiency_effect: string
+  order_channels: string
+  marketing_issues: string
+  payment_terms: string
+  expansion_plans: string
+  target_sales_y1: string
+  target_sales_y3: string
+  target_sales_basis: string
+  profit_target: string
 }
 
 const ROWS = 3
+const SCHEDULE_ROWS = 6
 const pad = <T,>(rows: T[], blank: T): T[] => [...rows, ...Array.from({ length: ROWS }, () => blank)].slice(0, ROWS)
 const s = (v: string | number | null | undefined) => (v === null || v === undefined ? '' : String(v))
 
@@ -68,6 +83,22 @@ function toFormState(h: JizokukaHearing): FormState {
     market_trends: s(h.market_trends),
     business_policy_goal: s(h.business_policy_goal),
     future_plan: s(h.future_plan),
+    implementation_schedule: [
+      ...(h.implementation_schedule ?? []),
+      ...Array.from({ length: SCHEDULE_ROWS }, () => ({ task: '', start: '', end: '' })),
+    ].slice(0, SCHEDULE_ROWS),
+    efficiency_enabled: h.efficiency_enabled == null ? '' : String(h.efficiency_enabled),
+    efficiency_items: s(h.efficiency_items),
+    efficiency_current: s(h.efficiency_current),
+    efficiency_effect: s(h.efficiency_effect),
+    order_channels: s(h.order_channels),
+    marketing_issues: s(h.marketing_issues),
+    payment_terms: s(h.payment_terms),
+    expansion_plans: s(h.expansion_plans),
+    target_sales_y1: s(h.target_sales_y1),
+    target_sales_y3: s(h.target_sales_y3),
+    target_sales_basis: s(h.target_sales_basis),
+    profit_target: s(h.profit_target),
   }
 }
 
@@ -112,6 +143,12 @@ export default function HearingPage() {
       [key]: f[key].map((row, idx) => (idx === i ? { ...row, [field]: v } : row)),
     }))
 
+  const setSchedule = (i: number, field: 'task' | 'start' | 'end', v: string) =>
+    setForm(f => ({
+      ...f,
+      implementation_schedule: f.implementation_schedule.map((row, idx) => (idx === i ? { ...row, [field]: v } : row)),
+    }))
+
   const topServices = (): TopService[] =>
     form.top_services
       .filter(t => t.name.trim())
@@ -143,6 +180,21 @@ export default function HearingPage() {
     market_trends: form.market_trends || null,
     business_policy_goal: form.business_policy_goal || null,
     future_plan: form.future_plan || null,
+    implementation_schedule: form.implementation_schedule
+      .filter(i => i.task.trim() || i.start.trim() || i.end.trim())
+      .map((i): ScheduleItem => ({ task: i.task.trim(), start: i.start.trim(), end: i.end.trim() })),
+    efficiency_enabled: form.efficiency_enabled === '' ? null : form.efficiency_enabled === 'true',
+    efficiency_items: form.efficiency_items || null,
+    efficiency_current: form.efficiency_current || null,
+    efficiency_effect: form.efficiency_effect || null,
+    order_channels: form.order_channels || null,
+    marketing_issues: form.marketing_issues || null,
+    payment_terms: form.payment_terms || null,
+    expansion_plans: form.expansion_plans || null,
+    target_sales_y1: numOrNull(form.target_sales_y1),
+    target_sales_y3: numOrNull(form.target_sales_y3),
+    target_sales_basis: form.target_sales_basis || null,
+    profit_target: form.profit_target || null,
   })
 
   const handleSubmit = async (ev: React.FormEvent<HTMLFormElement>) => {
@@ -323,6 +375,62 @@ export default function HearingPage() {
           </table>
 
           <Area label="こだわりポイント（御社独自の工夫）" value={form.appeal_points} onChange={setText('appeal_points')} />
+        </div>
+
+        <div className="card flex flex-col gap-4 p-5">
+          <h3 className="text-sm font-bold text-slate-900">（4）補足情報（ヒアリングシート「4.補足情報」）</h3>
+          <p className="text-xs text-slate-400">実施時期・業務効率化・受注状況・売上目標です。ここが空欄だと、AI下書きに【要確認】が増えます</p>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">補助事業の実施時期</label>
+            <div className="flex flex-col gap-2">
+              {form.implementation_schedule.map((row, i) => (
+                <div key={i} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_10rem_10rem]">
+                  <input className="input" placeholder="取組内容（例：ホームページ制作）" value={row.task} onChange={ev => setSchedule(i, 'task', ev.target.value)} />
+                  <input className="input" placeholder="開始月（例：2026年11月）" value={row.start} onChange={ev => setSchedule(i, 'start', ev.target.value)} />
+                  <input className="input" placeholder="終了月" value={row.end} onChange={ev => setSchedule(i, 'end', ev.target.value)} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 border-t border-slate-100 pt-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">業務効率化（機械装置・ソフトウェア等の導入）</label>
+              <select className="input sm:w-60" value={form.efficiency_enabled} onChange={ev => setForm(f => ({ ...f, efficiency_enabled: ev.target.value }))}>
+                <option value="">経費の内容から自動判定</option>
+                <option value="true">導入する（3-1・3-2を作成）</option>
+                <option value="false">導入しない</option>
+              </select>
+            </div>
+            <Area label="導入するもの（品目・機能・台数）" value={form.efficiency_items} onChange={setText('efficiency_items')} />
+            <Area label="現在の作業方法と、非効率な点" hint="作業時間・人手・身体的負担など" value={form.efficiency_current} onChange={setText('efficiency_current')} />
+            <Area label="導入後に変わること・見込み" hint="例：作業時間が20％短縮" value={form.efficiency_effect} onChange={setText('efficiency_effect')} />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 border-t border-slate-100 pt-4">
+            <Area label="受注・集客経路の比率" hint="例：元請け6割／直請け4割、紹介・ポータルサイト経由 など" value={form.order_channels} onChange={setText('order_channels')} />
+            <Area label="現在のホームページ・集客手段の問題点" hint="できるだけ具体的に（例：問い合わせボタンのリンクが機能していない）" value={form.marketing_issues} onChange={setText('marketing_issues')} />
+            <Area label="入金までの期間（売上の回収サイト）" value={form.payment_terms} onChange={setText('payment_terms')} />
+            <Area label="事務所・設備・人員の計画" hint="移転・増員・外注から自社雇用への切替 など" value={form.expansion_plans} onChange={setText('expansion_plans')} />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">1年後の売上目標（円）</label>
+              <input className="input" type="number" min={0} value={form.target_sales_y1} onChange={set('target_sales_y1')} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">3年後の売上目標（円）</label>
+              <input className="input" type="number" min={0} value={form.target_sales_y3} onChange={set('target_sales_y3')} />
+            </div>
+            <div className="sm:col-span-2">
+              <Area label="売上目標の根拠" hint="どの取組で、どれだけ増える見込みか" value={form.target_sales_basis} onChange={setText('target_sales_basis')} />
+            </div>
+            <div className="sm:col-span-2">
+              <Area label="利益率の目標" hint="例：現状2.5％→5％以上" value={form.profit_target} onChange={setText('profit_target')} />
+            </div>
+          </div>
         </div>
 
         <details className="card p-5">

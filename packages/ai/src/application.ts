@@ -31,6 +31,17 @@ export interface ApplicationHearingInput {
   salesForecast?: string
   // 業務効率化の取組（機械装置・ソフトウェア等の導入）を含む事業か。true のとき 3-1・3-2 を生成する
   includeEfficiency?: boolean
+  // ヒアリングシート v2「補足情報」由来（任意）
+  schedule?: string
+  efficiencyItems?: string
+  efficiencyCurrent?: string
+  efficiencyEffect?: string
+  orderChannels?: string
+  marketingIssues?: string
+  paymentTerms?: string
+  expansionPlans?: string
+  salesTargetBasis?: string
+  profitTarget?: string
 }
 
 export interface ApplicationDraft {
@@ -187,6 +198,16 @@ function buildHearingText(input: ApplicationHearingInput): string {
     input.salesForecast ? `売上見込み（現状→1〜3年後）: ${input.salesForecast}` : '',
     input.appealPoints ? `補助事業のこだわりポイント（独自の工夫）: ${input.appealPoints}` : '',
     input.expenseSummary ? `補助対象経費の予定: ${input.expenseSummary}` : '',
+    input.schedule ? `補助事業の実施時期: ${input.schedule}` : '',
+    input.efficiencyItems ? `業務効率化: 導入するもの: ${input.efficiencyItems}` : '',
+    input.efficiencyCurrent ? `業務効率化: 現在の作業方法と非効率な点: ${input.efficiencyCurrent}` : '',
+    input.efficiencyEffect ? `業務効率化: 導入後に変わること・見込み: ${input.efficiencyEffect}` : '',
+    input.orderChannels ? `受注・集客経路の比率: ${input.orderChannels}` : '',
+    input.marketingIssues ? `現在のホームページ・集客手段の問題点: ${input.marketingIssues}` : '',
+    input.paymentTerms ? `入金までの期間（回収サイト）: ${input.paymentTerms}` : '',
+    input.expansionPlans ? `事務所・設備・人員の計画: ${input.expansionPlans}` : '',
+    input.salesTargetBasis ? `売上目標の根拠: ${input.salesTargetBasis}` : '',
+    input.profitTarget ? `利益率の目標: ${input.profitTarget}` : '',
   ].filter(Boolean).join('\n')
 }
 

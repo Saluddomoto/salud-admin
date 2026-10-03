@@ -35,6 +35,12 @@ export interface SalesEffect {
   frequency: number | null
 }
 
+export interface ScheduleItem {
+  task: string
+  start: string
+  end: string
+}
+
 export interface JizokukaHearing {
   case_id: string
   industry: string | null
@@ -57,6 +63,20 @@ export interface JizokukaHearing {
   appeal_points: string | null
   sheet_imported_at: string | null
   sheet_file_name: string | null
+  // ヒアリングシート v2「4.補足情報」
+  implementation_schedule: ScheduleItem[]
+  efficiency_enabled: boolean | null
+  efficiency_items: string | null
+  efficiency_current: string | null
+  efficiency_effect: string | null
+  order_channels: string | null
+  marketing_issues: string | null
+  payment_terms: string | null
+  expansion_plans: string | null
+  target_sales_y1: number | null
+  target_sales_y3: number | null
+  target_sales_basis: string | null
+  profit_target: string | null
 }
 
 export interface JizokukaDraftSection {

@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs'
-import type { JizokukaBasicInfo, JizokukaHearing, SalesEffect, TopService } from './db'
+import type { JizokukaBasicInfo, JizokukaHearing, SalesEffect, ScheduleItem, TopService } from './db'
 
 // 「01_小規模事業者持続化補助金_ヒアリングシート（2026）」(.xlsx) を読み取り、
 // 基本情報・ヒアリング・経費明細の各画面に反映できる形へ変換する。
@@ -181,6 +181,32 @@ export async function parseHearingSheet(buffer: ArrayBuffer): Promise<ParsedHear
     })
     .filter(e => e.category || e.description || e.amount)
 
+  // v2 の「4.補足情報」タブ（無い旧シートでも読める）
+  const s4 = wb.getWorksheet('4.補足情報')
+  const supplement: Partial<Omit<JizokukaHearing, 'case_id'>> = {}
+  if (s4) {
+    const text = (a: string) => str(s4, a)
+    const schedule: ScheduleItem[] = [6, 7, 8, 9, 10, 11]
+      .map(r => ({ task: text(`B${r}`), start: text(`C${r}`), end: text(`D${r}`) }))
+      .filter(i => i.task || i.start || i.end)
+    const yn = text('C14')
+    Object.assign(supplement, compact<Omit<JizokukaHearing, 'case_id'>>({
+      efficiency_enabled: yn === 'はい' ? true : yn === 'いいえ' ? false : undefined,
+      efficiency_items: text('C15'),
+      efficiency_current: text('C16'),
+      efficiency_effect: text('C17'),
+      order_channels: text('C20'),
+      marketing_issues: text('C21'),
+      payment_terms: text('C22'),
+      expansion_plans: text('C23'),
+      target_sales_y1: num(s4, 'C26') ?? undefined,
+      target_sales_y3: num(s4, 'C27') ?? undefined,
+      target_sales_basis: text('C28'),
+      profit_target: text('C29'),
+    }))
+    if (schedule.length) supplement.implementation_schedule = schedule
+  }
+
   const wantsText = expenses.map(e => `${e.category}：${e.description}`).join('\n')
 
   const hearing = compact<Omit<JizokukaHearing, 'case_id'>>({
@@ -196,6 +222,7 @@ export async function parseHearingSheet(buffer: ArrayBuffer): Promise<ParsedHear
     gross_margin_pct: num(s3, 'B20') ?? undefined,
     growth_pct: num(s3, 'B22') ?? undefined,
   })
+  Object.assign(hearing, supplement)
   if (topServices.length) hearing.top_services = topServices
   if (salesEffects.length) hearing.sales_effects = salesEffects
 

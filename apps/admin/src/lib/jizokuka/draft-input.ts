@@ -29,7 +29,17 @@ export function buildDraftInput(
       (margin != null ? `、粗利率${margin}%` : '')
     : ''
   // 補助事業による増収分が現状売上に上乗せされる前提で、現状→1〜3年後を並べる（現在比%も付ける）
-  const salesForecast = recent && effects.length
+  const y1 = hearing.target_sales_y1 == null ? null : Number(hearing.target_sales_y1)
+  const y3 = hearing.target_sales_y3 == null ? null : Number(hearing.target_sales_y3)
+  const pct = (v: number) => `${v.toLocaleString()}円（現在比${Math.round((v / recent) * 100)}%）`
+  const schedule = ((hearing.implementation_schedule ?? []) as { task: string; start: string; end: string }[])
+    .map(i => `${i.task}：${[i.start, i.end].filter(Boolean).join('〜')}`)
+    .join('／')
+  const text = (k: string) => (hearing[k] ? String(hearing[k]) : undefined)
+  // クライアントが記入した売上目標があればそれを優先し、なければ売上見込みの計算結果を使う
+  const salesForecast = recent && (y1 || y3)
+    ? [`現状${recent.toLocaleString()}円`, y1 ? `1年後${pct(y1)}` : '', y3 ? `3年後${pct(y3)}` : ''].filter(Boolean).join(' → ')
+    : recent && effects.length
     ? [`現状${recent.toLocaleString()}円`, ...forecast.map(f => {
         const total = recent + f.sales
         return `${f.year}年後${total.toLocaleString()}円（現在比${Math.round((total / recent) * 100)}%）`
@@ -60,6 +70,16 @@ export function buildDraftInput(
       .filter(e => e.category || e.description)
       .map(e => `${e.category ?? ''} ${e.description ?? ''}（${Number(e.amount).toLocaleString()}円）`)
       .join('／'),
-    includeEfficiency: expenses.some(e => EFFICIENCY_PATTERN.test(`${e.category ?? ''}${e.description ?? ''}`)),
+    schedule,
+    efficiencyItems: text('efficiency_items'),
+    efficiencyCurrent: text('efficiency_current'),
+    efficiencyEffect: text('efficiency_effect'),
+    orderChannels: text('order_channels'),
+    marketingIssues: text('marketing_issues'),
+    paymentTerms: text('payment_terms'),
+    expansionPlans: text('expansion_plans'),
+    salesTargetBasis: text('target_sales_basis'),
+    profitTarget: text('profit_target'),
+    includeEfficiency: hearing.efficiency_enabled === false ? false : hearing.efficiency_enabled === true || expenses.some(e => EFFICIENCY_PATTERN.test(`${e.category ?? ''}${e.description ?? ''}`)),
   }
 }
