@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { fetchCaseDetail, type JizokukaCase, type JizokukaDraftSection } from '@/lib/jizokuka/db'
-import { splitSectionTitle } from '@/lib/jizokuka/sections'
+import { splitSectionTitle, isAddedSection, splitConfirmMarkers } from '@/lib/jizokuka/sections'
 import { buildApplicationDocxBlob, downloadBlob } from '@/lib/jizokuka/word-export'
 import { StepNav, StepTabs } from '@/components/jizokuka/step-nav'
 
@@ -57,7 +57,7 @@ export default function ExportPage() {
       <StepTabs caseId={caseId} current="export" onSave={async () => {}} />
       <PageHeader
         title={`電子申請システムへのコピー用テキスト — ${caseInfo?.business_name ?? ''}`}
-        description="jizokuka-portal.info への入力用にセクションごとコピーできます"
+        description="jizokuka-portal.info への入力用にセクションごとコピーできます（赤字：追加項目のセクション／【要確認】はヒアリングで不足していた情報。コピーされる文字は通常のテキストです）"
       >
         <StepNav onSave={async () => {}} />
         <button className="btn-secondary" onClick={downloadWord} disabled={downloading}>
@@ -80,12 +80,22 @@ export default function ExportPage() {
               )}
               <div className="card flex flex-col gap-3 p-5">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900">{label}</h3>
+                  <h3 className={`text-sm font-bold ${isAddedSection(s.title) ? 'text-red-600' : 'text-slate-900'}`}>
+                    {label}
+                    {isAddedSection(s.title) && (
+                      <span className="ml-2 rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-medium text-red-600">追加項目</span>
+                    )}
+                  </h3>
                   <button className="btn-secondary" onClick={() => copy(s.id, s.body)}>
                     {copiedId === s.id ? 'コピーしました' : 'コピー'}
                   </button>
                 </div>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{s.body}</p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                  {splitConfirmMarkers(s.body).map((part, idx) =>
+                    part.confirm
+                      ? <span key={idx} className="font-medium text-red-600">{part.text}</span>
+                      : <span key={idx}>{part.text}</span>)}
+                </p>
               </div>
             </div>
           )
