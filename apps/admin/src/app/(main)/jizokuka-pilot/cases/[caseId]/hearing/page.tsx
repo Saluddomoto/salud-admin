@@ -44,9 +44,6 @@ type FormState = {
   marketing_issues: string
   payment_terms: string
   expansion_plans: string
-  target_sales_y1: string
-  target_sales_y3: string
-  target_sales_basis: string
   profit_target: string
   founder_background: string
   company_history: string
@@ -101,9 +98,6 @@ function toFormState(h: JizokukaHearing): FormState {
     marketing_issues: s(h.marketing_issues),
     payment_terms: s(h.payment_terms),
     expansion_plans: s(h.expansion_plans),
-    target_sales_y1: s(h.target_sales_y1),
-    target_sales_y3: s(h.target_sales_y3),
-    target_sales_basis: s(h.target_sales_basis),
     profit_target: s(h.profit_target),
     founder_background: s(h.founder_background),
     company_history: s(h.company_history),
@@ -203,9 +197,6 @@ export default function HearingPage() {
     marketing_issues: form.marketing_issues || null,
     payment_terms: form.payment_terms || null,
     expansion_plans: form.expansion_plans || null,
-    target_sales_y1: numOrNull(form.target_sales_y1),
-    target_sales_y3: numOrNull(form.target_sales_y3),
-    target_sales_basis: form.target_sales_basis || null,
     profit_target: form.profit_target || null,
     founder_background: form.founder_background || null,
     company_history: form.company_history || null,
@@ -397,7 +388,7 @@ export default function HearingPage() {
 
         <div className="card flex flex-col gap-4 p-5">
           <h3 className="text-sm font-bold text-slate-900">（4）補足情報（ヒアリングシート「4.補足情報」）</h3>
-          <p className="text-xs text-slate-400">実施時期・業務効率化・受注状況・売上目標です。ここが空欄だと、AI下書きに【要確認】が増えます</p>
+          <p className="text-xs text-slate-400">実施時期・業務効率化・受注状況・利益率の目標です。ここが空欄だと、AI下書きに【要確認】が増えます</p>
 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">補助事業の実施時期</label>
@@ -433,21 +424,8 @@ export default function HearingPage() {
             <Area label="事務所・設備・人員の計画" hint="移転・増員・外注から自社雇用への切替 など" value={form.expansion_plans} onChange={setText('expansion_plans')} />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">1年後の売上目標（円）</label>
-              <input className="input" type="number" min={0} value={form.target_sales_y1} onChange={set('target_sales_y1')} />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">3年後の売上目標（円）</label>
-              <input className="input" type="number" min={0} value={form.target_sales_y3} onChange={set('target_sales_y3')} />
-            </div>
-            <div className="sm:col-span-2">
-              <Area label="売上目標の根拠" hint="どの取組で、どれだけ増える見込みか" value={form.target_sales_basis} onChange={setText('target_sales_basis')} />
-            </div>
-            <div className="sm:col-span-2">
-              <Area label="利益率の目標" hint="例：現状2.5％→5％以上" value={form.profit_target} onChange={setText('profit_target')} />
-            </div>
+          <div className="border-t border-slate-100 pt-4">
+            <Area label="利益率の目標" hint="例：現状2.5％→5％以上（売上の予想は、上の「（3）売上の見込み」を使います）" value={form.profit_target} onChange={setText('profit_target')} />
           </div>
         </div>
 

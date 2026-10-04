@@ -40,7 +40,6 @@ export interface ApplicationHearingInput {
   marketingIssues?: string
   paymentTerms?: string
   expansionPlans?: string
-  salesTargetBasis?: string
   profitTarget?: string
   founderBackground?: string
   companyHistory?: string
@@ -212,7 +211,6 @@ function buildHearingText(input: ApplicationHearingInput): string {
     input.marketingIssues ? `現在のホームページ・集客手段の問題点: ${input.marketingIssues}` : '',
     input.paymentTerms ? `入金までの期間（回収サイト）: ${input.paymentTerms}` : '',
     input.expansionPlans ? `事務所・設備・人員の計画: ${input.expansionPlans}` : '',
-    input.salesTargetBasis ? `売上目標の根拠: ${input.salesTargetBasis}` : '',
     input.profitTarget ? `利益率の目標: ${input.profitTarget}` : '',
     input.founderBackground ? `代表者の経歴: ${input.founderBackground}` : '',
     input.companyHistory ? `創業・事業の沿革: ${input.companyHistory}` : '',
