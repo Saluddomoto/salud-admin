@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import {
-  fetchTasks, fetchDraftTasks, fetchProjects, fetchProfiles, fetchMyProfile,
+  fetchTasks, fetchDraftTasks, fetchProjects, fetchProfiles, fetchMyProfile, fetchMyTaskOrders, saveMyTaskOrders,
   insertTask, updateTask, approveDraftTask, dismissDraftTask, updateTaskStatus, deleteTask,
   fetchTaskCompletions, setTaskCompletion,
   formatDate, type DbTask, type DbProject, type DbProfile, type DbTaskCompletion,
@@ -67,6 +67,8 @@ export default function TasksPage() {
   const [isRoutineForm, setIsRoutineForm] = useState(false)
   const [todayCompletions, setTodayCompletions] = useState<DbTaskCompletion[]>([])
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  // 自分用のカード並び順（task_id → 順番）。未設定のカードは優先度順で、並べ替え済みのカードの後ろに並ぶ
+  const [orders, setOrders] = useState<Record<string, number>>({})
   const today = toISODate(new Date())
 
   const toggleExpanded = (id: string) => {
@@ -92,8 +94,9 @@ export default function TasksPage() {
     Promise.all([
       fetchTasks(), fetchDraftTasks(), fetchProjects(), fetchMyProfile(),
       fetchTaskCompletions(today).catch(() => []), // task_completions 未マイグレーションでも壊れないように
+      fetchMyTaskOrders().catch(() => ({} as Record<string, number>)),
     ])
-      .then(([t, d, p, mine, c]) => { setTasks(t); setDrafts(d); setProjects(p); setMe(mine); setTodayCompletions(c) })
+      .then(([t, d, p, mine, c, o]) => { setTasks(t); setDrafts(d); setProjects(p); setMe(mine); setTodayCompletions(c); setOrders(o) })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
   }
@@ -160,6 +163,24 @@ export default function TasksPage() {
       setError('保存に失敗しました')
     } finally {
       setSaving(false)
+    }
+  }
+
+  // カードを同じ列の中で上下に動かす。列の表示順を 0,1,2… で保存する（自分用の並び順）
+  const moveOrder = async (columnItems: DbTask[], index: number, dir: -1 | 1) => {
+    const target = index + dir
+    if (!me || target < 0 || target >= columnItems.length) return
+    const next = [...columnItems]
+    const [moved] = next.splice(index, 1)
+    next.splice(target, 0, moved!)
+    const updates = next.map((t, i) => ({ task_id: t.id, sort_order: i }))
+    const prev = orders
+    setOrders(o => ({ ...o, ...Object.fromEntries(updates.map(u => [u.task_id, u.sort_order])) }))
+    try {
+      await saveMyTaskOrders(me.id, updates)
+    } catch {
+      setOrders(prev)
+      setError('並び順の保存に失敗しました')
     }
   }
 
@@ -317,7 +338,9 @@ export default function TasksPage() {
         {COLUMNS.map((col, colIdx) => {
           const items = kanbanTasks
             .filter(t => t.status === col.key)
-            .sort((a, b) => PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority])
+            .sort((a, b) =>
+              (orders[a.id] ?? Number.MAX_SAFE_INTEGER) - (orders[b.id] ?? Number.MAX_SAFE_INTEGER) ||
+              PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority])
           return (
             <div key={col.key} className="flex flex-col rounded-2xl bg-slate-50/80 p-3">
               <div className="mb-3 flex items-center gap-2 px-1">
@@ -326,7 +349,7 @@ export default function TasksPage() {
                 <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">{items.length}</span>
               </div>
               <div className="flex flex-col gap-2.5">
-                {items.map(t => {
+                {items.map((t, idx) => {
                   const pr = PRIORITY_META[t.priority]
                   const editable = canEditTask(t)
                   const ac = assigneeColor(t.profiles?.full_name)
@@ -342,13 +365,29 @@ export default function TasksPage() {
                         <p className={`min-w-0 truncate text-sm font-medium ${t.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
                           {t.title}
                         </p>
-                        <button
-                          onClick={e => { e.stopPropagation(); toggleExpanded(t.id) }}
-                          title={isExpanded ? '閉じる' : '詳細を表示'}
-                          className="flex-shrink-0 rounded p-0.5 text-xs text-slate-400 hover:bg-slate-50 hover:text-slate-600"
-                        >
-                          {isExpanded ? '▲' : '▾'}
-                        </button>
+                        <div className="flex flex-shrink-0 items-center gap-0.5">
+                          <button
+                            onClick={e => { e.stopPropagation(); moveOrder(items, idx, -1) }}
+                            disabled={idx === 0}
+                            title="上へ移動"
+                            aria-label="上へ移動"
+                            className="rounded px-1 py-0.5 text-[11px] leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-25 disabled:hover:bg-transparent"
+                          >↑</button>
+                          <button
+                            onClick={e => { e.stopPropagation(); moveOrder(items, idx, 1) }}
+                            disabled={idx === items.length - 1}
+                            title="下へ移動"
+                            aria-label="下へ移動"
+                            className="rounded px-1 py-0.5 text-[11px] leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-25 disabled:hover:bg-transparent"
+                          >↓</button>
+                          <button
+                            onClick={e => { e.stopPropagation(); toggleExpanded(t.id) }}
+                            title={isExpanded ? '閉じる' : '詳細を表示'}
+                            className="rounded p-0.5 text-xs text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                          >
+                            {isExpanded ? '▲' : '▾'}
+                          </button>
+                        </div>
                       </div>
 
                       {isExpanded && (
