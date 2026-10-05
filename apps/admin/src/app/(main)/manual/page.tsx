@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { useAuth } from '@/hooks/useAuth'
 
 /* ─── 更新履歴（新しい順）───────────────────────────── */
 // 機能追加・修正のたびにここへ1行追加する運用。日付は実施日(YYYY-MM-DD)。
 const CHANGELOG: { date: string; summary: string }[] = [
+  { date: '2026-10-05', summary: 'マニュアルに「持続化パイロット 操作マニュアル」（専用ページ）を追加しました。ヒアリングシートの取込からAI下書き・電子申請システムへのコピーまでの流れ図、作成できる資料の範囲、操作手順、困ったときの対処をまとめています。' },
   { date: '2026-09-24', summary: 'マニュアルに「HP（ホームページ）のセミナー告知投稿」の手順を追加しました。' },
   { date: '2026-09-14', summary: '議事録の「今すぐ取込」がGoogle Meetの議事録を毎回1件も取り込めない不具合を修正しました（データベース側の設定不足が原因でした）。あわせて、開催日時を入力せずに追加した議事録が一覧の一番下に埋もれてしまう不具合も直し、常に新しい順に並ぶようにしました。' },
   { date: '2026-09-14', summary: '議事録に「週次定例MTGとして登録する」チェックボックスを追加しました。チェックした議事録には一覧にバッジが付き、ヘッダーの「週次MTGのみ表示」で絞り込めます。' },
@@ -267,6 +269,17 @@ export default function ManualPage() {
       <PageHeader title="マニュアル" description="各機能の使い方と、権限（管理者・マネージャー・一般）の違い" />
 
       {/* ログイン・基本 */}
+      {/* マニュアルのカテゴリー（機能別の専用マニュアル） */}
+      <section className="flex flex-col gap-2">
+        <h2 className="px-1 text-sm font-bold text-slate-800">機能別マニュアル</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Link href="/manual/jizokuka-pilot" className="card flex flex-col gap-1 p-4 transition-colors hover:bg-slate-50">
+            <span className="text-sm font-bold text-slate-800">持続化パイロット 操作マニュアル</span>
+            <span className="text-xs text-slate-500">ヒアリングシートの取込 → AI下書き → 電子申請システムへのコピーまでの流れ図・手順・作成できる範囲</span>
+          </Link>
+        </div>
+      </section>
+
       <section className="card p-5">
         <h2 className="text-sm font-bold text-slate-800">はじめに（ログイン）</h2>
         <ul className="mt-3 space-y-2 text-sm text-slate-600">

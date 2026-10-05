@@ -96,6 +96,9 @@ export default function JizokukaPilotPage() {
         <button className="btn-secondary" onClick={() => router.push('/jizokuka-pilot/hearing-sheet')}>
           初回ヒアリングシート
         </button>
+        <button className="btn-secondary" onClick={() => router.push('/manual/jizokuka-pilot')}>
+          操作マニュアル
+        </button>
         <button className="btn-secondary" onClick={() => router.push('/jizokuka-pilot/guide')}>
           使い方ガイド
         </button>
