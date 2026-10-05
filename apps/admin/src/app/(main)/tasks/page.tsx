@@ -1,6 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import {
+  DndContext, MouseSensor, TouchSensor, useSensor, useSensors, closestCenter, type DragEndEvent,
+} from '@dnd-kit/core'
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import {
@@ -49,6 +54,32 @@ function assigneeColor(name: string | null | undefined) {
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0
   return ASSIGNEE_COLORS[hash % ASSIGNEE_COLORS.length] ?? fallback
+}
+
+// 長押し（約0.35秒）でつかんで、同じ列の中で並べ替えできるカード。
+// 長押し前に指やマウスが動いたとき（スクロールなど）はつかまない。
+function SortableCard({ id, className, title, onClick, children }: {
+  id: string
+  className: string
+  title?: string
+  onClick: () => void
+  children: ReactNode
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      {...attributes}
+      {...listeners}
+      role={undefined}
+      onClick={onClick}
+      title={title}
+      className={`${className} ${isDragging ? 'relative z-10 cursor-grabbing shadow-xl ring-2 ring-brand-300' : ''}`}
+    >
+      {children}
+    </div>
+  )
 }
 
 export default function TasksPage() {
@@ -166,13 +197,39 @@ export default function TasksPage() {
     }
   }
 
-  // カードを同じ列の中で上下に動かす。列の表示順を 0,1,2… で保存する（自分用の並び順）
-  const moveOrder = async (columnItems: DbTask[], index: number, dir: -1 | 1) => {
-    const target = index + dir
-    if (!me || target < 0 || target >= columnItems.length) return
-    const next = [...columnItems]
-    const [moved] = next.splice(index, 1)
-    next.splice(target, 0, moved!)
+  // 長押しでつかむ設定（マウス・タッチ共通）。短いクリックは従来どおり「編集」を開く
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { delay: 350, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 350, tolerance: 8 } }),
+  )
+  const justDragged = useRef(false)
+
+  // 列ごとの表示順（自分用の並び順 → 未設定は優先度順）
+  const columnItems = (status: DbTask['status']) =>
+    kanbanTasks
+      .filter(t => t.status === status)
+      .sort((a, b) =>
+        (orders[a.id] ?? Number.MAX_SAFE_INTEGER) - (orders[b.id] ?? Number.MAX_SAFE_INTEGER) ||
+        PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority])
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    justDragged.current = true
+    setTimeout(() => { justDragged.current = false }, 150)
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const a = kanbanTasks.find(t => t.id === active.id)
+    const b = kanbanTasks.find(t => t.id === over.id)
+    if (!a || !b || a.status !== b.status) return // 列をまたぐ移動は「←」「→」で行う
+    const items = columnItems(a.status)
+    const from = items.findIndex(t => t.id === a.id)
+    const to = items.findIndex(t => t.id === b.id)
+    if (from < 0 || to < 0) return
+    applyOrder(arrayMove(items, from, to))
+  }
+
+  // 並べ替え後の並びを保存する（0,1,2…。自分用）
+  const applyOrder = async (next: DbTask[]) => {
+    if (!me) return
     const updates = next.map((t, i) => ({ task_id: t.id, sort_order: i }))
     const prev = orders
     setOrders(o => ({ ...o, ...Object.fromEntries(updates.map(u => [u.task_id, u.sort_order])) }))
@@ -182,6 +239,13 @@ export default function TasksPage() {
       setOrders(prev)
       setError('並び順の保存に失敗しました')
     }
+  }
+
+  // カードを同じ列の中で上下に動かす。列の表示順を 0,1,2… で保存する（自分用の並び順）
+  const moveOrder = (columnItemList: DbTask[], index: number, dir: -1 | 1) => {
+    const target = index + dir
+    if (target < 0 || target >= columnItemList.length) return
+    applyOrder(arrayMove(columnItemList, index, target))
   }
 
   const moveStatus = async (id: string, status: DbTask['status']) => {
@@ -334,13 +398,10 @@ export default function TasksPage() {
         </div>
       )}
 
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
         {COLUMNS.map((col, colIdx) => {
-          const items = kanbanTasks
-            .filter(t => t.status === col.key)
-            .sort((a, b) =>
-              (orders[a.id] ?? Number.MAX_SAFE_INTEGER) - (orders[b.id] ?? Number.MAX_SAFE_INTEGER) ||
-              PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority])
+          const items = columnItems(col.key)
           return (
             <div key={col.key} className="flex flex-col rounded-2xl bg-slate-50/80 p-3">
               <div className="mb-3 flex items-center gap-2 px-1">
@@ -348,6 +409,7 @@ export default function TasksPage() {
                 <h3 className="text-sm font-semibold text-slate-700">{col.label}</h3>
                 <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">{items.length}</span>
               </div>
+              <SortableContext items={items.map(t => t.id)} strategy={verticalListSortingStrategy}>
               <div className="flex flex-col gap-2.5">
                 {items.map((t, idx) => {
                   const pr = PRIORITY_META[t.priority]
@@ -355,11 +417,12 @@ export default function TasksPage() {
                   const ac = assigneeColor(t.profiles?.full_name)
                   const isExpanded = expandedIds.has(t.id)
                   return (
-                    <div
+                    <SortableCard
                       key={t.id}
-                      onClick={() => editable && openEdit(t)}
-                      className={`card border-l-4 ${ac.bar} p-2.5 transition-shadow hover:shadow-md ${editable ? 'cursor-pointer' : ''}`}
-                      title={editable ? 'クリックして編集' : undefined}
+                      id={t.id}
+                      onClick={() => { if (!justDragged.current && editable) openEdit(t) }}
+                      className={`card select-none border-l-4 ${ac.bar} p-2.5 transition-shadow hover:shadow-md ${editable ? 'cursor-pointer' : ''}`}
+                      title={editable ? 'クリックして編集／長押しで並べ替え' : '長押しで並べ替え'}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className={`min-w-0 truncate text-sm font-medium ${t.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
@@ -430,17 +493,19 @@ export default function TasksPage() {
                           </div>
                         </div>
                       )}
-                    </div>
+                    </SortableCard>
                   )
                 })}
                 {!loading && items.length === 0 && (
                   <p className="py-8 text-center text-xs text-slate-300">タスクなし</p>
                 )}
               </div>
+              </SortableContext>
             </div>
           )
         })}
       </div>
+      </DndContext>
 
       <Modal
         title={editingTask ? (isDraft(editingTask) ? 'タスク候補を確認' : 'タスクを編集') : 'タスクを追加'}
