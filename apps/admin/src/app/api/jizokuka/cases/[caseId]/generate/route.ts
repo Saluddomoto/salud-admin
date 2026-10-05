@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { generateApplicationDraft, APPLICATION_SECTION_LABELS, APPLICATION_SECTION_ORDER } from '@salud/ai'
+import {
+  generateApplicationDraft, APPLICATION_SECTION_LABELS, APPLICATION_SECTION_ORDER,
+  researchMarketSources, formatMarketSources, sanitizeCitations,
+} from '@salud/ai'
 import { buildDraftInput } from '@/lib/jizokuka/draft-input'
 
 export const runtime = 'nodejs'
@@ -23,7 +26,26 @@ export async function POST(_req: Request, { params }: { params: { caseId: string
   if (hearingErr || !hearing) return NextResponse.json({ error: 'ヒアリング情報が見つかりません' }, { status: 404 })
 
   try {
-    const draft = await generateApplicationDraft(buildDraftInput(caseRow, hearing, expenses ?? []))
+    const input = buildDraftInput(caseRow, hearing, expenses ?? [])
+
+    // 「2-1 市場の動向」の根拠: 政府サイトで検索した統計（公表から2年以内）。検索に失敗しても下書き生成は続ける
+    let sources: Awaited<ReturnType<typeof researchMarketSources>> = []
+    try {
+      sources = await researchMarketSources({
+        businessName: input.businessName,
+        industry: input.industry,
+        topServices: input.topServices,
+        customerSegments: input.customerSegments,
+        marketTrends: input.marketTrends,
+      })
+    } catch (e) {
+      console.error('持続化パイロット: 政府統計の検索に失敗（出典なしで生成を続行）', e)
+    }
+    input.researchedSources = formatMarketSources(sources)
+
+    const draft = await generateApplicationDraft(input)
+    // 検証済みでないURLが本文に混ざっていたら「【要確認：出典】」に置き換える
+    if (draft.marketTrends) draft.marketTrends = sanitizeCitations(draft.marketTrends, sources.map(s => s.url))
 
     const rows = APPLICATION_SECTION_ORDER
       .filter(key => draft[key] !== undefined)

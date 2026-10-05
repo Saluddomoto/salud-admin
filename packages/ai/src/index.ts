@@ -31,6 +31,13 @@ export {
   type ApplicationDraft,
 } from './application'
 export {
+  researchMarketSources,
+  formatMarketSources,
+  sanitizeCitations,
+  extractUrls,
+  type MarketSource,
+} from './market-sources'
+export {
   evaluateApplicationDraft,
   EVALUATION_CRITERIA_LABELS,
   type ApplicationEvaluation,

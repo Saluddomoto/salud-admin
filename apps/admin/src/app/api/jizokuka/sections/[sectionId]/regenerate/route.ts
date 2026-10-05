@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { regenerateApplicationSection, applicationSectionKeyFromTitle } from '@salud/ai'
+import { regenerateApplicationSection, applicationSectionKeyFromTitle, sanitizeCitations, extractUrls } from '@salud/ai'
 import { buildDraftInput } from '@/lib/jizokuka/draft-input'
 
 export const runtime = 'nodejs'
@@ -31,17 +31,27 @@ export async function POST(req: Request, { params }: { params: { sectionId: stri
 
   const sectionKey = applicationSectionKeyFromTitle(section.title) ?? 'overview'
 
+  const input = buildDraftInput(caseRow, hearing, expenses ?? [])
+  // 市場の動向の再生成では、現在の本文にある出典（生成時に検証済み）を維持して使えるようにする
+  if (sectionKey === 'marketTrends') {
+    input.researchedSources = `（現在の本文にある出典はすべて検証済みなので維持してよい。新しい出典は追加しない）
+${section.body}`
+  }
+
   try {
     const body = await regenerateApplicationSection(
-      buildDraftInput(caseRow, hearing, expenses ?? []),
+      input,
       sectionKey,
       section.body,
       instruction,
     )
 
-    await jz.from('case_draft_sections').update({ body, updated_at: new Date().toISOString() }).eq('id', params.sectionId)
+    // 市場の動向は、再生成でも元の本文にある（検証済みの）出典URLしか使わせない
+    const finalBody = sectionKey === 'marketTrends' ? sanitizeCitations(body, extractUrls(section.body)) : body
 
-    return NextResponse.json({ ok: true, body })
+    await jz.from('case_draft_sections').update({ body: finalBody, updated_at: new Date().toISOString() }).eq('id', params.sectionId)
+
+    return NextResponse.json({ ok: true, body: finalBody })
   } catch (e) {
     console.error('持続化パイロット: セクション再生成に失敗', e)
     return NextResponse.json({ error: 'AI再生成に失敗しました' }, { status: 500 })

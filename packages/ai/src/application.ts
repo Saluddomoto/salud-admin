@@ -44,6 +44,8 @@ export interface ApplicationHearingInput {
   founderBackground?: string
   companyHistory?: string
   marketSources?: string
+  // 政府サイトの検索で確認できた統計（公表から2年以内）。市場の動向の出典は、ここにあるものだけを使う
+  researchedSources?: string
   customerExamples?: string
   trackRecord?: string
   attachmentsNote?: string
@@ -125,8 +127,9 @@ const WRITING_STYLE =
   'ヒアリング内容にある数字を使う。ヒアリングにない数字は絶対に創作せず、必要な箇所には「【要確認：◯◯】」と書いて担当者に確認を促す。' +
   '(4)現状の問題点は具体的に書く: 「弱い」「不十分」で終わらず、何がどう機能していないかを、ヒアリング内容の範囲で具体的に書く。' +
   '(5)取組の詳細は「現状の課題（箇条書き）→本事業での解決策→期待される結果」の流れで書く。' +
-  '(6)市場の動向には、公的統計など信頼できる出典名（例: 総務省「住宅・土地統計調査」）を添えてよいが、' +
-  '確証のない数値やURLは書かず、必要なら「【要確認：出典】」とする。ヒアリングに「統計・データ・出典」の記載があれば、それを優先して使う。' +
+  '(6)「市場の動向」は、ヒアリング内容にある【調査済みの政府統計】（公表から2年以内）に書かれた内容だけを根拠にする。' +
+  '各項目（①②）の本文の直後に、その場で「（出典：機関名「統計名」◯年◯月公表　URL）」を必ず付け、どの文がどの統計に基づくかが分かるようにする。' +
+  '【調査済みの政府統計】にない統計名・数値・URLは絶対に書かない。該当する統計がない項目は、数値を使わず一般的な傾向の説明にとどめ、末尾に「【要確認：政府統計の出典（公表から2年以内）】」と書く。' +
   '(7)目標・効果は、現状→1年後→3年後の売上と現在比（％）、利益率の改善など、検証できる数値で示す。'
 
 const SYSTEM_PROMPT =
@@ -146,7 +149,7 @@ function sectionSchema(label: string, hint: string) {
 const SECTION_HINTS: Record<keyof ApplicationDraft, string> = {
   overview: '事業内容・売上構成・特徴（受注構造や代表者の経歴など）・現在の状況を含め400〜600文字程度',
   issues: '課題を①②③の3点で、各100〜150文字程度',
-  marketTrends: '市場の動向を①②の2点で、各150〜200文字程度。公的統計の出典名を添えてよい',
+  marketTrends: '市場の動向を①②の2点で、各150〜200文字程度。各項目の直後に「（出典：機関名「統計名」◯年◯月公表　URL）」を付ける。出典は【調査済みの政府統計】のものだけ',
   customerNeeds: '顧客ニーズを①②③の3点で、各100〜150文字程度',
   strength: '強みを①②③の3点で、各150〜250文字程度（根拠・実績を添える）',
   weakness: '弱みを2点程度、各100〜150文字程度',
@@ -215,6 +218,8 @@ function buildHearingText(input: ApplicationHearingInput): string {
     input.founderBackground ? `代表者の経歴: ${input.founderBackground}` : '',
     input.companyHistory ? `創業・事業の沿革: ${input.companyHistory}` : '',
     input.marketSources ? `市場の動向の裏付けに使える統計・データ・出典（担当者が確認したもの）: ${input.marketSources}` : '',
+    input.researchedSources ? `【調査済みの政府統計（公表から2年以内・検証済み）】
+${input.researchedSources}` : '【調査済みの政府統計】なし',
     input.customerExamples ? `顧客の具体例: ${input.customerExamples}` : '',
     input.trackRecord ? `施工事例・実績: ${input.trackRecord}` : '',
     input.attachmentsNote ? `申請書に載せたい写真・資料: ${input.attachmentsNote}` : '',
