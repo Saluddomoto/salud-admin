@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth'
 /* ─── 更新履歴（新しい順）───────────────────────────── */
 // 機能追加・修正のたびにここへ1行追加する運用。日付は実施日(YYYY-MM-DD)。
 const CHANGELOG: { date: string; summary: string }[] = [
+  { date: '2026-10-05', summary: 'マニュアルの「更新履歴」を、クリックで開閉できるコンパクトな表示に変更しました（各行をクリックすると全文が見られます）。あわせて「各機能の使い方」に「持続化パイロット」の項目を追加しました。' },
   { date: '2026-10-05', summary: 'マニュアルに「持続化パイロット 操作マニュアル」（専用ページ）を追加しました。ヒアリングシートの取込からAI下書き・電子申請システムへのコピーまでの流れ図、作成できる資料の範囲、操作手順、困ったときの対処をまとめています。' },
   { date: '2026-09-24', summary: 'マニュアルに「HP（ホームページ）のセミナー告知投稿」の手順を追加しました。' },
   { date: '2026-09-14', summary: '議事録の「今すぐ取込」がGoogle Meetの議事録を毎回1件も取り込めない不具合を修正しました（データベース側の設定不足が原因でした）。あわせて、開催日時を入力せずに追加した議事録が一覧の一番下に埋もれてしまう不具合も直し、常に新しい順に並ぶようにしました。' },
@@ -130,7 +131,7 @@ const CELL_CLS: Record<Cell['s'], string> = {
 }
 
 /* ─── 各機能の使い方 ───────────────────────────────── */
-const GUIDES: { title: string; badge?: string; steps: string[] }[] = [
+const GUIDES: { title: string; badge?: string; href?: string; steps: string[] }[] = [
   {
     title: 'ダッシュボード',
     steps: [
@@ -242,6 +243,17 @@ const GUIDES: { title: string; badge?: string; steps: string[] }[] = [
     ],
   },
   {
+    title: '持続化パイロット（持続化補助金の申請書AI下書き）',
+    badge: 'テスト版',
+    href: '/manual/jizokuka-pilot',
+    steps: [
+      '小規模事業者持続化補助金〈一般型〉の申請書（様式2：経営計画書・補助事業計画書）の下書きを、クライアントが記入したヒアリングシートから作るツールです。メニューの「持続化パイロット」から開きます。',
+      '流れ：①案件を作成 → ②ヒアリングシート（Excel）をクライアントに送る → ③記入して返送 → ④案件の画面で「ヒアリングシートを反映」 → ⑤基本情報・ヒアリング・経費明細に自動で入力 → ⑥不足を補う → ⑦「保存してAI下書きを生成」 → ⑧レビューで確認・修正 → ⑨エクスポートでコピーして電子申請システムに入力。',
+      '作成できるのは、様式2の文章（最大20セクション）と、基本情報・経費明細の整理です。添付書類・写真・過去3年の売上表・電子申請の送信は作成できません（人が用意・入力します）。',
+      '下書き中の赤字の【要確認：…】は、ヒアリングで情報が足りなかった箇所です。提出前に必ず確認して書き直し、「【要確認】」の文字を消してください。',
+    ],
+  },
+  {
     title: '社内フォルダ',
     steps: [
       'メニューの「社内フォルダ」から、会社共有のGoogle Drive（社内ノウハウ・資料）を新しいタブで開きます。',
@@ -263,6 +275,15 @@ const GUIDES: { title: string; badge?: string; steps: string[] }[] = [
 export default function ManualPage() {
   const { role } = useAuth()
   const [open, setOpen] = useState<number | null>(0)
+  const [logOpen, setLogOpen] = useState(false)
+  const [openLogs, setOpenLogs] = useState<Set<number>>(new Set())
+  const toggleLog = (i: number) =>
+    setOpenLogs(prev => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i)
+      else next.add(i)
+      return next
+    })
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
@@ -291,19 +312,48 @@ export default function ManualPage() {
       </section>
 
       {/* 更新履歴 */}
-      <section className="card p-5">
-        <div className="flex items-center gap-2">
+      <section className="card overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setLogOpen(o => !o)}
+          aria-expanded={logOpen}
+          className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-slate-50"
+        >
           <h2 className="text-sm font-bold text-slate-800">更新履歴</h2>
           <span className="badge bg-emerald-100 text-xs text-emerald-700">随時更新</span>
-        </div>
-        <ul className="mt-3 space-y-2.5 text-sm text-slate-600">
-          {CHANGELOG.map((c, i) => (
-            <li key={i} className="flex gap-3">
-              <span className="mt-0.5 flex-shrink-0 font-mono text-xs text-slate-400">{c.date}</span>
-              <span>{c.summary}</span>
-            </li>
-          ))}
-        </ul>
+          {!logOpen && CHANGELOG[0] && (
+            <span className="hidden min-w-0 flex-1 truncate text-xs text-slate-400 sm:block">
+              最新：{CHANGELOG[0].date} {CHANGELOG[0].summary}
+            </span>
+          )}
+          <span className="ml-auto flex-shrink-0 text-xs text-slate-400">{CHANGELOG.length}件</span>
+          <svg
+            className={`h-4 w-4 flex-shrink-0 text-slate-400 transition-transform ${logOpen ? 'rotate-180' : ''}`}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {logOpen && (
+          <ul className="max-h-[28rem] divide-y divide-slate-50 overflow-y-auto border-t border-slate-100 text-sm text-slate-600">
+            {CHANGELOG.map((c, i) => {
+              const expanded = openLogs.has(i)
+              return (
+                <li key={i}>
+                  <button
+                    type="button"
+                    onClick={() => toggleLog(i)}
+                    aria-expanded={expanded}
+                    className="flex w-full items-start gap-3 px-5 py-2.5 text-left transition-colors hover:bg-slate-50"
+                  >
+                    <span className="mt-0.5 flex-shrink-0 font-mono text-xs text-slate-400">{c.date}</span>
+                    <span className={`min-w-0 flex-1 ${expanded ? '' : 'truncate'}`}>{c.summary}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
       </section>
 
       {/* システムの保存先・PC故障時の復旧手順 */}
@@ -423,6 +473,13 @@ export default function ManualPage() {
                     </li>
                   ))}
                 </ul>
+              )}
+              {isOpen && g.href && (
+                <div className="border-t border-slate-50 px-4 py-3">
+                  <Link href={g.href} className="text-sm font-medium text-brand-600 hover:underline">
+                    詳しい操作マニュアル（流れ図つき）を開く →
+                  </Link>
+                </div>
               )}
             </div>
           )
