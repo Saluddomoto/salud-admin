@@ -60,8 +60,30 @@ export function StepTabs({ caseId, current, onSave }: {
     }
   }
 
+  // 入力中の内容を保存してから、案件の一覧（クライアントを選ぶ画面）に戻る
+  const backToList = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      await onSave()
+      router.push('/jizokuka-pilot')
+    } catch (e) {
+      alert(`保存に失敗しました: ${e instanceof Error ? e.message : e}`)
+      setBusy(false)
+    }
+  }
+
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={backToList}
+        className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+      >
+        ← 案件一覧に戻る
+      </button>
+      <span className="mx-1 h-5 w-px bg-slate-200" aria-hidden="true" />
       {JIZOKUKA_STEPS.map(step => (
         <button
           key={step}
