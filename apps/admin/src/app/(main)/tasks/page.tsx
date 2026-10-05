@@ -250,6 +250,12 @@ export default function TasksPage() {
 
   const moveStatus = async (id: string, status: DbTask['status']) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t))
+    // 列を移したら、開いていた詳細は閉じる（開いたままだと移動先でカードだけ大きく見えるため）
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
     try {
       await updateTaskStatus(id, status)
     } catch {
