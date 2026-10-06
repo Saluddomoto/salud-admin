@@ -149,6 +149,8 @@ export default function RevenuePage() {
   const [year,      setYear]      = useState(new Date().getFullYear())
   const [sortKey, setSortKey] = useState<'entry_date' | 'category' | 'payer_name' | 'amount_excl_tax' | 'status'>('entry_date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  // 売上台帳の月絞り込み（'all' または 'YYYY-MM'）
+  const [ledgerMonth, setLedgerMonth] = useState<string>('all')
   const [contractModalOpen, setContractModalOpen] = useState(false)
   const [editingContract, setEditingContract] = useState<DbRecurringContract | null>(null)
 
@@ -280,6 +282,24 @@ export default function RevenuePage() {
   }, [manual, projects, sortKey, sortDir])
 
   const canAccess = role === 'admin'
+
+  // 売上台帳: 月ごとの件数・金額（新しい月が先頭）と、絞り込み後の行
+  const ledgerMonths = useMemo(() => {
+    const m = new Map<string, { count: number; confirmed: number; forecast: number }>()
+    for (const r of rows) {
+      const key = r.entry_date ? r.entry_date.slice(0, 7) : '日付なし'
+      const b = m.get(key) ?? { count: 0, confirmed: 0, forecast: 0 }
+      b.count += 1
+      if (r.status === 'confirmed') b.confirmed += r.amount_excl_tax
+      else b.forecast += r.amount_excl_tax
+      m.set(key, b)
+    }
+    return [...m.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1))
+  }, [rows])
+  const ledgerRows = useMemo(
+    () => (ledgerMonth === 'all' ? rows : rows.filter(r => (r.entry_date ? r.entry_date.slice(0, 7) : '日付なし') === ledgerMonth)),
+    [rows, ledgerMonth],
+  )
 
   const openCreate = () => {
     setEditing(null)
@@ -565,6 +585,24 @@ export default function RevenuePage() {
       </div>
 
       {tab === 'ledger' && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          {[['all', '全期間', rows.length] as const, ...ledgerMonths.map(([k, v]) => [k, k === '日付なし' ? k : `${k.slice(0, 4)}年${Number(k.slice(5))}月`, v.count] as const)].map(([key, label, count]) => (
+            <button
+              key={key}
+              onClick={() => setLedgerMonth(key)}
+              className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                ledgerMonth === key
+                  ? 'border-brand-600 bg-brand-600 text-white'
+                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              {label}<span className="ml-1 opacity-70">{count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {tab === 'ledger' && (
         <div className="card overflow-x-auto p-0">
           <table className="w-full min-w-[1050px] text-sm">
             <thead>
@@ -583,9 +621,27 @@ export default function RevenuePage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map(r => (
+              {ledgerRows.map((r, idx) => {
+                const monthKey = r.entry_date ? r.entry_date.slice(0, 7) : '日付なし'
+                const prev = idx > 0 ? ledgerRows[idx - 1] : undefined
+                const prevKey = prev ? (prev.entry_date ? prev.entry_date.slice(0, 7) : '日付なし') : null
+                const showMonthHeader = sortKey === 'entry_date' && monthKey !== prevKey
+                const mt = ledgerMonths.find(([k]) => k === monthKey)?.[1]
+                return (
+                <Fragment key={r.id}>
+                {showMonthHeader && (
+                  <tr className="border-y border-brand-100 bg-brand-50">
+                    <td colSpan={11} className="px-3 py-2 text-sm font-bold text-brand-800">
+                      {monthKey === '日付なし' ? monthKey : `${monthKey.slice(0, 4)}年${Number(monthKey.slice(5))}月`}
+                      {mt && (
+                        <span className="ml-3 text-xs font-normal text-slate-600">
+                          {mt.count}件　確定 {formatAmount(mt.confirmed)}　見込み {formatAmount(mt.forecast)}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                )}
                 <tr
-                  key={r.id}
                   className={`border-b border-slate-50 hover:bg-slate-50/60 ${r.source === 'project' && r.projectId ? 'cursor-pointer' : ''}`}
                   onClick={r.source === 'project' && r.projectId ? () => router.push(`/projects/${r.projectId}`) : undefined}
                   title={r.source === 'project' && r.projectId ? '案件の詳細・編集を開く' : undefined}
@@ -656,8 +712,10 @@ export default function RevenuePage() {
                     )}
                   </td>
                 </tr>
-              ))}
-              {!loading && rows.length === 0 && (
+                </Fragment>
+                )
+              })}
+              {!loading && ledgerRows.length === 0 && (
                 <tr><td colSpan={11} className="py-10 text-center text-sm text-slate-300">売上明細はまだありません</td></tr>
               )}
             </tbody>
