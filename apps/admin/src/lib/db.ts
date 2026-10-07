@@ -356,6 +356,20 @@ export async function insertLeadCustomer(input: {
 }
 
 // ── 案件 ─────────────────────────────────────────────
+// 代理店ご紹介料 = 基本料金分(1〜2万円・案件ごとに設定) + 成功報酬額の2%（成功報酬額 = 採択額（なければ申請額）× 成功報酬率）
+export const REFERRAL_SUCCESS_RATE = 0.02
+export function referralBreakdown(p: Pick<DbProject, 'referral_fee' | 'subsidy_amount' | 'applied_amount' | 'success_fee_rate'>) {
+  const basePart = p.referral_fee ?? 0
+  const successFee = (p.subsidy_amount ?? p.applied_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100)
+  const successPart = Math.round(successFee * REFERRAL_SUCCESS_RATE)
+  return { basePart, successPart, total: basePart + successPart }
+}
+export function referralText(p: Parameters<typeof referralBreakdown>[0] & { agency_id: string | null }) {
+  if (!p.agency_id) return '—'
+  const { basePart, successPart, total } = referralBreakdown(p)
+  return `${formatAmount(total)}（基本料金分 ${formatAmount(basePart)} ＋ 成功報酬2% ${formatAmount(successPart)}）`
+}
+
 export async function fetchProjects(): Promise<DbProject[]> {
   const { data, error } = await db()
     .from('projects')

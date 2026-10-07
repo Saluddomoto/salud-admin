@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   deleteProject, fetchProject, fetchTasksByProject, fetchCustomers, fetchPartnerAgencies, fetchProfiles, insertTask,
   updateProject, updateProjectStatus, updateTaskStatus,
-  formatAmount, type DbProject, type DbTask, type DbCustomer, type DbProfile, type DbPartnerAgency,
+  formatAmount, referralText, type DbProject, type DbTask, type DbCustomer, type DbProfile, type DbPartnerAgency,
 } from '@/lib/db'
 
 const STATUSES: { key: DbProject['status']; label: string; cls: string }[] = [
@@ -257,7 +257,7 @@ export default function ProjectDetailPage() {
               { label: '入金日',     value: project.payment_received_date ?? '—' },
               { label: '社内担当',   value: [project.profiles?.full_name, project.assignee2?.full_name].filter(Boolean).join('・') || '—' },
               { label: '代理店',     value: project.agency?.company_name ?? '—' },
-              { label: '紹介料',     value: formatAmount(project.referral_fee) },
+              { label: '紹介料',     value: referralText(project) },
             ] : [
               { label: '補助金',     value: project.subsidy_name ?? '—' },
               { label: '申請額',     value: formatAmount(project.applied_amount) },
@@ -270,7 +270,7 @@ export default function ProjectDetailPage() {
               { label: '基本料金 入金日',     value: project.payment_received_date ?? '—' },
               { label: '社内担当',   value: [project.profiles?.full_name, project.assignee2?.full_name].filter(Boolean).join('・') || '—' },
               { label: '代理店',     value: project.agency?.company_name ?? '—' },
-              { label: '紹介料',     value: formatAmount(project.referral_fee) },
+              { label: '紹介料',     value: referralText(project) },
             ]).map(row => (
               <div key={row.label} className="flex gap-3">
                 <dt className="w-20 flex-shrink-0 text-slate-400">{row.label}</dt>
@@ -385,8 +385,13 @@ export default function ProjectDetailPage() {
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">代理店ご紹介料（円）</label>
-              <input name="referral_fee" type="number" min="0" className="input" placeholder="50000" defaultValue={project.referral_fee ?? ''} />
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">紹介料（基本料金分）</label>
+              <select name="referral_fee" className="input" defaultValue={String(project.referral_fee ?? '')}>
+                <option value="">未設定</option>
+                <option value="10000">1万円</option>
+                <option value="20000">2万円</option>
+              </select>
+              <p className="mt-1 text-xs text-slate-400">成功報酬分は成功報酬額の2％を自動計算します</p>
             </div>
             {projectType === 'subsidy' ? (
               <div className="sm:col-span-2">

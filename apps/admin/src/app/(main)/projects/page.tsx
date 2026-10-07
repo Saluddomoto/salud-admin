@@ -541,8 +541,13 @@ export default function ProjectsPage() {
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">代理店ご紹介料（円）</label>
-              <input name="referral_fee" type="number" min="0" className="input" placeholder="50000" defaultValue={""} />
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">紹介料（基本料金分）</label>
+              <select name="referral_fee" className="input" defaultValue={""}>
+                <option value="">未設定</option>
+                <option value="10000">1万円</option>
+                <option value="20000">2万円</option>
+              </select>
+              <p className="mt-1 text-xs text-slate-400">成功報酬分は成功報酬額の2％を自動計算します</p>
             </div>
             {projectType === 'subsidy' ? (
               <div className="sm:col-span-2">
