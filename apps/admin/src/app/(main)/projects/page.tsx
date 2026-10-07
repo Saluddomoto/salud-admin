@@ -1,12 +1,17 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import Link from 'next/link'
+import {
+  DndContext, MouseSensor, TouchSensor, useSensor, useSensors, closestCenter, type DragEndEvent,
+} from '@dnd-kit/core'
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { TaxAmountInput } from '@/components/TaxAmountInput'
 import {
-  fetchProjects, fetchCustomers, fetchProfiles, insertProject, insertCustomer, updateProjectStatus, updateResultReportStatus,
+  fetchProjects, fetchCustomers, fetchProfiles, fetchMyProfile, fetchMyProjectOrders, saveMyProjectOrders, insertProject, insertCustomer, updateProjectStatus, updateResultReportStatus,
   formatAmount, formatDate, type DbProject, type DbCustomer, type DbProfile,
 } from '@/lib/db'
 
@@ -61,6 +66,30 @@ const LEGEND_ITEMS = [
 const BASE_FEE_OPTIONS = [100_000, 120_000, 150_000]
 const SUCCESS_FEE_OPTIONS = [8, 9, 10, 11, 12, 13, 14, 15]
 
+// 長押し（約0.35秒）でつかんで、同じ列の中で並べ替えできるカード。
+// 長押し前に指やマウスが動いたとき（スクロールなど）はつかまない。
+function SortableCard({ id, className, title, children }: {
+  id: string
+  className: string
+  title?: string
+  children: ReactNode
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      {...attributes}
+      {...listeners}
+      role={undefined}
+      title={title}
+      className={`${className} ${isDragging ? 'relative z-10 cursor-grabbing shadow-xl ring-2 ring-brand-300' : ''}`}
+    >
+      {children}
+    </div>
+  )
+}
+
 export default function ProjectsPage() {
   const [projects,  setProjects]  = useState<DbProject[]>([])
   const [customers, setCustomers] = useState<DbCustomer[]>([])
@@ -75,6 +104,9 @@ export default function ProjectsPage() {
   const [typeFilter, setTypeFilter] = useState<'all' | 'subsidy' | 'web'>('all')
   const [view, setView] = useState<'progress' | 'result_report'>('progress')
   const [baseFeeChoice, setBaseFeeChoice] = useState<string>('')
+  const [meId, setMeId] = useState<string | null>(null)
+  // 自分用のカード並び順（project_id → 順番）。未設定のカードは元の並びで、並べ替え済みのカードの後ろに並ぶ
+  const [orders, setOrders] = useState<Record<string, number>>({})
   // ブラウザごとの個人設定 — WEB事業に関係のないメンバー（例: 栗原さん）が
   // 自分の進捗管理からWEB案件のカードを常時非表示にできるようにする。
   const [hideWebCards, setHideWebCards] = useState(false)
@@ -92,8 +124,11 @@ export default function ProjectsPage() {
   }
 
   const load = () => {
-    Promise.all([fetchProjects(), fetchCustomers(), fetchProfiles()])
-      .then(([p, c, m]) => { setProjects(p); setCustomers(c); setMembers(m.filter(x => x.is_active)) })
+    Promise.all([
+      fetchProjects(), fetchCustomers(), fetchProfiles(), fetchMyProfile().catch(() => null),
+      fetchMyProjectOrders().catch(() => ({} as Record<string, number>)),
+    ])
+      .then(([p, c, m, mine, o]) => { setProjects(p); setCustomers(c); setMembers(m.filter(x => x.is_active)); setMeId(mine?.id ?? null); setOrders(o) })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
   }
@@ -176,6 +211,52 @@ export default function ProjectsPage() {
       setError('ステータスの更新に失敗しました')
       load()
     }
+  }
+
+  // 長押しでつかむ設定（マウス・タッチ共通）。短いクリックは従来どおりリンク等が動く
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { delay: 350, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 350, tolerance: 8 } }),
+  )
+  const justDragged = useRef(false)
+
+  const sortByOrder = (list: DbProject[]) =>
+    [...list].sort((a, b) =>
+      (orders[a.id] ?? Number.MAX_SAFE_INTEGER) - (orders[b.id] ?? Number.MAX_SAFE_INTEGER))
+
+  // 並べ替え後の並びを保存する（0,1,2…。自分用）
+  const applyOrder = async (next: DbProject[]) => {
+    if (!meId) return
+    const updates = next.map((p, i) => ({ project_id: p.id, sort_order: i }))
+    const prev = orders
+    setOrders(o => ({ ...o, ...Object.fromEntries(updates.map(u => [u.project_id, u.sort_order])) }))
+    try {
+      await saveMyProjectOrders(meId, updates)
+    } catch {
+      setOrders(prev)
+      setError('並び順の保存に失敗しました')
+    }
+  }
+
+  // columnOf: 今の画面で「同じ列」とみなすキー。列をまたぐ移動はステータスのセレクトで行う
+  const handleDragEnd = (columnOf: (p: DbProject) => string, pool: DbProject[]) => (e: DragEndEvent) => {
+    justDragged.current = true
+    setTimeout(() => { justDragged.current = false }, 150)
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const a = pool.find(p => p.id === active.id)
+    const b = pool.find(p => p.id === over.id)
+    if (!a || !b || columnOf(a) !== columnOf(b)) return
+    const items = sortByOrder(pool.filter(p => columnOf(p) === columnOf(a)))
+    const from = items.findIndex(p => p.id === a.id)
+    const to = items.findIndex(p => p.id === b.id)
+    if (from < 0 || to < 0) return
+    applyOrder(arrayMove(items, from, to))
+  }
+
+  // ドラッグ直後に指/マウスを離した位置のリンクが開いてしまうのを防ぐ
+  const swallowClickAfterDrag = (e: { preventDefault: () => void; stopPropagation: () => void }) => {
+    if (justDragged.current) { e.preventDefault(); e.stopPropagation() }
   }
 
   const visibleProjects = projects.filter(p =>
@@ -276,9 +357,10 @@ export default function ProjectsPage() {
       )}
 
       {view === 'progress' && (
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd(p => p.status, visibleProjects)}>
       <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {COLUMNS.map(col => {
-          const items = visibleProjects.filter(p => p.status === col.key)
+          const items = sortByOrder(visibleProjects.filter(p => p.status === col.key))
           return (
             <div key={col.key} className="flex flex-col rounded-2xl bg-slate-50/80 p-3">
               <div className="mb-3 flex items-center gap-2 px-1">
@@ -286,11 +368,12 @@ export default function ProjectsPage() {
                 <h3 className="text-sm font-semibold text-slate-700">{col.label}</h3>
                 <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">{items.length}</span>
               </div>
+              <SortableContext items={items.map(p => p.id)} strategy={verticalListSortingStrategy}>
               <div className="flex flex-col gap-1.5">
                 {items.map(p => {
                   const color = getProjectColor(p)
                   return (
-                  <div key={p.id} className={`card border-l-4 ${color.border} p-1.5 transition-shadow hover:shadow-md`}>
+                  <SortableCard key={p.id} id={p.id} title="長押しで並べ替え" className={`card select-none border-l-4 ${color.border} p-1.5 transition-shadow hover:shadow-md`}>
                     <div className="flex items-center justify-between gap-1">
                       <div className="flex min-w-0 items-center gap-1">
                         <span className={`badge max-w-[92px] truncate whitespace-nowrap px-1.5 py-0 text-[9px] leading-4 ${color.badge}`}>
@@ -312,7 +395,7 @@ export default function ProjectsPage() {
                           : formatAmount(p.applied_amount)}
                       </span>
                     </div>
-                    <Link href={`/projects/${p.id}`} className="mt-0.5 block truncate text-sm font-semibold leading-tight text-slate-900 hover:text-brand-600 hover:underline">
+                    <Link href={`/projects/${p.id}`} onClickCapture={swallowClickAfterDrag} className="mt-0.5 block truncate text-sm font-semibold leading-tight text-slate-900 hover:text-brand-600 hover:underline">
                       {p.customers?.company_name ?? '—'}
                     </Link>
                     <div className="mt-0.5 flex items-center justify-between gap-1.5 text-[10px] text-slate-400">
@@ -332,23 +415,26 @@ export default function ProjectsPage() {
                         <option value="completed">完了</option>
                       </select>
                     </div>
-                  </div>
+                  </SortableCard>
                   )
                 })}
                 {!loading && items.length === 0 && (
                   <p className="py-8 text-center text-xs text-slate-300">案件なし</p>
                 )}
               </div>
+              </SortableContext>
             </div>
           )
         })}
       </div>
+      </DndContext>
       )}
 
       {view === 'result_report' && (
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd(p => p.result_report_status ?? RESULT_REPORT_COLUMNS[0].key, resultReportProjects)}>
       <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {RESULT_REPORT_COLUMNS.map(col => {
-          const items = resultReportProjects.filter(p => (p.result_report_status ?? RESULT_REPORT_COLUMNS[0].key) === col.key)
+          const items = sortByOrder(resultReportProjects.filter(p => (p.result_report_status ?? RESULT_REPORT_COLUMNS[0].key) === col.key))
           return (
             <div key={col.key} className="flex flex-col rounded-2xl bg-slate-50/80 p-3">
               <div className="mb-3 flex items-center gap-2 px-1">
@@ -356,11 +442,12 @@ export default function ProjectsPage() {
                 <h3 className="text-sm font-semibold text-slate-700">{col.label}</h3>
                 <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">{items.length}</span>
               </div>
+              <SortableContext items={items.map(p => p.id)} strategy={verticalListSortingStrategy}>
               <div className="flex flex-col gap-1.5">
                 {items.map(p => {
                   const color = getProjectColor(p)
                   return (
-                  <div key={p.id} className={`card border-l-4 ${color.border} p-1.5 transition-shadow hover:shadow-md`}>
+                  <SortableCard key={p.id} id={p.id} title="長押しで並べ替え" className={`card select-none border-l-4 ${color.border} p-1.5 transition-shadow hover:shadow-md`}>
                     <div className="flex items-center justify-between gap-1">
                       <div className="flex min-w-0 items-center gap-1">
                         <span className={`badge max-w-[92px] truncate whitespace-nowrap px-1.5 py-0 text-[9px] leading-4 ${color.badge}`}>
@@ -380,7 +467,7 @@ export default function ProjectsPage() {
                         {formatAmount(p.applied_amount)}
                       </span>
                     </div>
-                    <Link href={`/projects/${p.id}`} className="mt-0.5 block truncate text-sm font-semibold leading-tight text-slate-900 hover:text-brand-600 hover:underline">
+                    <Link href={`/projects/${p.id}`} onClickCapture={swallowClickAfterDrag} className="mt-0.5 block truncate text-sm font-semibold leading-tight text-slate-900 hover:text-brand-600 hover:underline">
                       {p.customers?.company_name ?? '—'}
                     </Link>
                     <div className="mt-0.5 flex items-center justify-between gap-1.5 text-[10px] text-slate-400">
@@ -396,17 +483,19 @@ export default function ProjectsPage() {
                         {RESULT_REPORT_COLUMNS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
                       </select>
                     </div>
-                  </div>
+                  </SortableCard>
                   )
                 })}
                 {!loading && items.length === 0 && (
                   <p className="py-8 text-center text-xs text-slate-300">案件なし</p>
                 )}
               </div>
+              </SortableContext>
             </div>
           )
         })}
       </div>
+      </DndContext>
       )}
 
       <Modal title={view === 'result_report' ? '実績報告サポート対象の新規登録' : '新規案件'} open={modalOpen} onClose={() => setModalOpen(false)}>

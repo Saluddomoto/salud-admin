@@ -602,6 +602,21 @@ export async function saveMyTaskOrders(userId: string, orders: { task_id: string
   if (error) throw error
 }
 
+// 案件カードの並び順（メンバーごとの自分用。RLSで本人の行だけ読み書きできる）
+export async function fetchMyProjectOrders(): Promise<Record<string, number>> {
+  const { data, error } = await db().from('project_sort_orders').select('project_id, sort_order')
+  if (error) throw error
+  return Object.fromEntries((data ?? []).map(r => [r.project_id as string, r.sort_order as number]))
+}
+
+export async function saveMyProjectOrders(userId: string, orders: { project_id: string; sort_order: number }[]) {
+  if (orders.length === 0) return
+  const { error } = await db()
+    .from('project_sort_orders')
+    .upsert(orders.map(o => ({ user_id: userId, ...o })), { onConflict: 'user_id,project_id' })
+  if (error) throw error
+}
+
 // ルーティンタスクの当日分の完了ログ一覧を取得する（本日のタスクの完了判定に使う）。
 export async function fetchTaskCompletions(date: string): Promise<DbTaskCompletion[]> {
   const { data, error } = await db()
