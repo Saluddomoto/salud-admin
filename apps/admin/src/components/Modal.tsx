@@ -13,7 +13,7 @@ export function Modal({
   const isFull = size === 'full'
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 ${isFull ? 'p-2 sm:p-4' : 'p-4'}`}>
-      <div className={`card flex w-full flex-col p-6 ${isFull ? 'h-full max-w-none sm:h-[95vh] sm:max-w-6xl' : 'max-w-lg'}`}>
+      <div className={`card flex w-full flex-col p-6 ${isFull ? 'h-full max-w-none sm:h-[95vh] sm:max-w-6xl' : 'max-h-[92vh] max-w-lg'}`}>
         <div className="mb-5 flex shrink-0 items-center justify-between">
           <h3 className="text-lg font-bold text-slate-900">{title}</h3>
           <button onClick={onClose} className="text-slate-400 transition-colors hover:text-slate-600">
@@ -22,7 +22,7 @@ export function Modal({
             </svg>
           </button>
         </div>
-        <div className={isFull ? 'flex-1 overflow-y-auto pr-1' : ''}>
+        <div className={isFull ? 'flex-1 overflow-y-auto pr-1' : 'min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1'}>
           {children}
         </div>
       </div>
