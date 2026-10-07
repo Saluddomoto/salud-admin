@@ -107,6 +107,7 @@ export default function ProjectDetailPage() {
         result_at:         projectType === 'web' ? null : (f.get('result_at') as string) || null,
         notes:             (f.get('notes') as string) || null,
         homepage_url:      (f.get('homepage_url') as string)?.trim() || null,
+        referral_none:     f.get('referral_none') === 'on',
         agency_id:         agencyChoice && agencyChoice !== '__manual__' ? agencyChoice : null,
         agency_name_manual: agencyChoice === '__manual__' ? ((f.get('agency_name_manual') as string)?.trim() || null) : null,
         referral_fee:      f.get('referral_fee') ? Number(f.get('referral_fee')) : null,
@@ -397,6 +398,15 @@ export default function ProjectDetailPage() {
                   defaultValue={project.agency_name_manual ?? ''}
                 />
               )}
+            </div>
+            <div className="sm:col-span-2">
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox" name="referral_none" className="h-4 w-4 rounded border-slate-300"
+                  defaultChecked={project.referral_none}
+                />
+                紹介料なし（紹介元は記録するが、紹介料は発生しない）
+              </label>
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">紹介料（基本料金分）</label>

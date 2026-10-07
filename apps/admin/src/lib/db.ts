@@ -60,6 +60,7 @@ export type DbProject = {
   base_fee: number | null
   agency_id: string | null
   agency_name_manual: string | null
+  referral_none: boolean
   referral_fee: number | null
   success_fee_received_date: string | null
   referral_base_paid_date: string | null
@@ -367,7 +368,8 @@ export const REFERRAL_SUCCESS_RATE_PCT = 2
 export function defaultReferralBase(subsidyName: string | null): string {
   return subsidyName === '小規模事業者持続化補助金' ? '10000' : '20000'
 }
-export function referralBreakdown(p: Pick<DbProject, 'referral_fee' | 'subsidy_amount' | 'applied_amount' | 'success_fee_rate'> & { agency?: Pick<NonNullable<DbProject['agency']>, 'referral_success_rate' | 'referral_base_enabled'> | null }) {
+export function referralBreakdown(p: Pick<DbProject, 'referral_none' | 'referral_fee' | 'subsidy_amount' | 'applied_amount' | 'success_fee_rate'> & { agency?: Pick<NonNullable<DbProject['agency']>, 'referral_success_rate' | 'referral_base_enabled'> | null }) {
+  if (p.referral_none) return { basePart: 0, successPart: 0, total: 0, ratePct: 0 }
   const ratePct = p.agency?.referral_success_rate ?? REFERRAL_SUCCESS_RATE_PCT
   const basePart = p.agency?.referral_base_enabled === false ? 0 : (p.referral_fee ?? 0)
   const successFee = (p.subsidy_amount ?? p.applied_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100)
@@ -380,6 +382,7 @@ export function agencyLabel(p: { agency?: { company_name: string } | null; agenc
 }
 export function referralText(p: Parameters<typeof referralBreakdown>[0] & { agency_id: string | null; agency_name_manual: string | null }) {
   if (!p.agency_id && !p.agency_name_manual) return '—'
+  if (p.referral_none) return '紹介料なし'
   const { basePart, successPart, total, ratePct } = referralBreakdown(p)
   if (p.agency?.referral_base_enabled === false) return `${formatAmount(total)}（成功報酬額の${ratePct}%）`
   return `${formatAmount(total)}（基本料金分 ${formatAmount(basePart)} ＋ 成功報酬${ratePct}% ${formatAmount(successPart)}）`
@@ -406,6 +409,7 @@ export async function insertProject(input: {
   base_fee?: number | null
   agency_id?: string | null
   agency_name_manual?: string | null
+  referral_none?: boolean
   referral_fee?: number | null
   success_fee_rate?: number | null
   web_fee_excl_tax?: number | null
@@ -467,6 +471,7 @@ export async function updateProject(id: string, input: {
   base_fee?: number | null
   agency_id?: string | null
   agency_name_manual?: string | null
+  referral_none?: boolean
   referral_fee?: number | null
   success_fee_rate?: number | null
   web_fee_excl_tax?: number | null
