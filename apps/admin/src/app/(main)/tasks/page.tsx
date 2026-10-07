@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import {
   fetchTasks, fetchDraftTasks, fetchProjects, fetchProfiles, fetchMyProfile, fetchMyTaskOrders, saveMyTaskOrders,
-  insertTask, updateTask, approveDraftTask, dismissDraftTask, updateTaskStatus, deleteTask,
+  insertTask, updateTask, approveDraftTask, dismissDraftTask, dismissDraftTasks, updateTaskStatus, deleteTask,
   fetchTaskCompletions, setTaskCompletion,
   formatDate, type DbTask, type DbProject, type DbProfile, type DbTaskCompletion,
 } from '@/lib/db'
@@ -305,6 +305,18 @@ export default function TasksPage() {
     }
   }
 
+  const handleDismissAllDrafts = async () => {
+    const ids = drafts.map(t => t.id)
+    if (!confirm(`タスク候補${ids.length}件をすべて却下（削除）しますか？`)) return
+    setDrafts([])
+    try {
+      await dismissDraftTasks(ids)
+    } catch {
+      setError('一括却下に失敗しました')
+      load()
+    }
+  }
+
   return (
     <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="タスク管理" description={`${doneCount}/${kanbanTasks.length + routineTasks.length} 件完了`}>
@@ -380,9 +392,15 @@ export default function TasksPage() {
 
       {drafts.length > 0 && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-800">
-            🤖 LINEグループから検出したタスク候補（{drafts.length}件・要確認）
-          </h3>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-800">
+              🤖 LINEグループから検出したタスク候補（{drafts.length}件・要確認）
+            </h3>
+            <button
+              className="rounded-md border border-rose-200 bg-white px-2.5 py-1 text-xs text-rose-600 hover:bg-rose-50"
+              onClick={handleDismissAllDrafts}
+            >一括削除</button>
+          </div>
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             {drafts.map(t => (
               <div key={t.id} className="card p-3.5">

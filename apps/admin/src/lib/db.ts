@@ -550,6 +550,13 @@ export async function dismissDraftTask(id: string) {
   if (error) throw error
 }
 
+// 下書きタスクの一括却下（承認済みのタスクを誤って消さないよう、未承認のAI検出分だけを対象にする）
+export async function dismissDraftTasks(ids: string[]) {
+  if (ids.length === 0) return
+  const { error } = await db().from('tasks').delete().in('id', ids).eq('source', 'ai_line').is('reviewed_at', null)
+  if (error) throw error
+}
+
 export async function insertTask(input: {
   title: string
   description?: string | null
