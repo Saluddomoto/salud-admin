@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { TaxAmountInput } from '@/components/TaxAmountInput'
+import { AgencyPayoutsPanel } from '@/components/AgencyPayoutsPanel'
 import { useAuth } from '@/hooks/useAuth'
 import {
   fetchRevenueLedger, insertRevenueEntry, updateRevenueEntry, deleteRevenueEntry,
@@ -140,7 +141,11 @@ export default function RevenuePage() {
   const [contracts, setContracts] = useState<DbRecurringContract[]>([])
   const [customers, setCustomers] = useState<DbCustomer[]>([])
   const [loading,  setLoading]  = useState(true)
-  const [tab,       setTab]     = useState<'ledger' | 'monthly' | 'contracts' | 'goals'>('ledger')
+  const [tab,       setTab]     = useState<'ledger' | 'monthly' | 'contracts' | 'goals' | 'referral'>('ledger')
+  // ?tab=referral で代理店ご紹介料タブを直接開く（useSearchParams は Suspense 必須になるため使わない）
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('tab') === 'referral') setTab('referral')
+  }, [])
   const [modalOpen, setModalOpen] = useState(false)
   const [editing,   setEditing]   = useState<DbRevenueEntry | null>(null)
   const [saving,    setSaving]    = useState(false)
@@ -571,6 +576,7 @@ export default function RevenuePage() {
           { key: 'monthly', label: '月次実績・売上予測' },
           { key: 'contracts', label: '月額契約' },
           { key: 'goals', label: '目標設定' },
+          { key: 'referral', label: '代理店ご紹介料' },
         ].map(t => (
           <button
             key={t.key}
@@ -1035,6 +1041,8 @@ export default function RevenuePage() {
           </table>
         </div>
       )}
+
+      {tab === 'referral' && <AgencyPayoutsPanel />}
 
       {tab === 'goals' && (
         <div className="flex flex-col gap-6">
