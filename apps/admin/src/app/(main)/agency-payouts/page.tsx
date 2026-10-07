@@ -18,7 +18,7 @@ type Payout = {
   dueMonth: string | null     // 入金の翌月（YYYY-MM）
 }
 
-const KIND_LABEL: Record<Kind, string> = { base: '基本料金分', success: '成功報酬2%分' }
+const KIND_LABEL: Record<Kind, string> = { base: '基本料金分', success: '成功報酬分' }
 
 // 入金日の翌月（YYYY-MM）。入金後、翌月に支払う運用
 function nextMonth(date: string): string {
@@ -120,7 +120,7 @@ export default function AgencyPayoutsPage() {
     <div className="space-y-6">
       <PageHeader
         title="代理店ご紹介料"
-        description="基本料金・成功報酬それぞれの入金後、翌月に支払い。紹介料 = 基本料金分(1〜2万円) + 成功報酬額の2%"
+        description="基本料金・成功報酬それぞれの入金後、翌月に支払い。紹介料 = 基本料金分(1〜2万円) + 成功報酬額の2%（補助金の窓口は成功報酬額の50%）"
       />
       {error && <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
       {loading ? <p className="text-sm text-slate-400">読み込み中…</p> : (

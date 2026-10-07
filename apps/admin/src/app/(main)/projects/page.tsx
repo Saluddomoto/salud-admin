@@ -540,7 +540,7 @@ export default function ProjectsPage() {
             )}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">紹介元の代理店</label>
-              <select name="agency_id" className="input" value={agencyChoice} onChange={e => setAgencyChoice(e.target.value)}>
+              <select name="agency_id" className="input" value={agencyChoice} onChange={e => { setAgencyChoice(e.target.value); const ag = agencies.find(a => a.id === e.target.value); setReferralChoice(ag && !ag.referral_base_enabled ? '' : defaultReferralBase(subsidyChoice === '__other__' ? null : subsidyChoice)) }}>
                 <option value="">なし（直接案件）</option>
                 {agencies.map(a => <option key={a.id} value={a.id}>{a.company_name}</option>)}
                 <option value="__manual__">その他（手入力）</option>
@@ -559,7 +559,7 @@ export default function ProjectsPage() {
                 <option value="10000">1万円</option>
                 <option value="20000">2万円</option>
               </select>
-              <p className="mt-1 text-xs text-slate-400">成功報酬分は成功報酬額の2％を自動計算します</p>
+              <p className="mt-1 text-xs text-slate-400">成功報酬分は成功報酬額の2％（補助金の窓口は50％・基本料金分なし）で自動計算します</p>
             </div>
             {projectType === 'subsidy' ? (
               <div className="sm:col-span-2">

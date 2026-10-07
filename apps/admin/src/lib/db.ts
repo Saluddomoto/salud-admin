@@ -78,7 +78,7 @@ export type DbProject = {
   customers: { company_name: string } | null
   profiles: { full_name: string } | null
   assignee2: { full_name: string } | null
-  agency: { company_name: string } | null
+  agency: { company_name: string; referral_success_rate: number; referral_base_enabled: boolean } | null
 }
 
 export type DbTask = {
@@ -361,16 +361,18 @@ export async function insertLeadCustomer(input: {
 
 // ── 案件 ─────────────────────────────────────────────
 // 代理店ご紹介料 = 基本料金分(1〜2万円・案件ごとに設定) + 成功報酬額の2%（成功報酬額 = 採択額（なければ申請額）× 成功報酬率）
-export const REFERRAL_SUCCESS_RATE = 0.02
+// 代理店ごとに料率を変えられる（既定: 成功報酬額の2% + 基本料金分あり。補助金の窓口は成功報酬額の50%・基本料金分なし）
+export const REFERRAL_SUCCESS_RATE_PCT = 2
 // 基本料金分の既定値: 小規模事業者持続化補助金=1万円、それ以外=2万円
 export function defaultReferralBase(subsidyName: string | null): string {
   return subsidyName === '小規模事業者持続化補助金' ? '10000' : '20000'
 }
-export function referralBreakdown(p: Pick<DbProject, 'referral_fee' | 'subsidy_amount' | 'applied_amount' | 'success_fee_rate'>) {
-  const basePart = p.referral_fee ?? 0
+export function referralBreakdown(p: Pick<DbProject, 'referral_fee' | 'subsidy_amount' | 'applied_amount' | 'success_fee_rate'> & { agency?: Pick<NonNullable<DbProject['agency']>, 'referral_success_rate' | 'referral_base_enabled'> | null }) {
+  const ratePct = p.agency?.referral_success_rate ?? REFERRAL_SUCCESS_RATE_PCT
+  const basePart = p.agency?.referral_base_enabled === false ? 0 : (p.referral_fee ?? 0)
   const successFee = (p.subsidy_amount ?? p.applied_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100)
-  const successPart = Math.round(successFee * REFERRAL_SUCCESS_RATE)
-  return { basePart, successPart, total: basePart + successPart }
+  const successPart = Math.round(successFee * ratePct / 100)
+  return { basePart, successPart, total: basePart + successPart, ratePct }
 }
 // 紹介元の表示名（代理店管理から選択 or 手入力）
 export function agencyLabel(p: { agency?: { company_name: string } | null; agency_name_manual: string | null }): string | null {
@@ -378,14 +380,15 @@ export function agencyLabel(p: { agency?: { company_name: string } | null; agenc
 }
 export function referralText(p: Parameters<typeof referralBreakdown>[0] & { agency_id: string | null; agency_name_manual: string | null }) {
   if (!p.agency_id && !p.agency_name_manual) return '—'
-  const { basePart, successPart, total } = referralBreakdown(p)
-  return `${formatAmount(total)}（基本料金分 ${formatAmount(basePart)} ＋ 成功報酬2% ${formatAmount(successPart)}）`
+  const { basePart, successPart, total, ratePct } = referralBreakdown(p)
+  if (p.agency?.referral_base_enabled === false) return `${formatAmount(total)}（成功報酬額の${ratePct}%）`
+  return `${formatAmount(total)}（基本料金分 ${formatAmount(basePart)} ＋ 成功報酬${ratePct}% ${formatAmount(successPart)}）`
 }
 
 export async function fetchProjects(): Promise<DbProject[]> {
   const { data, error } = await db()
     .from('projects')
-    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name), agency:partner_agencies(company_name)')
+    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name), agency:partner_agencies(company_name, referral_success_rate, referral_base_enabled)')
     .order('deadline', { ascending: true, nullsFirst: false })
   if (error) throw error
   return data as DbProject[]
@@ -437,7 +440,7 @@ export async function updateResultReportStatus(id: string, resultReportStatus: s
 export async function fetchProject(id: string): Promise<DbProject | null> {
   const { data, error } = await db()
     .from('projects')
-    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name), agency:partner_agencies(company_name)')
+    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name), agency:partner_agencies(company_name, referral_success_rate, referral_base_enabled)')
     .eq('id', id)
     .maybeSingle()
   if (error) throw error
@@ -447,7 +450,7 @@ export async function fetchProject(id: string): Promise<DbProject | null> {
 export async function fetchProjectsByCustomer(customerId: string): Promise<DbProject[]> {
   const { data, error } = await db()
     .from('projects')
-    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name), agency:partner_agencies(company_name)')
+    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name), agency:partner_agencies(company_name, referral_success_rate, referral_base_enabled)')
     .eq('customer_id', customerId)
     .order('deadline', { ascending: true, nullsFirst: false })
   if (error) throw error
@@ -1710,6 +1713,8 @@ export async function syncRecurringContracts(): Promise<number> {
 
 /* ─── 代理店登録管理表（募集フォーム自動取込＋手動追加、全員が読み書き自由）─── */
 export type DbPartnerAgency = {
+  referral_success_rate: number
+  referral_base_enabled: boolean
   id: string
   source: 'form' | 'manual' | 'legacy_sheet'
   form_timestamp: string | null
