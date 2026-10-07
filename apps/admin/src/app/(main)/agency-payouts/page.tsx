@@ -18,6 +18,10 @@ type Payout = {
   dueMonth: string | null     // 入金の翌月（YYYY-MM）
 }
 
+const STATUS_LABEL: Record<DbProject['status'], string> = {
+  planning: '見込み', in_progress: '申請準備中', submitted: '申請済み', accepted: '採択',
+  rejected: '不採択', lost: '失注', completed: '完了',
+}
 const KIND_LABEL: Record<Kind, string> = { base: '基本料金分', success: '成功報酬分' }
 
 // 入金日の翌月（YYYY-MM）。入金後、翌月に支払う運用
@@ -36,6 +40,9 @@ export default function AgencyPayoutsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState<'unpaid' | 'all'>('unpaid')
+  const [tab, setTab] = useState<'list' | 'payout' | 'stats'>('list')
+  const [listAgency, setListAgency] = useState('')
+  const [listPay, setListPay] = useState<'all' | 'unpaid' | 'paid'>('all')
 
   const load = () => {
     fetchProjects()
@@ -106,6 +113,37 @@ export default function AgencyPayoutsPage() {
     return [...m.values()].sort((a, b) => b.count - a.count)
   }, [agencyProjects, payouts])
 
+  // 紹介料発生案件一覧（案件単位）。紹介料なしの案件は除く
+  const listRows = useMemo(() => {
+    return agencyProjects
+      .filter(p => !p.referral_none)
+      .map(p => {
+        const b = referralBreakdown(p)
+        const mine = payouts.filter(r => r.project.id === p.id)
+        const paid = mine.filter(r => r.paidDate).reduce((a, r) => a + r.amount, 0)
+        return { p, ...b, paid, unpaid: b.total - paid, agency: agencyLabel(p) ?? '（不明）' }
+      })
+      .filter(r => r.total > 0)
+      .filter(r => !listAgency || r.agency === listAgency)
+      .filter(r => listPay === 'all' || (listPay === 'paid' ? r.unpaid <= 0 : r.unpaid > 0))
+      .sort((a, b) => (b.p.result_at ?? b.p.deadline ?? '').localeCompare(a.p.result_at ?? a.p.deadline ?? ''))
+  }, [agencyProjects, payouts, listAgency, listPay])
+  const agencyNames = useMemo(
+    () => [...new Set(agencyProjects.map(p => agencyLabel(p) ?? '（不明）'))].sort(),
+    [agencyProjects],
+  )
+  const listTotal = listRows.reduce((a, r) => a + r.total, 0)
+  const listUnpaid = listRows.reduce((a, r) => a + r.unpaid, 0)
+
+  // 基本料金分・成功報酬分それぞれの状態表示
+  const portionStatus = (kind: Kind, p: DbProject) => {
+    const r = payouts.find(x => x.project.id === p.id && x.kind === kind)
+    if (!r) return <span className="text-slate-300">—</span>
+    if (r.paidDate) return <span className="text-emerald-600">支払済 {r.paidDate.slice(5).replace('-', '/')}</span>
+    if (r.dueMonth) return <span className={r.dueMonth < thisMonth ? 'font-semibold text-rose-600' : 'text-amber-600'}>{monthLabel(r.dueMonth)}払い</span>
+    return <span className="text-slate-400">入金待ち</span>
+  }
+
   const togglePaid = async (r: Payout) => {
     setError('')
     try {
@@ -123,8 +161,76 @@ export default function AgencyPayoutsPage() {
         description="基本料金・成功報酬それぞれの入金後、翌月に支払い。紹介料 = 基本料金分(1〜2万円) + 成功報酬額の2%（補助金の窓口は成功報酬額の50%）"
       />
       {error && <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
+      <div className="flex gap-1 border-b border-slate-200">
+        {([['list', '紹介料発生案件一覧'], ['payout', '支払管理'], ['stats', '代理店別実績']] as const).map(([k, label]) => (
+          <button
+            key={k} onClick={() => setTab(k)}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm ${tab === k ? 'border-brand-600 font-semibold text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+          >{label}</button>
+        ))}
+      </div>
       {loading ? <p className="text-sm text-slate-400">読み込み中…</p> : (
         <>
+          {tab === 'list' && (
+            <section className="card p-5">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="text-sm text-slate-600">
+                  {listRows.length}件　紹介料合計 <span className="font-semibold text-slate-800">{formatAmount(listTotal)}</span>
+                  　未払い <span className="font-semibold text-rose-600">{formatAmount(listUnpaid)}</span>
+                </div>
+                <div className="flex gap-2">
+                  <select className="input w-auto text-sm" value={listAgency} onChange={e => setListAgency(e.target.value)}>
+                    <option value="">すべての紹介元</option>
+                    {agencyNames.map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  <select className="input w-auto text-sm" value={listPay} onChange={e => setListPay(e.target.value as 'all' | 'unpaid' | 'paid')}>
+                    <option value="all">支払状況：すべて</option>
+                    <option value="unpaid">未払いあり</option>
+                    <option value="paid">支払済のみ</option>
+                  </select>
+                </div>
+              </div>
+              {listRows.length === 0 ? (
+                <p className="text-sm text-slate-400">紹介料が発生する案件がありません。案件に紹介元と紹介料を設定すると表示されます。</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full whitespace-nowrap text-left text-sm">
+                    <thead className="text-xs text-slate-400">
+                      <tr>
+                        <th className="py-2 pr-3">紹介元</th><th className="pr-3">案件 / 顧客</th><th className="pr-3">補助金</th><th className="pr-3">案件状況</th>
+                        <th className="pr-3 text-right">紹介料</th><th className="pr-3">基本料金分</th><th className="pr-3">成功報酬分</th><th className="text-right">未払い</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {listRows.map(r => (
+                        <tr key={r.p.id}>
+                          <td className="py-2 pr-3">{r.agency}</td>
+                          <td className="pr-3">
+                            <Link href={`/projects/${r.p.id}`} className="text-brand-600 hover:underline">{r.p.title}</Link>
+                            <div className="text-xs text-slate-400">{r.p.customers?.company_name}</div>
+                          </td>
+                          <td className="pr-3">{r.p.subsidy_name ?? '—'}</td>
+                          <td className="pr-3">{STATUS_LABEL[r.p.status]}</td>
+                          <td className="pr-3 text-right">
+                            {formatAmount(r.total)}
+                            <div className="text-xs text-slate-400">
+                              {r.basePart > 0 && `基本 ${formatAmount(r.basePart)} + `}成功報酬{r.ratePct}% {formatAmount(r.successPart)}
+                            </div>
+                          </td>
+                          <td className="pr-3">{r.basePart > 0 ? portionStatus('base', r.p) : <span className="text-slate-300">—</span>}</td>
+                          <td className="pr-3">{portionStatus('success', r.p)}</td>
+                          <td className="text-right">{r.unpaid > 0 ? formatAmount(r.unpaid) : <span className="text-slate-300">—</span>}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <p className="mt-3 text-xs text-slate-400">採択前の案件の成功報酬分は、申請額ベースの見込み額です（採択額が入ると自動で更新されます）。</p>
+            </section>
+          )}
+
+          {tab === 'payout' && <>
           <section className="card p-5">
             <h2 className="mb-3 text-sm font-semibold text-slate-700">支払予定（入金済み・未払い）</h2>
             {dueSummary.length === 0 ? (
@@ -191,6 +297,9 @@ export default function AgencyPayoutsPage() {
             )}
           </section>
 
+          </>}
+
+          {tab === 'stats' && (
           <section className="card p-5">
             <h2 className="mb-3 text-sm font-semibold text-slate-700">代理店ごとの実績</h2>
             {agencyStats.length === 0 ? <p className="text-sm text-slate-400">紹介案件がまだありません</p> : (
@@ -218,6 +327,7 @@ export default function AgencyPayoutsPage() {
               </div>
             )}
           </section>
+          )}
         </>
       )}
     </div>
