@@ -358,6 +358,10 @@ export async function insertLeadCustomer(input: {
 // ── 案件 ─────────────────────────────────────────────
 // 代理店ご紹介料 = 基本料金分(1〜2万円・案件ごとに設定) + 成功報酬額の2%（成功報酬額 = 採択額（なければ申請額）× 成功報酬率）
 export const REFERRAL_SUCCESS_RATE = 0.02
+// 基本料金分の既定値: 小規模事業者持続化補助金=1万円、それ以外=2万円
+export function defaultReferralBase(subsidyName: string | null): string {
+  return subsidyName === '小規模事業者持続化補助金' ? '10000' : '20000'
+}
 export function referralBreakdown(p: Pick<DbProject, 'referral_fee' | 'subsidy_amount' | 'applied_amount' | 'success_fee_rate'>) {
   const basePart = p.referral_fee ?? 0
   const successFee = (p.subsidy_amount ?? p.applied_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100)

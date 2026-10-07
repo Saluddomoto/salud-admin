@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   deleteProject, fetchProject, fetchTasksByProject, fetchCustomers, fetchPartnerAgencies, fetchProfiles, insertTask,
   updateProject, updateProjectStatus, updateTaskStatus,
-  formatAmount, referralText, type DbProject, type DbTask, type DbCustomer, type DbProfile, type DbPartnerAgency,
+  formatAmount, referralText, defaultReferralBase, type DbProject, type DbTask, type DbCustomer, type DbProfile, type DbPartnerAgency,
 } from '@/lib/db'
 
 const STATUSES: { key: DbProject['status']; label: string; cls: string }[] = [
@@ -58,6 +58,7 @@ export default function ProjectDetailPage() {
   const [taskOpen, setTaskOpen] = useState(false)
   const [saving,   setSaving]   = useState(false)
   const [subsidyChoice, setSubsidyChoice] = useState('')
+  const [referralChoice, setReferralChoice] = useState('')
   const [projectType, setProjectType] = useState<'subsidy' | 'web'>('subsidy')
   const [baseFeeChoice, setBaseFeeChoice] = useState('')
   const [agencies, setAgencies] = useState<DbPartnerAgency[]>([])
@@ -208,6 +209,7 @@ export default function ProjectDetailPage() {
                     ? project.subsidy_name
                     : '__other__'
                 )
+                setReferralChoice(String(project.referral_fee ?? ''))
                 setProjectType(project.project_type)
                 setBaseFeeChoice(
                   project.base_fee != null && BASE_FEE_OPTIONS.includes(project.base_fee)
@@ -386,7 +388,7 @@ export default function ProjectDetailPage() {
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">紹介料（基本料金分）</label>
-              <select name="referral_fee" className="input" defaultValue={String(project.referral_fee ?? '')}>
+              <select name="referral_fee" className="input" value={referralChoice} onChange={e => setReferralChoice(e.target.value)}>
                 <option value="">未設定</option>
                 <option value="10000">1万円</option>
                 <option value="20000">2万円</option>
@@ -396,7 +398,7 @@ export default function ProjectDetailPage() {
             {projectType === 'subsidy' ? (
               <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">補助金名 *</label>
-                <select className="input" value={subsidyChoice} onChange={e => setSubsidyChoice(e.target.value)}>
+                <select className="input" value={subsidyChoice} onChange={e => { setSubsidyChoice(e.target.value); setReferralChoice(defaultReferralBase(e.target.value)) }}>
                   {SUBSIDY_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
                   <option value="__other__">その他（自由入力）</option>
                 </select>

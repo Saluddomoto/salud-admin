@@ -12,7 +12,7 @@ import { Modal } from '@/components/Modal'
 import { TaxAmountInput } from '@/components/TaxAmountInput'
 import {
   fetchProjects, fetchCustomers, fetchPartnerAgencies, fetchProfiles, fetchMyProfile, fetchMyProjectOrders, saveMyProjectOrders, insertProject, insertCustomer, updateProjectStatus, updateResultReportStatus,
-  formatAmount, formatDate, type DbProject, type DbCustomer, type DbProfile, type DbPartnerAgency,
+  formatAmount, formatDate, defaultReferralBase, type DbProject, type DbCustomer, type DbProfile, type DbPartnerAgency,
 } from '@/lib/db'
 
 const COLUMNS = [
@@ -100,6 +100,7 @@ export default function ProjectsPage() {
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
   const [subsidyChoice, setSubsidyChoice] = useState(SUBSIDY_NAMES[0]!)
+  const [referralChoice, setReferralChoice] = useState(defaultReferralBase(SUBSIDY_NAMES[0]!))
   const [customerChoice, setCustomerChoice] = useState('')
   const [projectType, setProjectType] = useState<'subsidy' | 'web'>('subsidy')
   const [typeFilter, setTypeFilter] = useState<'all' | 'subsidy' | 'web'>('all')
@@ -184,6 +185,7 @@ export default function ProjectsPage() {
       })
       setModalOpen(false)
       setSubsidyChoice(SUBSIDY_NAMES[0]!)
+      setReferralChoice(defaultReferralBase(SUBSIDY_NAMES[0]!))
       setProjectType('subsidy')
       setBaseFeeChoice('')
       setCustomerChoice('')
@@ -542,7 +544,7 @@ export default function ProjectsPage() {
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">紹介料（基本料金分）</label>
-              <select name="referral_fee" className="input" defaultValue={""}>
+              <select name="referral_fee" className="input" value={referralChoice} onChange={e => setReferralChoice(e.target.value)}>
                 <option value="">未設定</option>
                 <option value="10000">1万円</option>
                 <option value="20000">2万円</option>
@@ -555,7 +557,7 @@ export default function ProjectsPage() {
                 <select
                   className="input"
                   value={subsidyChoice}
-                  onChange={e => setSubsidyChoice(e.target.value)}
+                  onChange={e => { setSubsidyChoice(e.target.value); setReferralChoice(defaultReferralBase(e.target.value)) }}
                 >
                   {SUBSIDY_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
                   <option value="__other__">その他（自由入力）</option>
