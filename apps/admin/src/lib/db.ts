@@ -59,6 +59,7 @@ export type DbProject = {
   subsidy_amount: number | null
   base_fee: number | null
   agency_id: string | null
+  agency_name_manual: string | null
   referral_fee: number | null
   success_fee_received_date: string | null
   referral_base_paid_date: string | null
@@ -371,8 +372,12 @@ export function referralBreakdown(p: Pick<DbProject, 'referral_fee' | 'subsidy_a
   const successPart = Math.round(successFee * REFERRAL_SUCCESS_RATE)
   return { basePart, successPart, total: basePart + successPart }
 }
-export function referralText(p: Parameters<typeof referralBreakdown>[0] & { agency_id: string | null }) {
-  if (!p.agency_id) return '—'
+// 紹介元の表示名（代理店管理から選択 or 手入力）
+export function agencyLabel(p: { agency?: { company_name: string } | null; agency_name_manual: string | null }): string | null {
+  return p.agency?.company_name ?? (p.agency_name_manual?.trim() || null)
+}
+export function referralText(p: Parameters<typeof referralBreakdown>[0] & { agency_id: string | null; agency_name_manual: string | null }) {
+  if (!p.agency_id && !p.agency_name_manual) return '—'
   const { basePart, successPart, total } = referralBreakdown(p)
   return `${formatAmount(total)}（基本料金分 ${formatAmount(basePart)} ＋ 成功報酬2% ${formatAmount(successPart)}）`
 }
@@ -397,6 +402,7 @@ export async function insertProject(input: {
   deadline: string | null
   base_fee?: number | null
   agency_id?: string | null
+  agency_name_manual?: string | null
   referral_fee?: number | null
   success_fee_rate?: number | null
   web_fee_excl_tax?: number | null
@@ -457,6 +463,7 @@ export async function updateProject(id: string, input: {
   subsidy_amount?: number | null
   base_fee?: number | null
   agency_id?: string | null
+  agency_name_manual?: string | null
   referral_fee?: number | null
   success_fee_rate?: number | null
   web_fee_excl_tax?: number | null

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import {
-  fetchProjects, updateReferralPaidDate, referralBreakdown, formatAmount, type DbProject,
+  fetchProjects, updateReferralPaidDate, referralBreakdown, agencyLabel, formatAmount, type DbProject,
 } from '@/lib/db'
 
 type Kind = 'base' | 'success'
@@ -46,7 +46,7 @@ export default function AgencyPayoutsPage() {
   useEffect(load, [])
 
   const agencyProjects = useMemo(
-    () => projects.filter(p => p.agency_id && p.project_type === 'subsidy'),
+    () => projects.filter(p => (p.agency_id || p.agency_name_manual) && p.project_type === 'subsidy'),
     [projects],
   )
 
@@ -78,7 +78,7 @@ export default function AgencyPayoutsPage() {
     const m = new Map<string, number>()
     for (const r of payouts) {
       if (r.paidDate || !r.dueMonth) continue
-      const k = `${r.dueMonth}|${r.project.agency?.company_name ?? '（不明）'}`
+      const k = `${r.dueMonth}|${agencyLabel(r.project) ?? '（不明）'}`
       m.set(k, (m.get(k) ?? 0) + r.amount)
     }
     return [...m.entries()].map(([k, v]) => ({ month: k.split('|')[0]!, agency: k.split('|')[1]!, total: v }))
@@ -89,18 +89,18 @@ export default function AgencyPayoutsPage() {
   const agencyStats = useMemo(() => {
     const m = new Map<string, { name: string; count: number; accepted: number; revenue: number; fee: number; unpaid: number }>()
     for (const p of agencyProjects) {
-      const name = p.agency?.company_name ?? '（不明）'
-      const s = m.get(p.agency_id!) ?? { name, count: 0, accepted: 0, revenue: 0, fee: 0, unpaid: 0 }
+      const name = agencyLabel(p) ?? '（不明）'
+      const s = m.get(name) ?? { name, count: 0, accepted: 0, revenue: 0, fee: 0, unpaid: 0 }
       const { total } = referralBreakdown(p)
       s.count++
       if (p.status === 'accepted' || p.status === 'completed') s.accepted++
       s.revenue += (p.base_fee ?? 0) + (p.subsidy_amount ?? p.applied_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100)
       s.fee += total
-      m.set(p.agency_id!, s)
+      m.set(name, s)
     }
     for (const r of payouts) {
       if (r.paidDate) continue
-      const s = m.get(r.project.agency_id!)
+      const s = m.get(agencyLabel(r.project) ?? '（不明）')
       if (s) s.unpaid += r.amount
     }
     return [...m.values()].sort((a, b) => b.count - a.count)
@@ -168,7 +168,7 @@ export default function AgencyPayoutsPage() {
                   <tbody className="divide-y divide-slate-100">
                     {visible.map(r => (
                       <tr key={r.key}>
-                        <td className="py-2 pr-3">{r.project.agency?.company_name}</td>
+                        <td className="py-2 pr-3">{agencyLabel(r.project)}</td>
                         <td className="pr-3">
                           <Link href={`/projects/${r.project.id}`} className="text-brand-600 hover:underline">{r.project.title}</Link>
                         </td>

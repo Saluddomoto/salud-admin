@@ -100,6 +100,7 @@ export default function ProjectsPage() {
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
   const [subsidyChoice, setSubsidyChoice] = useState(SUBSIDY_NAMES[0]!)
+  const [agencyChoice, setAgencyChoice] = useState('')
   const [referralChoice, setReferralChoice] = useState(defaultReferralBase(SUBSIDY_NAMES[0]!))
   const [customerChoice, setCustomerChoice] = useState('')
   const [projectType, setProjectType] = useState<'subsidy' | 'web'>('subsidy')
@@ -178,7 +179,8 @@ export default function ProjectsPage() {
         payment_due_date:  projectType === 'web' ? (f.get('payment_due_date') as string) || null : null,
         homepage_url:      (f.get('homepage_url') as string)?.trim() || null,
         notes:             (f.get('notes') as string)?.trim() || null,
-        agency_id:         (f.get('agency_id') as string) || null,
+        agency_id:         agencyChoice && agencyChoice !== '__manual__' ? agencyChoice : null,
+        agency_name_manual: agencyChoice === '__manual__' ? ((f.get('agency_name_manual') as string)?.trim() || null) : null,
         referral_fee:      f.get('referral_fee') ? Number(f.get('referral_fee')) : null,
         assigned_user_id:   (f.get('assigned_user_id') as string) || null,
         assigned_user_id_2: (f.get('assigned_user_id_2') as string) || null,
@@ -186,6 +188,7 @@ export default function ProjectsPage() {
       setModalOpen(false)
       setSubsidyChoice(SUBSIDY_NAMES[0]!)
       setReferralChoice(defaultReferralBase(SUBSIDY_NAMES[0]!))
+      setAgencyChoice('')
       setProjectType('subsidy')
       setBaseFeeChoice('')
       setCustomerChoice('')
@@ -537,10 +540,17 @@ export default function ProjectsPage() {
             )}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">紹介元の代理店</label>
-              <select name="agency_id" className="input" defaultValue={""}>
+              <select name="agency_id" className="input" value={agencyChoice} onChange={e => setAgencyChoice(e.target.value)}>
                 <option value="">なし（直接案件）</option>
                 {agencies.map(a => <option key={a.id} value={a.id}>{a.company_name}</option>)}
+                <option value="__manual__">その他（手入力）</option>
               </select>
+              {agencyChoice === '__manual__' && (
+                <input
+                  name="agency_name_manual" required className="input mt-2" placeholder="紹介元の名称（会社名・個人名など）"
+                  defaultValue={""}
+                />
+              )}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">紹介料（基本料金分）</label>

@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   deleteProject, fetchProject, fetchTasksByProject, fetchCustomers, fetchPartnerAgencies, fetchProfiles, insertTask,
   updateProject, updateProjectStatus, updateTaskStatus,
-  formatAmount, referralText, defaultReferralBase, type DbProject, type DbTask, type DbCustomer, type DbProfile, type DbPartnerAgency,
+  formatAmount, referralText, agencyLabel, defaultReferralBase, type DbProject, type DbTask, type DbCustomer, type DbProfile, type DbPartnerAgency,
 } from '@/lib/db'
 
 const STATUSES: { key: DbProject['status']; label: string; cls: string }[] = [
@@ -58,6 +58,7 @@ export default function ProjectDetailPage() {
   const [taskOpen, setTaskOpen] = useState(false)
   const [saving,   setSaving]   = useState(false)
   const [subsidyChoice, setSubsidyChoice] = useState('')
+  const [agencyChoice, setAgencyChoice] = useState('')
   const [referralChoice, setReferralChoice] = useState('')
   const [projectType, setProjectType] = useState<'subsidy' | 'web'>('subsidy')
   const [baseFeeChoice, setBaseFeeChoice] = useState('')
@@ -106,7 +107,8 @@ export default function ProjectDetailPage() {
         result_at:         projectType === 'web' ? null : (f.get('result_at') as string) || null,
         notes:             (f.get('notes') as string) || null,
         homepage_url:      (f.get('homepage_url') as string)?.trim() || null,
-        agency_id:         (f.get('agency_id') as string) || null,
+        agency_id:         agencyChoice && agencyChoice !== '__manual__' ? agencyChoice : null,
+        agency_name_manual: agencyChoice === '__manual__' ? ((f.get('agency_name_manual') as string)?.trim() || null) : null,
         referral_fee:      f.get('referral_fee') ? Number(f.get('referral_fee')) : null,
         assigned_user_id:   (f.get('assigned_user_id') as string) || null,
         assigned_user_id_2: (f.get('assigned_user_id_2') as string) || null,
@@ -211,6 +213,7 @@ export default function ProjectDetailPage() {
                     : '__other__'
                 )
                 setReferralChoice(String(project.referral_fee ?? ''))
+                setAgencyChoice(project.agency_id ?? (project.agency_name_manual ? '__manual__' : ''))
                 setProjectType(project.project_type)
                 setBaseFeeChoice(
                   project.base_fee != null && BASE_FEE_OPTIONS.includes(project.base_fee)
@@ -259,7 +262,7 @@ export default function ProjectDetailPage() {
               { label: '入金予定日', value: project.payment_due_date ?? '—' },
               { label: '入金日',     value: project.payment_received_date ?? '—' },
               { label: '社内担当',   value: [project.profiles?.full_name, project.assignee2?.full_name].filter(Boolean).join('・') || '—' },
-              { label: '代理店',     value: project.agency?.company_name ?? '—' },
+              { label: '代理店',     value: agencyLabel(project) ?? '—' },
               { label: '紹介料',     value: referralText(project) },
             ] : [
               { label: '補助金',     value: project.subsidy_name ?? '—' },
@@ -273,7 +276,7 @@ export default function ProjectDetailPage() {
               { label: '基本料金 入金日',     value: project.payment_received_date ?? '—' },
               { label: '成功報酬 入金日',     value: project.success_fee_received_date ?? '—' },
               { label: '社内担当',   value: [project.profiles?.full_name, project.assignee2?.full_name].filter(Boolean).join('・') || '—' },
-              { label: '代理店',     value: project.agency?.company_name ?? '—' },
+              { label: '代理店',     value: agencyLabel(project) ?? '—' },
               { label: '紹介料',     value: referralText(project) },
             ]).map(row => (
               <div key={row.label} className="flex gap-3">
@@ -383,10 +386,17 @@ export default function ProjectDetailPage() {
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">紹介元の代理店</label>
-              <select name="agency_id" className="input" defaultValue={project.agency_id ?? ''}>
+              <select name="agency_id" className="input" value={agencyChoice} onChange={e => setAgencyChoice(e.target.value)}>
                 <option value="">なし（直接案件）</option>
                 {agencies.map(a => <option key={a.id} value={a.id}>{a.company_name}</option>)}
+                <option value="__manual__">その他（手入力）</option>
               </select>
+              {agencyChoice === '__manual__' && (
+                <input
+                  name="agency_name_manual" required className="input mt-2" placeholder="紹介元の名称（会社名・個人名など）"
+                  defaultValue={project.agency_name_manual ?? ''}
+                />
+              )}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">紹介料（基本料金分）</label>
