@@ -58,6 +58,8 @@ export type DbProject = {
   applied_amount: number | null
   subsidy_amount: number | null
   base_fee: number | null
+  agency_id: string | null
+  referral_fee: number | null
   success_fee_rate: number | null
   web_fee_excl_tax: number | null
   payment_due_date: string | null
@@ -72,6 +74,7 @@ export type DbProject = {
   customers: { company_name: string } | null
   profiles: { full_name: string } | null
   assignee2: { full_name: string } | null
+  agency: { company_name: string } | null
 }
 
 export type DbTask = {
@@ -356,7 +359,7 @@ export async function insertLeadCustomer(input: {
 export async function fetchProjects(): Promise<DbProject[]> {
   const { data, error } = await db()
     .from('projects')
-    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name)')
+    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name), agency:partner_agencies(company_name)')
     .order('deadline', { ascending: true, nullsFirst: false })
   if (error) throw error
   return data as DbProject[]
@@ -372,6 +375,8 @@ export async function insertProject(input: {
   applied_amount: number | null
   deadline: string | null
   base_fee?: number | null
+  agency_id?: string | null
+  referral_fee?: number | null
   success_fee_rate?: number | null
   web_fee_excl_tax?: number | null
   payment_due_date?: string | null
@@ -405,7 +410,7 @@ export async function updateResultReportStatus(id: string, resultReportStatus: s
 export async function fetchProject(id: string): Promise<DbProject | null> {
   const { data, error } = await db()
     .from('projects')
-    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name)')
+    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name), agency:partner_agencies(company_name)')
     .eq('id', id)
     .maybeSingle()
   if (error) throw error
@@ -415,7 +420,7 @@ export async function fetchProject(id: string): Promise<DbProject | null> {
 export async function fetchProjectsByCustomer(customerId: string): Promise<DbProject[]> {
   const { data, error } = await db()
     .from('projects')
-    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name)')
+    .select('*, customers(company_name), profiles!projects_assigned_user_id_fkey(full_name), assignee2:profiles!projects_assigned_user_id_2_fkey(full_name), agency:partner_agencies(company_name)')
     .eq('customer_id', customerId)
     .order('deadline', { ascending: true, nullsFirst: false })
   if (error) throw error
@@ -430,6 +435,8 @@ export async function updateProject(id: string, input: {
   applied_amount: number | null
   subsidy_amount?: number | null
   base_fee?: number | null
+  agency_id?: string | null
+  referral_fee?: number | null
   success_fee_rate?: number | null
   web_fee_excl_tax?: number | null
   payment_due_date?: string | null

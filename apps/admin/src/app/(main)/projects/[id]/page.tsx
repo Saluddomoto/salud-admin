@@ -9,9 +9,9 @@ import { DocumentsCard } from '@/components/DocumentsCard'
 import { TaxAmountInput } from '@/components/TaxAmountInput'
 import { useAuth } from '@/hooks/useAuth'
 import {
-  deleteProject, fetchProject, fetchTasksByProject, fetchCustomers, fetchProfiles, insertTask,
+  deleteProject, fetchProject, fetchTasksByProject, fetchCustomers, fetchPartnerAgencies, fetchProfiles, insertTask,
   updateProject, updateProjectStatus, updateTaskStatus,
-  formatAmount, type DbProject, type DbTask, type DbCustomer, type DbProfile,
+  formatAmount, type DbProject, type DbTask, type DbCustomer, type DbProfile, type DbPartnerAgency,
 } from '@/lib/db'
 
 const STATUSES: { key: DbProject['status']; label: string; cls: string }[] = [
@@ -60,10 +60,12 @@ export default function ProjectDetailPage() {
   const [subsidyChoice, setSubsidyChoice] = useState('')
   const [projectType, setProjectType] = useState<'subsidy' | 'web'>('subsidy')
   const [baseFeeChoice, setBaseFeeChoice] = useState('')
+  const [agencies, setAgencies] = useState<DbPartnerAgency[]>([])
 
   const load = useCallback(() => {
-    Promise.all([fetchProject(id), fetchTasksByProject(id), fetchCustomers(), fetchProfiles()])
-      .then(([p, t, c, m]) => {
+    Promise.all([fetchProject(id), fetchTasksByProject(id), fetchCustomers(), fetchProfiles(), fetchPartnerAgencies().catch(() => [])])
+      .then(([p, t, c, m, ag]) => {
+        setAgencies(ag)
         if (!p) setNotFound(true)
         setProject(p)
         setTasks(t)
@@ -102,6 +104,8 @@ export default function ProjectDetailPage() {
         result_at:         projectType === 'web' ? null : (f.get('result_at') as string) || null,
         notes:             (f.get('notes') as string) || null,
         homepage_url:      (f.get('homepage_url') as string)?.trim() || null,
+        agency_id:         (f.get('agency_id') as string) || null,
+        referral_fee:      f.get('referral_fee') ? Number(f.get('referral_fee')) : null,
         assigned_user_id:   (f.get('assigned_user_id') as string) || null,
         assigned_user_id_2: (f.get('assigned_user_id_2') as string) || null,
       })
@@ -252,6 +256,8 @@ export default function ProjectDetailPage() {
               { label: '入金予定日', value: project.payment_due_date ?? '—' },
               { label: '入金日',     value: project.payment_received_date ?? '—' },
               { label: '社内担当',   value: [project.profiles?.full_name, project.assignee2?.full_name].filter(Boolean).join('・') || '—' },
+              { label: '代理店',     value: project.agency?.company_name ?? '—' },
+              { label: '紹介料',     value: formatAmount(project.referral_fee) },
             ] : [
               { label: '補助金',     value: project.subsidy_name ?? '—' },
               { label: '申請額',     value: formatAmount(project.applied_amount) },
@@ -263,6 +269,8 @@ export default function ProjectDetailPage() {
               { label: '基本料金 入金予定日', value: project.payment_due_date ?? '—' },
               { label: '基本料金 入金日',     value: project.payment_received_date ?? '—' },
               { label: '社内担当',   value: [project.profiles?.full_name, project.assignee2?.full_name].filter(Boolean).join('・') || '—' },
+              { label: '代理店',     value: project.agency?.company_name ?? '—' },
+              { label: '紹介料',     value: formatAmount(project.referral_fee) },
             ]).map(row => (
               <div key={row.label} className="flex gap-3">
                 <dt className="w-20 flex-shrink-0 text-slate-400">{row.label}</dt>
@@ -368,6 +376,17 @@ export default function ProjectDetailPage() {
                   </button>
                 ))}
               </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">紹介元の代理店</label>
+              <select name="agency_id" className="input" defaultValue={project.agency_id ?? ''}>
+                <option value="">なし（直接案件）</option>
+                {agencies.map(a => <option key={a.id} value={a.id}>{a.company_name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">代理店ご紹介料（円）</label>
+              <input name="referral_fee" type="number" min="0" className="input" placeholder="50000" defaultValue={project.referral_fee ?? ''} />
             </div>
             {projectType === 'subsidy' ? (
               <div className="sm:col-span-2">

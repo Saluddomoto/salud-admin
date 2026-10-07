@@ -11,8 +11,8 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { TaxAmountInput } from '@/components/TaxAmountInput'
 import {
-  fetchProjects, fetchCustomers, fetchProfiles, fetchMyProfile, fetchMyProjectOrders, saveMyProjectOrders, insertProject, insertCustomer, updateProjectStatus, updateResultReportStatus,
-  formatAmount, formatDate, type DbProject, type DbCustomer, type DbProfile,
+  fetchProjects, fetchCustomers, fetchPartnerAgencies, fetchProfiles, fetchMyProfile, fetchMyProjectOrders, saveMyProjectOrders, insertProject, insertCustomer, updateProjectStatus, updateResultReportStatus,
+  formatAmount, formatDate, type DbProject, type DbCustomer, type DbProfile, type DbPartnerAgency,
 } from '@/lib/db'
 
 const COLUMNS = [
@@ -93,6 +93,7 @@ function SortableCard({ id, className, title, children }: {
 export default function ProjectsPage() {
   const [projects,  setProjects]  = useState<DbProject[]>([])
   const [customers, setCustomers] = useState<DbCustomer[]>([])
+  const [agencies, setAgencies] = useState<DbPartnerAgency[]>([])
   const [members,   setMembers]   = useState<DbProfile[]>([])
   const [loading,   setLoading]   = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
@@ -125,10 +126,10 @@ export default function ProjectsPage() {
 
   const load = () => {
     Promise.all([
-      fetchProjects(), fetchCustomers(), fetchProfiles(), fetchMyProfile().catch(() => null),
+      fetchProjects(), fetchCustomers(), fetchPartnerAgencies().catch(() => []), fetchProfiles(), fetchMyProfile().catch(() => null),
       fetchMyProjectOrders().catch(() => ({} as Record<string, number>)),
     ])
-      .then(([p, c, m, mine, o]) => { setProjects(p); setCustomers(c); setMembers(m.filter(x => x.is_active)); setMeId(mine?.id ?? null); setOrders(o) })
+      .then(([p, c, ag, m, mine, o]) => { setProjects(p); setCustomers(c); setAgencies(ag); setMembers(m.filter(x => x.is_active)); setMeId(mine?.id ?? null); setOrders(o) })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
   }
@@ -176,6 +177,8 @@ export default function ProjectsPage() {
         payment_due_date:  projectType === 'web' ? (f.get('payment_due_date') as string) || null : null,
         homepage_url:      (f.get('homepage_url') as string)?.trim() || null,
         notes:             (f.get('notes') as string)?.trim() || null,
+        agency_id:         (f.get('agency_id') as string) || null,
+        referral_fee:      f.get('referral_fee') ? Number(f.get('referral_fee')) : null,
         assigned_user_id:   (f.get('assigned_user_id') as string) || null,
         assigned_user_id_2: (f.get('assigned_user_id_2') as string) || null,
       })
@@ -530,6 +533,17 @@ export default function ProjectsPage() {
               </div>
             </div>
             )}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">紹介元の代理店</label>
+              <select name="agency_id" className="input" defaultValue={""}>
+                <option value="">なし（直接案件）</option>
+                {agencies.map(a => <option key={a.id} value={a.id}>{a.company_name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">代理店ご紹介料（円）</label>
+              <input name="referral_fee" type="number" min="0" className="input" placeholder="50000" defaultValue={""} />
+            </div>
             {projectType === 'subsidy' ? (
               <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">補助金名 *</label>
