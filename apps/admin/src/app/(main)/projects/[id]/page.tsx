@@ -101,6 +101,7 @@ export default function ProjectDetailPage() {
         web_fee_excl_tax:  projectType === 'web' ? (f.get('web_fee_excl_tax') ? Number(f.get('web_fee_excl_tax')) : null) : null,
         payment_due_date:      (f.get('payment_due_date') as string) || null,
         payment_received_date: (f.get('payment_received_date') as string) || null,
+        success_fee_received_date: projectType === 'web' ? null : (f.get('success_fee_received_date') as string) || null,
         deadline:          projectType === 'web' ? null : (f.get('deadline') as string) || null,
         result_at:         projectType === 'web' ? null : (f.get('result_at') as string) || null,
         notes:             (f.get('notes') as string) || null,
@@ -270,6 +271,7 @@ export default function ProjectDetailPage() {
               { label: '採択発表日', value: project.result_at ?? '—' },
               { label: '基本料金 入金予定日', value: project.payment_due_date ?? '—' },
               { label: '基本料金 入金日',     value: project.payment_received_date ?? '—' },
+              { label: '成功報酬 入金日',     value: project.success_fee_received_date ?? '—' },
               { label: '社内担当',   value: [project.profiles?.full_name, project.assignee2?.full_name].filter(Boolean).join('・') || '—' },
               { label: '代理店',     value: project.agency?.company_name ?? '—' },
               { label: '紹介料',     value: referralText(project) },
@@ -495,6 +497,11 @@ export default function ProjectDetailPage() {
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">基本料金 入金日（実績）</label>
                   <input name="payment_received_date" type="date" className="input" defaultValue={project.payment_received_date ?? ''} />
                   <p className="mt-1 text-xs text-slate-400">入力すると、売上台帳の下書き行のうち基本料金分が自動で「確定」になります</p>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">成功報酬 入金日（実績）</label>
+                  <input name="success_fee_received_date" type="date" className="input" defaultValue={project.success_fee_received_date ?? ''} />
+                  <p className="mt-1 text-xs text-slate-400">代理店ご紹介料（成功報酬分）の支払月の判定に使います</p>
                 </div>
               </>
             ) : (

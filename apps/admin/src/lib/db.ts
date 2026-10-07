@@ -60,6 +60,9 @@ export type DbProject = {
   base_fee: number | null
   agency_id: string | null
   referral_fee: number | null
+  success_fee_received_date: string | null
+  referral_base_paid_date: string | null
+  referral_success_paid_date: string | null
   success_fee_rate: number | null
   web_fee_excl_tax: number | null
   payment_due_date: string | null
@@ -459,6 +462,7 @@ export async function updateProject(id: string, input: {
   web_fee_excl_tax?: number | null
   payment_due_date?: string | null
   payment_received_date?: string | null
+  success_fee_received_date?: string | null
   deadline: string | null
   result_at?: string | null
   notes: string | null
@@ -467,6 +471,13 @@ export async function updateProject(id: string, input: {
   assigned_user_id_2?: string | null
 }) {
   const { error } = await db().from('projects').update(input).eq('id', id)
+  if (error) throw error
+}
+
+// 代理店ご紹介料の支払日を記録（null で支払済みを取消）
+export async function updateReferralPaidDate(id: string, kind: 'base' | 'success', date: string | null) {
+  const col = kind === 'base' ? 'referral_base_paid_date' : 'referral_success_paid_date'
+  const { error } = await db().from('projects').update({ [col]: date }).eq('id', id)
   if (error) throw error
 }
 
