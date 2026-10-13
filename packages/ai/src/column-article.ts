@@ -103,20 +103,20 @@ const SYSTEM_PROMPT = [
 ].join('\n')
 
 function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 const MARK_STYLE = 'background:linear-gradient(transparent 55%,#fff176 55%);color:inherit;padding:0 2px;'
 
 // **太字** と ==マーカー== だけをHTMLに変換する（それ以外のタグは出さない）
 function inline(text: string): string {
-  return esc(text)
+  return esc(String(text ?? ''))
     .replace(/==(.+?)==/g, `<strong><mark style="${MARK_STYLE}">$1</mark></strong>`)
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
 }
 
 function plain(text: string): string {
-  return text.replace(/==|\*\*/g, '')
+  return String(text ?? '').replace(/==|\*\*/g, '')
 }
 
 function ctaBar(label: string): string {
@@ -139,12 +139,12 @@ function ctaEnd(label: string, headline: string): string {
 }
 
 function buildHtml(a: ArticleDraft, subsidy: ColumnSubsidy): string {
-  const slugKey = a.slug.replace(/[^a-z0-9-]/g, '').slice(0, 24)
+  const slugKey = String(a.slug ?? '').replace(/[^a-z0-9-]/g, '').slice(0, 24)
   const parts: string[] = []
 
   if (a.unsure.length > 0) {
     // 公開しても表示されないコメント。編集画面のコードエディタで確認できる
-    parts.push(`<!-- 要確認（自動生成）:\n${a.unsure.map(u => `- ${u.replace(/--/g, '－')}`).join('\n')}\n-->`)
+    parts.push(`<!-- 要確認（自動生成）:\n${a.unsure.map(u => `- ${String(u).replace(/--/g, '－')}`).join('\n')}\n-->`)
   }
 
   parts.push(`<p>${inline(a.lead)}</p>`)
@@ -160,6 +160,7 @@ function buildHtml(a: ArticleDraft, subsidy: ColumnSubsidy): string {
 
   let h2Count = 0
   for (const b of a.blocks) {
+    if (b.type !== 'ul' && !(b as { text?: string }).text) continue
     if (b.type === 'h2') {
       h2Count += 1
       // 2つ目の見出しの手前に中ほどのCTAを入れる
@@ -175,6 +176,7 @@ function buildHtml(a: ArticleDraft, subsidy: ColumnSubsidy): string {
   }
 
   parts.push('<h2>よくある質問（Q&amp;A）</h2>')
+  a.faq = a.faq.filter(f => f && f.q && f.a)
   for (const f of a.faq) {
     parts.push(`<h3>Q. ${esc(plain(f.q))}</h3>`, `<p>A. ${inline(f.a)}</p>`)
   }
