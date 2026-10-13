@@ -8,6 +8,8 @@ import { createDraftPost, fetchColumnTitles } from '@/lib/column/wordpress'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
+// salud-web.jp が海外IPからのアクセスを拒否している場合があるため、実行場所を東京にする
+export const preferredRegion = 'hnd1'
 
 // 毎晩 21:00 JST に、補助金コラムを1本AIで書き、salud-web.jp に「下書き」で保存する。
 // 公開はしない（人が確認してから公開）。保存できたらメンバーにLINEで通知する。

@@ -3,6 +3,8 @@
 
 const WP_BASE = 'https://salud-web.jp/wp-json/wp/v2'
 const COLUMN_CATEGORY_ID = 19 // 補助金コラム
+// サイト側のWAFが「User-Agent なし/プログラム由来」のアクセスを弾くことがあるため、通常のブラウザ相当を名乗る
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 SaludAdmin'
 
 function authHeader(): string {
   const user = process.env.WP_USER
@@ -14,8 +16,8 @@ function authHeader(): string {
 /** 公開済みコラムのタイトル一覧（認証不要）。重複する切り口を避けるために使う。下書き分は column_drafts 側で補う */
 export async function fetchColumnTitles(): Promise<string[]> {
   const url = `${WP_BASE}/posts?categories=${COLUMN_CATEGORY_ID}&per_page=100&_fields=title`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`WordPress 記事一覧の取得に失敗しました (${res.status})`)
+  const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' } })
+  if (!res.ok) throw new Error(`WordPress 記事一覧の取得に失敗しました (${res.status}) ${(await res.text()).replace(/\s+/g, ' ').slice(0, 160)}`)
   const rows = (await res.json()) as { title: { rendered: string } }[]
   return rows.map(r => r.title.rendered.replace(/&amp;/g, '&').replace(/&#\d+;/g, ''))
 }
@@ -28,7 +30,7 @@ export async function createDraftPost(params: {
 }): Promise<{ id: number; editUrl: string }> {
   const res = await fetch(`${WP_BASE}/posts`, {
     method: 'POST',
-    headers: { Authorization: authHeader(), 'Content-Type': 'application/json' },
+    headers: { Authorization: authHeader(), 'Content-Type': 'application/json', 'User-Agent': UA, Accept: 'application/json' },
     body: JSON.stringify({
       title: params.title,
       slug: params.slug,
