@@ -13,6 +13,11 @@ const CHANNEL_META: Record<DbMessage['channel'], { label: string; cls: string }>
   chatwork: { label: 'Chatwork', cls: 'bg-sky-100 text-sky-700' },
 }
 
+// 2つ目以降の公式LINEから届いたメッセージに付ける目印（line_account → 表示名）
+const LINE_ACCOUNT_LABEL: Record<string, string> = {
+  hojokin: '補助金の窓口',
+}
+
 const CONVERTED_META = {
   project: { label: '案件に変換済み',   cls: 'bg-brand-100 text-brand-700' },
   task:    { label: 'タスクに変換済み', cls: 'bg-amber-100 text-amber-700' },
@@ -187,6 +192,7 @@ export default function InboxPage() {
             >
               <span className={`badge mt-0.5 flex-shrink-0 ${CHANNEL_META[m.channel].cls}`}>
                 {CHANNEL_META[m.channel].label}
+                {m.line_account && ` · ${LINE_ACCOUNT_LABEL[m.line_account] ?? m.line_account}`}
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">

@@ -77,17 +77,37 @@ const USAGE_REPLY = [
 // - 社内メンバー（profiles.line_user_id 登録者）から → 予定として解析しスケジュールに登録
 // - それ以外（顧客・未登録） → 受信トレイ（messages）に「要返信」で取り込む
 // LINE Developers コンソールで Webhook URL に https://<host>/api/line/webhook を設定する。
+// 受け付ける公式LINE。既存のもの（account=null）に加えて、環境変数が設定されている場合だけ
+// 「補助金の窓口」（account='hojokin'）も受け付ける。同じ Webhook URL を共有し、署名で判別する。
+type LineChannel = { account: string | null; secret: string; accessToken: string }
+
+function loadLineChannels(): LineChannel[] {
+  const channels: LineChannel[] = []
+  const secret = process.env.LINE_CHANNEL_SECRET
+  const token  = process.env.LINE_CHANNEL_ACCESS_TOKEN
+  if (secret && token) channels.push({ account: null, secret, accessToken: token })
+
+  const hojokinSecret = process.env.LINE_HOJOKIN_CHANNEL_SECRET
+  const hojokinToken  = process.env.LINE_HOJOKIN_CHANNEL_ACCESS_TOKEN
+  if (hojokinSecret && hojokinToken) {
+    channels.push({ account: 'hojokin', secret: hojokinSecret, accessToken: hojokinToken })
+  }
+  return channels
+}
+
 export async function POST(req: Request) {
-  const channelSecret = process.env.LINE_CHANNEL_SECRET
-  const accessToken   = process.env.LINE_CHANNEL_ACCESS_TOKEN
-  if (!channelSecret || !accessToken) {
+  const channels = loadLineChannels()
+  if (channels.length === 0) {
     return NextResponse.json({ error: 'LINE 環境変数が未設定です' }, { status: 503 })
   }
 
-  const rawBody = await req.text()
-  if (!verifyLineSignature(rawBody, req.headers.get('x-line-signature'), channelSecret)) {
+  const rawBody   = await req.text()
+  const signature = req.headers.get('x-line-signature')
+  const channel   = channels.find(c => verifyLineSignature(rawBody, signature, c.secret))
+  if (!channel) {
     return NextResponse.json({ error: 'invalid signature' }, { status: 401 })
   }
+  const accessToken = channel.accessToken
 
   const body = JSON.parse(rawBody) as LineWebhookBody
   const admin = createAdminClient()
@@ -217,6 +237,8 @@ export async function POST(req: Request) {
       line_group_id: groupId,
       needs_reply:   true,
       received_at:   event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString(),
+      // 既存の公式LINEでは付けない（マイグレーション前でも従来どおり動くようにするため）
+      ...(channel.account ? { line_account: channel.account } : {}),
     }).select('id').single()
     if (error) console.error('LINE webhook: insert failed', error)
 

@@ -163,6 +163,7 @@ export type DbMessage = {
   converted_to: 'project' | 'task' | 'event' | null
   source_type: 'user' | 'group' | 'room'
   line_group_id: string | null
+  line_account?: string | null
   chatwork_room_id: string | null
 }
 
