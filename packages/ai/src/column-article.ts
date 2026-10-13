@@ -255,10 +255,22 @@ export async function generateColumn(params: {
     Array.isArray(v) ? v.map(String)
     : typeof v === 'string' ? v.split(/\n+/).map(s => s.replace(/^\s*[-・•*]\s*/, '').trim()).filter(Boolean)
     : []
+  // 入れ子の配列(blocks/faq)がJSON文字列で返ることもあるため、文字列なら解析する
+  const parseJson = (v: unknown): unknown => {
+    if (typeof v !== 'string') return v
+    try { return JSON.parse(v) } catch { return v }
+  }
+  draft.blocks = parseJson(draft.blocks) as ArticleDraft['blocks']
+  draft.faq = parseJson(draft.faq) as ArticleDraft['faq']
+  draft.unsure = (parseJson(draft.unsure) as string[])
+  draft.key_points = (parseJson(draft.key_points) as string[])
+  draft.summary_points = (parseJson(draft.summary_points) as string[])
+  if (!Array.isArray(draft.blocks)) draft.blocks = []
+  if (!Array.isArray(draft.faq)) draft.faq = []
   draft.unsure = toArr(draft.unsure)
   draft.key_points = toArr(draft.key_points)
   draft.summary_points = toArr(draft.summary_points)
-  for (const b of (draft.blocks ?? []) as { items?: unknown }[]) if (b.items !== undefined) b.items = toArr(b.items)
+  for (const b of draft.blocks as { items?: unknown }[]) if (b && b.items !== undefined) b.items = toArr(parseJson(b.items))
   if (!draft.title || !draft.blocks?.length || !draft.faq?.length) {
     throw new Error('column: AIの出力が不完全です')
   }
