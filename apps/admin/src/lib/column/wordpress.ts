@@ -40,7 +40,20 @@ export async function createDraftPost(params: {
       categories: [COLUMN_CATEGORY_ID],
     }),
   })
-  if (!res.ok) throw new Error(`WordPress 下書きの作成に失敗しました (${res.status}) ${(await res.text()).slice(0, 200)}`)
+  if (!res.ok) {
+    const body = (await res.text()).slice(0, 200)
+    let diag = ''
+    if (res.status === 401 || res.status === 403) {
+      // 認証が通っているかの切り分け（本文は出さず、状態とコードだけ）
+      const me = await fetch(`${WP_BASE}/users/me?_fields=id,name`, {
+        headers: { Authorization: authHeader(), 'User-Agent': UA, Accept: 'application/json' },
+      }).catch(() => null)
+      const meText = me ? (await me.text()).replace(/\s+/g, ' ') : ''
+      const code = meText.match(/"code":"([a-z_]+)"/)?.[1] ?? ''
+      diag = ` [users/me: ${me?.status ?? 'fetch失敗'} ${code} user=${process.env.WP_USER} pwlen=${(process.env.WP_APP_PASSWORD ?? '').length}]`
+    }
+    throw new Error(`WordPress 下書きの作成に失敗しました (${res.status}) ${body}${diag}`)
+  }
   const post = (await res.json()) as { id: number }
   return { id: post.id, editUrl: `https://salud-web.jp/wp-admin/post.php?post=${post.id}&action=edit` }
 }
