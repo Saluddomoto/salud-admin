@@ -28,7 +28,7 @@ type Block =
   | { type: 'h2' | 'h3' | 'p'; text: string }
   | { type: 'ul'; items: string[] }
 
-type ArticleDraft = {
+type BuiltArticle = {
   title: string
   slug: string
   meta_description: string
@@ -36,6 +36,18 @@ type ArticleDraft = {
   key_points: string[]
   blocks: Block[]
   faq: { q: string; a: string }[]
+  summary_points: string[]
+  unsure: string[]
+}
+
+type ArticleDraft = {
+  title: string
+  slug: string
+  meta_description: string
+  lead: string
+  key_points: string[]
+  body: string
+  faq_text: string
   summary_points: string[]
   unsure: string[]
 }
@@ -51,27 +63,14 @@ const ARTICLE_TOOL: Anthropic.Tool = {
       meta_description: { type: 'string', description: '検索結果に出る説明文（90〜120字）' },
       lead: { type: 'string', description: '導入段落（2〜3文）。この記事で何が分かるかを書く' },
       key_points: { type: 'array', items: { type: 'string' }, description: '「この記事の結論」の箇条書き（3〜5個）' },
-      blocks: {
-        type: 'array',
-        description: '本文。h2/h3 の見出し、p の段落、ul の箇条書きを順に並べる。h2 は3〜5個。',
-        items: {
-          type: 'object',
-          properties: {
-            type: { type: 'string', enum: ['h2', 'h3', 'p', 'ul'] },
-            text: { type: 'string', description: 'h2/h3/p のとき' },
-            items: { type: 'array', items: { type: 'string' }, description: 'ul のとき' },
-          },
-          required: ['type'],
-        },
+      body: {
+        type: 'string',
+        description:
+          '本文。見出しは行頭の「## 」（h2・3〜5個）と「### 」（h3）、段落は空行で区切る、箇条書きは行頭の「- 」。h2は3〜5個。',
       },
-      faq: {
-        type: 'array',
-        description: 'よくある質問と回答（4〜5個）',
-        items: {
-          type: 'object',
-          properties: { q: { type: 'string' }, a: { type: 'string' } },
-          required: ['q', 'a'],
-        },
+      faq_text: {
+        type: 'string',
+        description: 'よくある質問と回答（4〜5個）。1問につき「Q: 質問」の行と「A: 回答」の行を書き、問と問の間は空行にする。',
       },
       summary_points: { type: 'array', items: { type: 'string' }, description: 'まとめの箇条書き（3〜4個）' },
       unsure: {
@@ -80,7 +79,7 @@ const ARTICLE_TOOL: Anthropic.Tool = {
         description: '根拠テキストだけでは断定できず、人の確認が必要な点（なければ空配列）',
       },
     },
-    required: ['title', 'slug', 'meta_description', 'lead', 'key_points', 'blocks', 'faq', 'summary_points', 'unsure'],
+    required: ['title', 'slug', 'meta_description', 'lead', 'key_points', 'body', 'faq_text', 'summary_points', 'unsure'],
   },
 }
 
@@ -138,7 +137,7 @@ function ctaEnd(label: string, headline: string): string {
   )
 }
 
-function buildHtml(a: ArticleDraft, subsidy: ColumnSubsidy): string {
+function buildHtml(a: BuiltArticle, subsidy: ColumnSubsidy): string {
   const slugKey = String(a.slug ?? '').replace(/[^a-z0-9-]/g, '').slice(0, 24)
   const parts: string[] = []
 
@@ -249,31 +248,57 @@ export async function generateColumn(params: {
     (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use' && b.name === ARTICLE_TOOL.name,
   )
   if (!toolUse) throw new Error('column: AIの出力が取得できませんでした')
-  const draft = toolUse.input as ArticleDraft
-  const rawInput = toolUse.input as Record<string, unknown>
-  const rawInfo = `keys=${Object.keys(rawInput).join(',')} blocks=${typeof rawInput.blocks}:${String(typeof rawInput.blocks === 'string' ? rawInput.blocks : JSON.stringify(rawInput.blocks)).slice(0, 150)} faq=${typeof rawInput.faq}:${String(typeof rawInput.faq === 'string' ? rawInput.faq : JSON.stringify(rawInput.faq)).slice(0, 100)} stop=${response.stop_reason}`
-  // モデルが配列項目を文字列で返すことがあるため、配列に正規化する
-  const toArr = (v: unknown): string[] =>
-    Array.isArray(v) ? v.map(String)
-    : typeof v === 'string' ? v.split(/\n+/).map(s => s.replace(/^\s*[-・•*]\s*/, '').trim()).filter(Boolean)
-    : []
-  // 入れ子の配列(blocks/faq)がJSON文字列で返ることもあるため、文字列なら解析する
-  const parseJson = (v: unknown): unknown => {
-    if (typeof v !== 'string') return v
-    try { return JSON.parse(v) } catch { return v }
+  const raw = toolUse.input as Record<string, unknown>
+  const rawInfo = `keys=${Object.keys(raw).join(',')} body=${typeof raw.body}:${String(raw.body ?? '').slice(0, 120)} faq_text=${typeof raw.faq_text}:${String(raw.faq_text ?? '').slice(0, 80)} stop=${response.stop_reason}`
+  const str = (v: unknown): string => (typeof v === 'string' ? v : '')
+  // 箇条書き項目は、配列でも改行区切りの文字列でも受ける
+  const toArr = (v: unknown): string[] => {
+    if (typeof v === 'string') {
+      try { const j = JSON.parse(v); if (Array.isArray(j)) return j.map(String) } catch { /* 文字列として扱う */ }
+      return v.split(/\n+/).map(s => s.replace(/^\s*[-・•*]\s*/, '').trim()).filter(Boolean)
+    }
+    return Array.isArray(v) ? v.map(String) : []
   }
-  draft.blocks = parseJson(draft.blocks) as ArticleDraft['blocks']
-  draft.faq = parseJson(draft.faq) as ArticleDraft['faq']
-  draft.unsure = (parseJson(draft.unsure) as string[])
-  draft.key_points = (parseJson(draft.key_points) as string[])
-  draft.summary_points = (parseJson(draft.summary_points) as string[])
-  if (!Array.isArray(draft.blocks)) draft.blocks = []
-  if (!Array.isArray(draft.faq)) draft.faq = []
-  draft.unsure = toArr(draft.unsure)
-  draft.key_points = toArr(draft.key_points)
-  draft.summary_points = toArr(draft.summary_points)
-  for (const b of draft.blocks as { items?: unknown }[]) if (b && b.items !== undefined) b.items = toArr(parseJson(b.items))
-  if (!draft.title || !draft.blocks?.length || !draft.faq?.length) {
+  // 本文: 「## 」h2、「### 」h3、「- 」箇条書き、空行区切りの段落
+  const blocks: Block[] = []
+  let para: string[] = []
+  let items: string[] = []
+  const flush = () => {
+    if (para.length) blocks.push({ type: 'p', text: para.join('') })
+    if (items.length) blocks.push({ type: 'ul', items })
+    para = []; items = []
+  }
+  for (const line of str(raw.body).split('\n')) {
+    const t = line.trim()
+    if (!t) { flush(); continue }
+    if (t.startsWith('### ')) { flush(); blocks.push({ type: 'h3', text: t.slice(4) }) }
+    else if (t.startsWith('## ')) { flush(); blocks.push({ type: 'h2', text: t.slice(3) }) }
+    else if (/^[-・•*]\s+/.test(t)) { if (para.length) flush(); items.push(t.replace(/^[-・•*]\s+/, '')) }
+    else { if (items.length) flush(); para.push(t) }
+  }
+  flush()
+  // よくある質問: 「Q: 」「A: 」の行
+  const faq: { q: string; a: string }[] = []
+  for (const line of str(raw.faq_text).split('\n')) {
+    const t = line.trim()
+    const mq = t.match(/^Q[:：.]\s*(.+)$/i)
+    const ma = t.match(/^A[:：.]\s*(.+)$/i)
+    if (mq) faq.push({ q: mq[1]!, a: '' })
+    else if (ma && faq.length) faq[faq.length - 1]!.a += ma[1]
+    else if (t && faq.length && faq[faq.length - 1]!.a) faq[faq.length - 1]!.a += t
+  }
+  const draft = {
+    title: str(raw.title),
+    slug: str(raw.slug),
+    meta_description: str(raw.meta_description),
+    lead: str(raw.lead),
+    key_points: toArr(raw.key_points),
+    blocks,
+    faq: faq.filter(f => f.q && f.a),
+    summary_points: toArr(raw.summary_points),
+    unsure: toArr(raw.unsure),
+  }
+  if (!draft.title || !draft.blocks.length || !draft.faq.length) {
     throw new Error(`column: AIの出力が不完全です ${rawInfo}`)
   }
 
