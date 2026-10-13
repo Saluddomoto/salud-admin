@@ -227,7 +227,7 @@ export async function generateColumn(params: {
     '【既存の記事（同じ切り口は避ける）】',
     existingTitles.length ? existingTitles.map(t => `・${t}`).join('\n') : '（まだありません）',
     '',
-    '上のリストにない切り口で、読者が検索しそうな疑問を1つ選び、コラム1本を書いて、submit_article で提出してください。',
+    '上のリストにない切り口で、読者が検索しそうな疑問を1つ選び、コラム1本を書いて、必ず submit_article ツールを呼んで提出してください（文章での返答はしない）。',
     '',
     '【根拠テキスト（これ以外の事実は書かない）】',
     subsidy.facts,
@@ -238,7 +238,8 @@ export async function generateColumn(params: {
     max_tokens: 12000,
     system: SYSTEM_PROMPT,
     tools: [ARTICLE_TOOL],
-    tool_choice: { type: 'tool', name: ARTICLE_TOOL.name },
+    // このモデルは tool_choice の強制指定('tool'/'any')に非対応。ツールは1つだけなので auto で呼ばせる
+    tool_choice: { type: 'auto' },
     messages: [{ role: 'user', content: userText }],
   })
 
