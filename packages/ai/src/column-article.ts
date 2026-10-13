@@ -248,6 +248,15 @@ export async function generateColumn(params: {
   )
   if (!toolUse) throw new Error('column: AIの出力が取得できませんでした')
   const draft = toolUse.input as ArticleDraft
+  // モデルが配列項目を文字列で返すことがあるため、配列に正規化する
+  const toArr = (v: unknown): string[] =>
+    Array.isArray(v) ? v.map(String)
+    : typeof v === 'string' ? v.split(/\n+/).map(s => s.replace(/^\s*[-・•*]\s*/, '').trim()).filter(Boolean)
+    : []
+  draft.unsure = toArr(draft.unsure)
+  draft.key_points = toArr(draft.key_points)
+  draft.summary_points = toArr(draft.summary_points)
+  for (const b of (draft.blocks ?? []) as { items?: unknown }[]) if (b.items !== undefined) b.items = toArr(b.items)
   if (!draft.title || !draft.blocks?.length || !draft.faq?.length) {
     throw new Error('column: AIの出力が不完全です')
   }
