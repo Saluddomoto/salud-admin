@@ -11,10 +11,10 @@ function authHeader(): string {
   return 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64')
 }
 
-/** 既存コラム（公開・下書き）のタイトル一覧。重複する切り口を避けるために使う */
+/** 公開済みコラムのタイトル一覧（認証不要）。重複する切り口を避けるために使う。下書き分は column_drafts 側で補う */
 export async function fetchColumnTitles(): Promise<string[]> {
-  const url = `${WP_BASE}/posts?categories=${COLUMN_CATEGORY_ID}&status=publish,draft,pending&per_page=100&_fields=title`
-  const res = await fetch(url, { headers: { Authorization: authHeader() } })
+  const url = `${WP_BASE}/posts?categories=${COLUMN_CATEGORY_ID}&per_page=100&_fields=title`
+  const res = await fetch(url)
   if (!res.ok) throw new Error(`WordPress 記事一覧の取得に失敗しました (${res.status})`)
   const rows = (await res.json()) as { title: { rendered: string } }[]
   return rows.map(r => r.title.rendered.replace(/&amp;/g, '&').replace(/&#\d+;/g, ''))
