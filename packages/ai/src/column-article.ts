@@ -250,6 +250,8 @@ export async function generateColumn(params: {
   )
   if (!toolUse) throw new Error('column: AIの出力が取得できませんでした')
   const draft = toolUse.input as ArticleDraft
+  const rawInput = toolUse.input as Record<string, unknown>
+  const rawInfo = `keys=${Object.keys(rawInput).join(',')} blocks=${typeof rawInput.blocks}:${String(typeof rawInput.blocks === 'string' ? rawInput.blocks : JSON.stringify(rawInput.blocks)).slice(0, 150)} faq=${typeof rawInput.faq}:${String(typeof rawInput.faq === 'string' ? rawInput.faq : JSON.stringify(rawInput.faq)).slice(0, 100)} stop=${response.stop_reason}`
   // モデルが配列項目を文字列で返すことがあるため、配列に正規化する
   const toArr = (v: unknown): string[] =>
     Array.isArray(v) ? v.map(String)
@@ -272,7 +274,7 @@ export async function generateColumn(params: {
   draft.summary_points = toArr(draft.summary_points)
   for (const b of draft.blocks as { items?: unknown }[]) if (b && b.items !== undefined) b.items = toArr(parseJson(b.items))
   if (!draft.title || !draft.blocks?.length || !draft.faq?.length) {
-    throw new Error('column: AIの出力が不完全です')
+    throw new Error(`column: AIの出力が不完全です ${rawInfo}`)
   }
 
   const slug = (draft.slug || 'column').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
