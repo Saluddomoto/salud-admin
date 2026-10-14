@@ -287,6 +287,8 @@ function buildHtml(a: BuiltArticle, subsidy: ColumnSubsidy, today: string): stri
     `<ul><li><a href="https://salud-web.jp${esc(subsidy.relatedPath)}">${esc(subsidy.name)}のご案内</a></li></ul>`,
   )
 
+  parts.push(SUPERVISOR_BOX_HTML)
+
   return parts.join('\n')
 }
 
