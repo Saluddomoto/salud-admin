@@ -11,6 +11,10 @@ export const COLUMN_SUBSIDIES: ColumnSubsidy[] = [
     key: 'jizokuka',
     name: '小規模事業者持続化補助金（一般型 通常枠・第20回）',
     facts: JIZOKUKA_FACTS,
+    practicalNotes: [
+      '・事業支援計画書（様式4）の発行にあたっての面談は、商工会地区だけでなく、商工会議所地区でも、事前の相談や面談を求められることが多い（公募要領には商工会議所地区の面談の記載はない）。',
+      '・面談はオンラインで対応する窓口もあるが、対応は地域（窓口）によって異なる。早めに地域の窓口へ連絡して確認するよう案内する。',
+    ].join('\n'),
     sourceLabel: '小規模事業者持続化補助金＜一般型 通常枠＞ 第20回公募 公募要領',
     sourceUrl: 'https://salud-web.jp/jizokuka/',
     checkedAt: '2026-10-08',

@@ -5,6 +5,8 @@ export type ColumnSubsidy = {
   key: string
   name: string
   facts: string
+  /** 公募要領に書かれていない、弊社の実務上の知見（任意）。事実とは区別して使わせる */
+  practicalNotes?: string
   sourceLabel: string
   sourceUrl: string
   checkedAt: string
@@ -26,7 +28,9 @@ export type ColumnArticle = {
 
 type Block =
   | { type: 'h2' | 'h3' | 'p'; text: string }
-  | { type: 'ul'; items: string[] }
+  | { type: 'ul' | 'ol'; items: string[] }
+  | { type: 'table'; rows: string[][] }
+  | { type: 'chat'; lines: { who: '経営者' | '担当者'; text: string }[] }
 
 type BuiltArticle = {
   title: string
@@ -66,7 +70,7 @@ const ARTICLE_TOOL: Anthropic.Tool = {
       body: {
         type: 'string',
         description:
-          '本文。見出しは行頭の「## 」（h2・3〜5個）と「### 」（h3）、段落は空行で区切る、箇条書きは行頭の「- 」。h2は3〜5個。',
+          '本文。行頭の「## 」=h2（3〜5個・疑問形）、「### 」=h3、段落は空行で区切る、「- 」=箇条書き、「1. 」=手順、「| 項目 | … |」=表（2行目に|---|---|）、「経営者：」「担当者：」=会話。表を最低1つ、手順を最低1つ、会話を1か所入れる。',
       },
       faq_text: {
         type: 'string',
@@ -99,6 +103,23 @@ const SYSTEM_PROMPT = [
   '・重要な語句は **太字**、特に重要な箇所（金額・締切・必須要件など）は ==マーカー== で囲む。HTMLタグは書かない。',
   '・本文はh2を3〜5個。具体例や「やってはいけない例」を入れて、読者が自社に当てはめられるようにする。',
   '・「既存の記事」と同じ切り口・同じタイトルは避け、読者の疑問に1つだけ深く答える記事にする。',
+  '',
+  '【AIO対策（AI検索・生成AIに引用されやすくする。全記事で必須）】',
+  '・lead（導入）は、記事の問いへの答えを最初の1〜2文で言い切る。その文だけ読んでも意味が通るようにし、「これ」「それ」など指示語で始めない。',
+  '・h2の見出しは、読者が検索しそうな「疑問の形」にする（例：「事業支援計画書（様式4）とは何ですか？」「いつまでに発行を依頼すればよいですか？」）。',
+  '・各h2の直後の最初の段落は、見出しの問いに対する結論を1文（60字前後）で言い切る。そのあとに理由・条件・例外を書く。',
+  '・用語を初めて出すときは「〇〇とは、△△のことです。」の形で定義する。',
+  '・主語や固有名詞（補助金名・書類名・「第20回」など）を省略せず、段落だけ抜き出されても意味が通るように書く。',
+  '・比較や条件の整理には、必ず表を使う。記事全体で表を最低1つ入れる。',
+  '・手順や流れには、必ず番号付きの手順（1. 2. 3.）を使う。記事全体で最低1つ入れる。',
+  '・読者がつまずきやすい疑問を、経営者と担当者の短い会話（4〜6行）で1か所入れる。会話の中身も、根拠テキストの事実だけで作る。',
+  '・日付・金額・件数など、根拠テキストにある具体的な数字は、はっきり書く（書き写す。作らない）。',
+  '',
+  '【本文(body)の記法】',
+  '・見出しは行頭の「## 」(h2)・「### 」(h3)。段落は空行で区切る。',
+  '・箇条書きは行頭の「- 」。番号付きの手順は行頭の「1. 」「2. 」…。',
+  '・表は、行を「| 項目 | 内容A | 内容B |」の形で書き、2行目に「|---|---|---|」を置く。セルの中では改行しない。',
+  '・会話は、行頭を「経営者：」または「担当者：」で始める（1行に1発言）。',
 ].join('\n')
 
 function esc(s: string): string {
@@ -137,7 +158,7 @@ function ctaEnd(label: string, headline: string): string {
   )
 }
 
-function buildHtml(a: BuiltArticle, subsidy: ColumnSubsidy): string {
+function buildHtml(a: BuiltArticle, subsidy: ColumnSubsidy, today: string): string {
   const slugKey = String(a.slug ?? '').replace(/[^a-z0-9-]/g, '').slice(0, 24)
   const parts: string[] = []
 
@@ -159,6 +180,34 @@ function buildHtml(a: BuiltArticle, subsidy: ColumnSubsidy): string {
 
   let h2Count = 0
   for (const b of a.blocks) {
+    if (b.type === 'table') {
+      const [head, ...body] = b.rows
+      if (!head?.length) continue
+      const cell = 'border:1px solid #c9d6e0;padding:8px 10px;vertical-align:top;'
+      parts.push(
+        `<div style="overflow-x:auto;margin:16px 0;"><table style="border-collapse:collapse;width:100%;min-width:480px;font-size:15px;line-height:1.7;">` +
+        `<thead><tr>${head.map(c => `<th style="${cell}background:#eaf2f8;text-align:left;">${inline(c)}</th>`).join('')}</tr></thead>` +
+        `<tbody>${body.map(r => `<tr>${r.map(c => `<td style="${cell}">${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`,
+      )
+      continue
+    }
+    if (b.type === 'chat') {
+      if (!b.lines.length) continue
+      parts.push(
+        `<div style="background:#f7f9fb;border:1px solid #dde6ee;border-radius:12px;padding:12px 14px;margin:16px 0;">` +
+        b.lines.map(l => {
+          const owner = l.who === '経営者'
+          return `<p style="margin:8px 0;display:flex;gap:8px;align-items:flex-start;${owner ? '' : 'flex-direction:row-reverse;'}">` +
+            `<span style="flex:none;font-size:12px;font-weight:700;color:#fff;background:${owner ? '#6b7c8c' : '#1f6a96'};border-radius:999px;padding:3px 9px;">${l.who}</span>` +
+            `<span style="background:${owner ? '#fff' : '#e3f1fa'};border:1px solid #dde6ee;border-radius:10px;padding:8px 12px;line-height:1.7;">${inline(l.text)}</span></p>`
+        }).join('') + `</div>`,
+      )
+      continue
+    }
+    if (b.type === 'ol') {
+      parts.push(`<ol>${(b.items ?? []).map(i => `<li>${inline(i)}</li>`).join('')}</ol>`)
+      continue
+    }
     if (b.type !== 'ul' && !(b as { text?: string }).text) continue
     if (b.type === 'h2') {
       h2Count += 1
@@ -190,6 +239,20 @@ function buildHtml(a: BuiltArticle, subsidy: ColumnSubsidy): string {
   }
   // </ を含む文字列で script が途切れないようにする
   parts.push(`<p><script type="application/ld+json">${JSON.stringify(faqJson).replace(/</g, '\\u003c')}</script></p>`)
+  // 記事そのものの構造化データ（AI検索・検索エンジンが、誰がいつ書いた記事かを読み取れるようにする）
+  const articleJson = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: plain(a.title),
+    description: plain(a.meta_description),
+    inLanguage: 'ja',
+    datePublished: today,
+    dateModified: today,
+    author: { '@type': 'Organization', name: '株式会社Salud', url: 'https://salud-web.jp/' },
+    publisher: { '@type': 'Organization', name: '株式会社Salud', url: 'https://salud-web.jp/' },
+    about: subsidy.name,
+  }
+  parts.push(`<p><script type="application/ld+json">${JSON.stringify(articleJson).replace(/</g, '\\u003c')}</script></p>`)
 
   parts.push('<h2>まとめ</h2>', `<ul>${a.summary_points.map(p => `<li>${inline(p)}</li>`).join('')}</ul>`)
   parts.push(ctaEnd(`p_${slugKey}_end`, '自社の場合はどうなる？まずは無料でご相談ください'))
@@ -232,6 +295,9 @@ export async function generateColumn(params: {
     '',
     '【根拠テキスト（これ以外の事実は書かない）】',
     subsidy.facts,
+    ...(subsidy.practicalNotes
+      ? ['', '【弊社の実務上の知見（公募要領の事実ではない。使う場合は必ず「公募要領には記載がありませんが、実務では」「弊社の経験では」のように区別して書く。断定しない）】', subsidy.practicalNotes]
+      : []),
   ].join('\n')
 
   const response = await getClient().messages.create({
@@ -259,22 +325,40 @@ export async function generateColumn(params: {
     }
     return Array.isArray(v) ? v.map(String) : []
   }
-  // 本文: 「## 」h2、「### 」h3、「- 」箇条書き、空行区切りの段落
+  // 本文: 「## 」h2、「### 」h3、「- 」箇条書き、「1. 」手順、「| 」表、「経営者：/担当者：」会話、空行区切りの段落
   const blocks: Block[] = []
   let para: string[] = []
   let items: string[] = []
+  let steps: string[] = []
+  let tableRows: string[][] = []
+  let chat: { who: '経営者' | '担当者'; text: string }[] = []
   const flush = () => {
     if (para.length) blocks.push({ type: 'p', text: para.join('') })
     if (items.length) blocks.push({ type: 'ul', items })
-    para = []; items = []
+    if (steps.length) blocks.push({ type: 'ol', items: steps })
+    if (tableRows.length) blocks.push({ type: 'table', rows: tableRows })
+    if (chat.length) blocks.push({ type: 'chat', lines: chat })
+    para = []; items = []; steps = []; tableRows = []; chat = []
   }
   for (const line of str(raw.body).split('\n')) {
     const t = line.trim()
     if (!t) { flush(); continue }
     if (t.startsWith('### ')) { flush(); blocks.push({ type: 'h3', text: t.slice(4) }) }
     else if (t.startsWith('## ')) { flush(); blocks.push({ type: 'h2', text: t.slice(3) }) }
-    else if (/^[-・•*]\s+/.test(t)) { if (para.length) flush(); items.push(t.replace(/^[-・•*]\s+/, '')) }
-    else { if (items.length) flush(); para.push(t) }
+    else if (t.startsWith('|')) {
+      if (!tableRows.length) flush()
+      const cells = t.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim())
+      if (cells.every(c => /^:?-{2,}:?$/.test(c))) continue // 区切り行
+      tableRows.push(cells)
+    }
+    else if (/^(経営者|担当者)[:：]/.test(t)) {
+      if (!chat.length) flush()
+      const m = t.match(/^(経営者|担当者)[:：]\s*(.*)$/)!
+      chat.push({ who: m[1] as '経営者' | '担当者', text: m[2]! })
+    }
+    else if (/^\d+[.．)）]\s*/.test(t)) { if (!steps.length) flush(); steps.push(t.replace(/^\d+[.．)）]\s*/, '')) }
+    else if (/^[-・•*]\s+/.test(t)) { if (!items.length) flush(); items.push(t.replace(/^[-・•*]\s+/, '')) }
+    else { if (!para.length) flush(); para.push(t) }
   }
   flush()
   // よくある質問: 「Q: 」「A: 」の行
@@ -307,7 +391,7 @@ export async function generateColumn(params: {
     title: plain(draft.title).trim(),
     slug: `${subsidy.key}-${slug}`.slice(0, 80),
     metaDescription: plain(draft.meta_description ?? '').trim(),
-    html: buildHtml({ ...draft, slug }, subsidy),
+    html: buildHtml({ ...draft, slug }, subsidy, today),
     unsure: (draft.unsure ?? []).map(plain),
   }
 }
