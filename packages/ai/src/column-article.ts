@@ -24,6 +24,8 @@ export type ColumnArticle = {
   metaDescription: string
   html: string
   unsure: string[]
+  /** アイキャッチ画像に入れる文言 */
+  thumb: { lines: string[]; sub: string }
 }
 
 type Block =
@@ -65,6 +67,9 @@ const ARTICLE_TOOL: Anthropic.Tool = {
       title: { type: 'string', description: '記事タイトル（40字前後。検索されやすい言葉を含める）' },
       slug: { type: 'string', description: 'URLの末尾。半角英小文字とハイフンのみ、3〜6語' },
       meta_description: { type: 'string', description: '検索結果に出る説明文（90〜120字）' },
+      thumb_line1: { type: 'string', description: 'サムネイル画像の1行目（全角14字以内。タイトルの要点。途中で不自然に切らない）' },
+      thumb_line2: { type: 'string', description: 'サムネイル画像の2行目（全角14字以内。疑問形で終えてもよい）' },
+      thumb_sub: { type: 'string', description: 'サムネイル画像の補足（全角28字以内。補助金名や期限など）' },
       lead: { type: 'string', description: '導入段落（2〜3文）。この記事で何が分かるかを書く' },
       key_points: { type: 'array', items: { type: 'string' }, description: '「この記事の結論」の箇条書き（3〜5個）' },
       body: {
@@ -83,7 +88,7 @@ const ARTICLE_TOOL: Anthropic.Tool = {
         description: '根拠テキストだけでは断定できず、人の確認が必要な点（なければ空配列）',
       },
     },
-    required: ['title', 'slug', 'meta_description', 'lead', 'key_points', 'body', 'faq_text', 'summary_points', 'unsure'],
+    required: ['title', 'slug', 'meta_description', 'thumb_line1', 'thumb_line2', 'thumb_sub', 'lead', 'key_points', 'body', 'faq_text', 'summary_points', 'unsure'],
   },
 }
 
@@ -384,6 +389,15 @@ export async function generateColumn(params: {
     throw new Error(`column: AIの出力が不完全です ${rawInfo}`)
   }
 
+  // サムネイルの文言。AIが返さなかったときは、タイトルを2行に分けて代用する
+  let thumbLines = [str(raw.thumb_line1), str(raw.thumb_line2)].map(plain).map(x => x.trim()).filter(Boolean)
+  if (!thumbLines.length) {
+    const t = plain(draft.title)
+    const cut = Math.ceil(t.length / 2)
+    thumbLines = t.length > 14 ? [t.slice(0, cut), t.slice(cut)] : [t]
+  }
+  const thumb = { lines: thumbLines, sub: plain(str(raw.thumb_sub)).trim() }
+
   const slug = (draft.slug || 'column').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
   return {
     title: plain(draft.title).trim(),
@@ -391,5 +405,6 @@ export async function generateColumn(params: {
     metaDescription: plain(draft.meta_description ?? '').trim(),
     html: buildHtml({ ...draft, slug }, subsidy, today),
     unsure: (draft.unsure ?? []).map(plain),
+    thumb: thumb,
   }
 }

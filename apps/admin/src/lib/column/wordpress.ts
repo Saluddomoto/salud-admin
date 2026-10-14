@@ -22,11 +22,36 @@ export async function fetchColumnTitles(): Promise<string[]> {
   return rows.map(r => r.title.rendered.replace(/&amp;/g, '&').replace(/&#\d+;/g, ''))
 }
 
+/** 画像をメディアに保存して、メディアIDを返す */
+export async function uploadMedia(params: { buffer: Buffer; filename: string; alt: string }): Promise<number> {
+  const res = await fetch(`${WP_BASE}/media`, {
+    method: 'POST',
+    headers: {
+      Authorization: authHeader(),
+      'Content-Type': 'image/png',
+      'Content-Disposition': `attachment; filename="${params.filename}"`,
+      'User-Agent': UA,
+      Accept: 'application/json',
+    },
+    body: new Uint8Array(params.buffer),
+  })
+  if (!res.ok) throw new Error(`WordPress 画像の保存に失敗しました (${res.status}) ${(await res.text()).replace(/\s+/g, ' ').slice(0, 160)}`)
+  const media = (await res.json()) as { id: number }
+  // 画像の説明文（alt）
+  await fetch(`${WP_BASE}/media/${media.id}`, {
+    method: 'POST',
+    headers: { Authorization: authHeader(), 'Content-Type': 'application/json', 'User-Agent': UA },
+    body: JSON.stringify({ alt_text: params.alt }),
+  }).catch(() => undefined)
+  return media.id
+}
+
 export async function createDraftPost(params: {
   title: string
   slug: string
   excerpt: string
   html: string
+  featuredMediaId?: number
 }): Promise<{ id: number; editUrl: string }> {
   const res = await fetch(`${WP_BASE}/posts`, {
     method: 'POST',
@@ -38,6 +63,7 @@ export async function createDraftPost(params: {
       content: params.html,
       status: 'draft',
       categories: [COLUMN_CATEGORY_ID],
+      ...(params.featuredMediaId ? { featured_media: params.featuredMediaId } : {}),
     }),
   })
   if (!res.ok) {

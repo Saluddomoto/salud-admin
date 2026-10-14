@@ -3,7 +3,8 @@ import { linePush } from '@salud/line'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { COLUMN_SUBSIDIES } from '@/lib/column/subsidies'
 import { generateColumn } from '@salud/ai'
-import { createDraftPost, fetchColumnTitles } from '@/lib/column/wordpress'
+import { createDraftPost, fetchColumnTitles, uploadMedia } from '@/lib/column/wordpress'
+import { renderEyecatch } from '@/lib/column/eyecatch'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -44,11 +45,23 @@ export async function GET(req: Request) {
     const existingTitles = [...new Set([...wpTitles, ...(history ?? []).map(h => h.title)])]
 
     const article = await generateColumn({ subsidy, existingTitles, today })
+    // アイキャッチ画像（失敗しても下書きは作る。通知で知らせる）
+    let featuredMediaId: number | undefined
+    let thumbError = ''
+    try {
+      const png = await renderEyecatch(article.thumb)
+      featuredMediaId = await uploadMedia({ buffer: png, filename: `${article.slug}-eyecatch.png`, alt: article.title })
+    } catch (e) {
+      thumbError = e instanceof Error ? e.message : 'failed'
+      console.error('column-draft: eyecatch failed', e)
+    }
+
     const post = await createDraftPost({
       title: article.title,
       slug: article.slug,
       excerpt: article.metaDescription,
       html: article.html,
+      featuredMediaId,
     })
 
     const { error: insertError } = await admin.from('column_drafts').insert({
@@ -75,6 +88,7 @@ export async function GET(req: Request) {
           ? `⚠ 要確認 ${article.unsure.length}点\n${article.unsure.slice(0, 8).map(u => `・${u}`).join('\n')}`
           : '要確認の点: なし（公開前に内容をご確認ください）',
         '',
+        featuredMediaId ? '🖼 サムネイル: 自動で設定済み' : '🖼 サムネイル: 自動作成に失敗しました（手動で追加してください）',
         `編集・確認: ${post.editUrl}`,
       ]
       for (const m of members ?? []) {
@@ -84,7 +98,7 @@ export async function GET(req: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true, subsidy: subsidy.key, title: article.title, wpPostId: post.id, unsure: article.unsure.length, notified: sent })
+    return NextResponse.json({ ok: true, subsidy: subsidy.key, title: article.title, wpPostId: post.id, unsure: article.unsure.length, notified: sent, eyecatch: featuredMediaId ?? null, thumbError: thumbError || undefined })
   } catch (e) {
     console.error('column-draft: failed', e)
     return NextResponse.json({ error: e instanceof Error ? e.message : 'failed' }, { status: 500 })
