@@ -162,10 +162,8 @@ function buildHtml(a: BuiltArticle, subsidy: ColumnSubsidy, today: string): stri
   const slugKey = String(a.slug ?? '').replace(/[^a-z0-9-]/g, '').slice(0, 24)
   const parts: string[] = []
 
-  if (a.unsure.length > 0) {
-    // 公開しても表示されないコメント。編集画面のコードエディタで確認できる
-    parts.push(`<!-- 要確認（自動生成）:\n${a.unsure.map(u => `- ${String(u).replace(/--/g, '－')}`).join('\n')}\n-->`)
-  }
+  // 「要確認」は記事に埋め込まない（HTMLソースに残り、公開後に誰でも読めてしまうため）。
+  // 呼び出し側でLINE通知と column_drafts に残す。
 
   parts.push(`<p>${inline(a.lead)}</p>`)
   parts.push(

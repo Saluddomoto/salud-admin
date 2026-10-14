@@ -72,7 +72,7 @@ export async function GET(req: Request) {
         article.title,
         '',
         article.unsure.length
-          ? `⚠ 要確認 ${article.unsure.length}点\n${article.unsure.slice(0, 5).map(u => `・${u}`).join('\n')}`
+          ? `⚠ 要確認 ${article.unsure.length}点\n${article.unsure.slice(0, 8).map(u => `・${u}`).join('\n')}`
           : '要確認の点: なし（公開前に内容をご確認ください）',
         '',
         `編集・確認: ${post.editUrl}`,
