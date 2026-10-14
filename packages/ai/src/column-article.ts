@@ -171,6 +171,13 @@ function ctaEnd(label: string, headline: string): string {
   )
 }
 
+/** 監修者欄（記事の最後に入れる）。既存記事への追加でも同じHTMLを使う */
+export const SUPERVISOR_BOX_HTML =
+  '<div class="saludw-supervisor" style="border:1px solid #dde6ee;border-radius:12px;background:#f7f9fb;padding:14px 18px;margin:28px 0;">' +
+  '<p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#1f6a96;">監修者</p>' +
+  '<p style="margin:0;font-size:16px;line-height:1.7;"><strong>堂本 拓央</strong>（株式会社Salud 代表取締役）</p>' +
+  '<p style="margin:6px 0 0;font-size:14px;line-height:1.7;"><a href="https://salud-web.jp/ceo/">代表者のプロフィールはこちら</a></p></div>'
+
 function buildHtml(a: BuiltArticle, subsidy: ColumnSubsidy, today: string): string {
   const slugKey = String(a.slug ?? '').replace(/[^a-z0-9-]/g, '').slice(0, 24)
   const parts: string[] = []
@@ -262,6 +269,7 @@ function buildHtml(a: BuiltArticle, subsidy: ColumnSubsidy, today: string): stri
     author: { '@type': 'Organization', name: '株式会社Salud', url: 'https://salud-web.jp/' },
     publisher: { '@type': 'Organization', name: '株式会社Salud', url: 'https://salud-web.jp/' },
     about: subsidy.name,
+    reviewedBy: { '@type': 'Person', name: '堂本 拓央', jobTitle: '代表取締役', worksFor: { '@type': 'Organization', name: '株式会社Salud' } },
   }
   parts.push(`<p><script type="application/ld+json">${JSON.stringify(articleJson).replace(/</g, '\\u003c')}</script></p>`)
 
