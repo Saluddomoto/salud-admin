@@ -26,6 +26,8 @@ export type ColumnArticle = {
   unsure: string[]
   /** アイキャッチ画像に入れる文言 */
   thumb: { lines: string[]; sub: string }
+  /** 狙うキーワードと、SEO/AIOの効果予測（担当者向け。記事には載せない） */
+  insight: { keywords: string[]; seo: string; aio: string }
 }
 
 type Block =
@@ -67,6 +69,9 @@ const ARTICLE_TOOL: Anthropic.Tool = {
       title: { type: 'string', description: '記事タイトル（40字前後。検索されやすい言葉を含める）' },
       slug: { type: 'string', description: 'URLの末尾。半角英小文字とハイフンのみ、3〜6語' },
       meta_description: { type: 'string', description: '検索結果に出る説明文（90〜120字）' },
+      target_keywords: { type: 'array', items: { type: 'string' }, description: '狙う検索キーワード（主キーワード1つ＋関連2〜4つ。実際に検索されそうな言い方）' },
+      seo_forecast: { type: 'string', description: 'SEOの効果予測（担当者向け・200字以内）。検索意図、競合の強さの見立て、狙える順位帯と時期の目安を、「高/中/低」の評価と理由で。数値の断定はしない。' },
+      aio_forecast: { type: 'string', description: 'AIO（AI検索・生成AIでの引用）の効果予測（担当者向け・200字以内）。引用されやすい箇所（結論文・表・手順・Q&A）と、弱い点を、「高/中/低」の評価と理由で。数値の断定はしない。' },
       thumb_line1: { type: 'string', description: 'サムネイル画像の1行目（全角14字以内。タイトルの要点。途中で不自然に切らない）' },
       thumb_line2: { type: 'string', description: 'サムネイル画像の2行目（全角14字以内。疑問形で終えてもよい）' },
       thumb_sub: { type: 'string', description: 'サムネイル画像の補足（全角28字以内。補助金名や期限など）' },
@@ -88,7 +93,7 @@ const ARTICLE_TOOL: Anthropic.Tool = {
         description: '根拠テキストだけでは断定できず、人の確認が必要な点（なければ空配列）',
       },
     },
-    required: ['title', 'slug', 'meta_description', 'thumb_line1', 'thumb_line2', 'thumb_sub', 'lead', 'key_points', 'body', 'faq_text', 'summary_points', 'unsure'],
+    required: ['title', 'slug', 'meta_description', 'target_keywords', 'seo_forecast', 'aio_forecast', 'thumb_line1', 'thumb_line2', 'thumb_sub', 'lead', 'key_points', 'body', 'faq_text', 'summary_points', 'unsure'],
   },
 }
 
@@ -119,6 +124,9 @@ const SYSTEM_PROMPT = [
   '・手順や流れには、必ず番号付きの手順（1. 2. 3.）を使う。記事全体で最低1つ入れる。',
   '・読者がつまずきやすい疑問を、経営者と担当者の短い会話（4〜6行）で1か所入れる。会話の中身も、根拠テキストの事実だけで作る。',
   '・日付・金額・件数など、根拠テキストにある具体的な数字は、はっきり書く（書き写す。作らない）。',
+  '',
+  '【担当者向けの分析（記事には載せない）】',
+  '・target_keywords は、実際の検索で使われそうな言葉にする。seo_forecast と aio_forecast は、検索ボリュームや順位を数字で断定せず、根拠のある見立て（高/中/低と理由）として書く。「必ず上位表示される」とは書かない。',
   '',
   '【本文(body)の記法】',
   '・見出しは行頭の「## 」(h2)・「### 」(h3)。段落は空行で区切る。',
@@ -406,5 +414,10 @@ export async function generateColumn(params: {
     html: buildHtml({ ...draft, slug }, subsidy, today),
     unsure: (draft.unsure ?? []).map(plain),
     thumb: thumb,
+    insight: {
+      keywords: toArr(raw.target_keywords).map(plain).slice(0, 6),
+      seo: plain(str(raw.seo_forecast)).trim(),
+      aio: plain(str(raw.aio_forecast)).trim(),
+    },
   }
 }

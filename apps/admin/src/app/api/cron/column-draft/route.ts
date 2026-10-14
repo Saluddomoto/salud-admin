@@ -88,6 +88,10 @@ export async function GET(req: Request) {
           ? `⚠ 要確認 ${article.unsure.length}点\n${article.unsure.slice(0, 8).map(u => `・${u}`).join('\n')}`
           : '要確認の点: なし（公開前に内容をご確認ください）',
         '',
+        article.insight.keywords.length ? `🔎 狙うキーワード: ${article.insight.keywords.join(' / ')}` : '',
+        article.insight.seo ? `📈 SEO予測(目安): ${article.insight.seo}` : '',
+        article.insight.aio ? `🤖 AIO予測(目安): ${article.insight.aio}` : '',
+        '',
         featuredMediaId ? '🖼 サムネイル: 自動で設定済み' : '🖼 サムネイル: 自動作成に失敗しました（手動で追加してください）',
         `編集・確認: ${post.editUrl}`,
       ]
