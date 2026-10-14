@@ -65,7 +65,7 @@ export async function GET(req: Request) {
       const { data: members } = await admin
         .from('profiles')
         .select('line_user_id')
-        .not('line_user_id', 'is', null).eq('is_active', true).eq('digest_enabled', true)
+        .not('line_user_id', 'is', null).eq('is_active', true).eq('role', 'admin') // 下書きの確認は管理者(堂本)のみ
       const lines = [
         '📝 コラムの下書きができました',
         `【${subsidy.name}】`,
