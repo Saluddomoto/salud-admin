@@ -6,7 +6,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 // 管理者(堂本)のLINEに、短い通知文を1通送る。
-// 使い方: GET /api/notify?text=通知文   （Authorization: Bearer CRON_SECRET が必須）
+// 使い方: GET /api/cron/notify?text=通知文   （Authorization: Bearer CRON_SECRET が必須）
 // 例: 作業が終わったときに、確認用のURLを知らせる。外部からは、合言葉(CRON_SECRET)が無いと使えない。
 export async function GET(req: Request) {
   const cronSecret  = process.env.CRON_SECRET
