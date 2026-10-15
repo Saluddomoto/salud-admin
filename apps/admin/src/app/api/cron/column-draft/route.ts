@@ -28,14 +28,28 @@ export async function GET(req: Request) {
   const admin = createAdminClient()
   const today = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
 
-  // 直近の下書きが少ない補助金を優先して、偏りを防ぐ
-  const { data: recent } = await admin
-    .from('column_drafts')
-    .select('subsidy')
-    .gte('created_at', new Date(Date.now() - 14 * 86400_000).toISOString())
-  const counts = new Map<string, number>()
-  for (const r of recent ?? []) counts.set(r.subsidy, (counts.get(r.subsidy) ?? 0) + 1)
-  const subsidy = [...COLUMN_SUBSIDIES].sort((a, b) => (counts.get(a.key) ?? 0) - (counts.get(b.key) ?? 0))[0]!
+  // テーマ候補リスト(column_topics)に未使用の先頭があれば、それを書く。無ければ従来どおり補助金を交互にしてAIに切り口を選ばせる
+  const { data: nextTopic } = await admin
+    .from('column_topics')
+    .select('id, subsidy, topic')
+    .eq('status', 'pending')
+    .order('seq', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  const topicSubsidy = nextTopic ? COLUMN_SUBSIDIES.find(s => s.key === nextTopic.subsidy) : undefined
+
+  let subsidy = topicSubsidy
+  if (!subsidy) {
+    // 直近の下書きが少ない補助金を優先して、偏りを防ぐ
+    const { data: recent } = await admin
+      .from('column_drafts')
+      .select('subsidy')
+      .gte('created_at', new Date(Date.now() - 14 * 86400_000).toISOString())
+    const counts = new Map<string, number>()
+    for (const r of recent ?? []) counts.set(r.subsidy, (counts.get(r.subsidy) ?? 0) + 1)
+    subsidy = [...COLUMN_SUBSIDIES].sort((a, b) => (counts.get(a.key) ?? 0) - (counts.get(b.key) ?? 0))[0]!
+  }
+  const topic = topicSubsidy ? nextTopic?.topic : undefined
 
   try {
     const [wpTitles, { data: history }] = await Promise.all([
@@ -44,7 +58,7 @@ export async function GET(req: Request) {
     ])
     const existingTitles = [...new Set([...wpTitles, ...(history ?? []).map(h => h.title)])]
 
-    const article = await generateColumn({ subsidy, existingTitles, today })
+    const article = await generateColumn({ subsidy, existingTitles, today, topic })
     // アイキャッチ画像（失敗しても下書きは作る。通知で知らせる）
     let featuredMediaId: number | undefined
     let thumbError = ''
@@ -72,6 +86,14 @@ export async function GET(req: Request) {
     })
     if (insertError) console.error('column-draft: history insert failed', insertError)
 
+    if (topicSubsidy && nextTopic) {
+      const { error: topicError } = await admin
+        .from('column_topics')
+        .update({ status: 'done', wp_post_id: post.id, done_at: new Date().toISOString() })
+        .eq('id', nextTopic.id)
+      if (topicError) console.error('column-draft: topic update failed', topicError)
+    }
+
     // 通知（ダイジェストと同じ宛先）
     let sent = 0
     if (accessToken) {
@@ -82,6 +104,7 @@ export async function GET(req: Request) {
       const lines = [
         '📝 コラムの下書きができました',
         `【${subsidy.name}】`,
+        topic ? `テーマ候補リストの記事です: ${topic}` : '',
         article.title,
         '',
         article.unsure.length

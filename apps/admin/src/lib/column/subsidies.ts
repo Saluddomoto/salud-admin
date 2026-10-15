@@ -1,5 +1,6 @@
 import { JIZOKUKA_FACTS } from './facts/jizokuka'
 import { SHINMONO_FACTS } from './facts/shinmono'
+import { SHORYOKUKA_FACTS } from './facts/shoryokuka'
 
 // コラムを自動生成できる補助金。「事実の根拠(facts)」がある補助金だけを書く。
 // 省力化投資補助金・事業承継M&A補助金・AI関連は、公募要領などの根拠テキストを足したら追加する。
@@ -30,5 +31,15 @@ export const COLUMN_SUBSIDIES: ColumnSubsidy[] = [
     sourceUrl: 'https://shinjigyou-monodukuri.smrj.go.jp/',
     checkedAt: '2026-10-12',
     relatedPath: '/shinjigyo-monodukuri-hojokin-1kai/',
+  },
+  {
+    key: 'shoryokuka',
+    name: '中小企業省力化投資補助金（一般型・第8回公募）',
+    facts: SHORYOKUKA_FACTS,
+    practicalNotes: '・申請締切日は公募要領に記載がない（「追ってHPでお知らせ」）。締切日は書かず、公式サイトで確認するよう案内する。',
+    sourceLabel: '中小企業省力化投資補助事業（一般型）公募要領（第8回公募・2026年8月、9月18日改訂）',
+    sourceUrl: 'https://shoryokuka.smrj.go.jp/ippan/',
+    checkedAt: '2026-10-15',
+    relatedPath: '/',
   },
 ]

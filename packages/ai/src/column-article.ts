@@ -35,6 +35,8 @@ type Block =
   | { type: 'ul' | 'ol'; items: string[] }
   | { type: 'table'; rows: string[][] }
   | { type: 'chat'; lines: { who: '経営者' | '担当者'; text: string }[] }
+  | { type: 'flow'; steps: string[] }
+  | { type: 'cards'; cards: { label: string; value: string; note: string }[] }
 
 type BuiltArticle = {
   title: string
@@ -133,6 +135,10 @@ const SYSTEM_PROMPT = [
   '・箇条書きは行頭の「- 」。番号付きの手順は行頭の「1. 」「2. 」…。',
   '・表は、行を「| 項目 | 内容A | 内容B |」の形で書き、2行目に「|---|---|---|」を置く。セルの中では改行しない。',
   '・会話は、行頭を「経営者：」または「担当者：」で始める（1行に1発言）。',
+  '・図解（必須）: 記事全体で、流れ図を最低1つ、数字カードを（金額・割合・期間など数字が根拠テキストにあれば）1つ入れる。',
+  '  流れ図は、1行で「図：申請準備 → 電子申請 → 採択発表 → 交付申請」のように「→」でつなぐ（3〜6段階、各段階は15字以内、その行だけで完結させる）。',
+  '  数字カードは、連続した行で「数字：項目名｜値｜補足」と書く（2〜4枚、例「数字：補助上限額（6〜20人）｜1,500万円｜特例適用時は2,000万円」）。値は根拠テキストの表記どおり。',
+  '  図の前後には、図が何を示すかを説明する1文を置く。',
 ].join('\n')
 
 function esc(s: string): string {
@@ -206,6 +212,33 @@ function buildHtml(a: BuiltArticle, subsidy: ColumnSubsidy, today: string): stri
         `<div style="overflow-x:auto;margin:16px 0;"><table style="border-collapse:collapse;width:100%;min-width:480px;font-size:15px;line-height:1.7;">` +
         `<thead><tr>${head.map(c => `<th style="${cell}background:#eaf2f8;text-align:left;">${inline(c)}</th>`).join('')}</tr></thead>` +
         `<tbody>${body.map(r => `<tr>${r.map(c => `<td style="${cell}">${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`,
+      )
+      continue
+    }
+    if (b.type === 'flow') {
+      if (b.steps.length < 2) continue
+      // 図解（流れ図）。PCは横並び、スマホは折り返して縦に積まれる
+      parts.push(
+        `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:16px 0;background:#f7f9fb;border:1px solid #dde6ee;border-radius:12px;padding:14px;">` +
+        b.steps.map((st, i) =>
+          `<div style="flex:1 1 150px;min-width:140px;background:#fff;border:2px solid #1f6a96;border-radius:10px;padding:10px 12px;line-height:1.6;">` +
+          `<div style="font-size:12px;font-weight:700;color:#fff;background:#1f6a96;border-radius:999px;display:inline-block;padding:1px 10px;margin-bottom:4px;">STEP ${i + 1}</div>` +
+          `<div style="font-size:15px;">${inline(st)}</div></div>`,
+        ).join('') + `</div>`,
+      )
+      continue
+    }
+    if (b.type === 'cards') {
+      if (!b.cards.length) continue
+      // 図解（数字カード）。PC・スマホとも折り返して並ぶ
+      parts.push(
+        `<div style="display:flex;flex-wrap:wrap;gap:10px;margin:16px 0;">` +
+        b.cards.map(c =>
+          `<div style="flex:1 1 150px;min-width:140px;background:#eaf2f8;border:1px solid #c9d6e0;border-radius:12px;padding:12px 14px;text-align:center;">` +
+          `<div style="font-size:13px;color:#46607a;">${inline(c.label)}</div>` +
+          `<div style="font-size:24px;font-weight:700;color:#1f6a96;line-height:1.4;">${inline(c.value)}</div>` +
+          (c.note ? `<div style="font-size:12px;color:#5d7186;">${inline(c.note)}</div>` : '') + `</div>`,
+        ).join('') + `</div>`,
       )
       continue
     }
@@ -302,8 +335,10 @@ export async function generateColumn(params: {
   subsidy: ColumnSubsidy
   existingTitles: string[]
   today: string
+  /** 指定があれば、このテーマで書く（未指定ならAIが切り口を選ぶ） */
+  topic?: string
 }): Promise<ColumnArticle> {
-  const { subsidy, existingTitles, today } = params
+  const { subsidy, existingTitles, today, topic } = params
 
   const userText = [
     `今日の日付: ${today}`,
@@ -312,7 +347,10 @@ export async function generateColumn(params: {
     '【既存の記事（同じ切り口は避ける）】',
     existingTitles.length ? existingTitles.map(t => `・${t}`).join('\n') : '（まだありません）',
     '',
-    '上のリストにない切り口で、読者が検索しそうな疑問を1つ選び、コラム1本を書いて、必ず submit_article ツールを呼んで提出してください（文章での返答はしない）。',
+    topic
+      ? `今回のテーマ（これに沿って書く。タイトルは読者が検索しそうな疑問の形に整える）: ${topic}
+既存の記事と重なる部分は、切り口や深さを変えて重複を避けてください。必ず submit_article ツールを呼んで提出してください（文章での返答はしない）。`
+      : '上のリストにない切り口で、読者が検索しそうな疑問を1つ選び、コラム1本を書いて、必ず submit_article ツールを呼んで提出してください（文章での返答はしない）。',
     '',
     '【根拠テキスト（これ以外の事実は書かない）】',
     subsidy.facts,
@@ -353,13 +391,15 @@ export async function generateColumn(params: {
   let steps: string[] = []
   let tableRows: string[][] = []
   let chat: { who: '経営者' | '担当者'; text: string }[] = []
+  let cards: { label: string; value: string; note: string }[] = []
   const flush = () => {
     if (para.length) blocks.push({ type: 'p', text: para.join('') })
     if (items.length) blocks.push({ type: 'ul', items })
     if (steps.length) blocks.push({ type: 'ol', items: steps })
     if (tableRows.length) blocks.push({ type: 'table', rows: tableRows })
     if (chat.length) blocks.push({ type: 'chat', lines: chat })
-    para = []; items = []; steps = []; tableRows = []; chat = []
+    if (cards.length) blocks.push({ type: 'cards', cards })
+    para = []; items = []; steps = []; tableRows = []; chat = []; cards = []
   }
   for (const line of str(raw.body).split('\n')) {
     const t = line.trim()
@@ -371,6 +411,16 @@ export async function generateColumn(params: {
       const cells = t.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim())
       if (cells.every(c => /^:?-{2,}:?$/.test(c))) continue // 区切り行
       tableRows.push(cells)
+    }
+    else if (/^図[:：]/.test(t)) {
+      flush()
+      const st = t.replace(/^図[:：]\s*/, '').split(/\s*(?:→|->)\s*/).map(x => x.trim()).filter(Boolean)
+      blocks.push({ type: 'flow', steps: st })
+    }
+    else if (/^数字[:：]/.test(t)) {
+      if (!cards.length) flush()
+      const [label = '', value = '', note = ''] = t.replace(/^数字[:：]\s*/, '').split(/\s*[|｜]\s*/)
+      if (label && value) cards.push({ label, value, note })
     }
     else if (/^(経営者|担当者)[:：]/.test(t)) {
       if (!chat.length) flush()
