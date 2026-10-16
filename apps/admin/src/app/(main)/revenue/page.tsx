@@ -156,6 +156,8 @@ export default function RevenuePage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   // 売上台帳の月絞り込み（'all' または 'YYYY-MM'）
   const [ledgerMonth, setLedgerMonth] = useState<string>('all')
+  // 売上台帳の顧客名検索
+  const [ledgerSearch, setLedgerSearch] = useState('')
   const [contractModalOpen, setContractModalOpen] = useState(false)
   const [editingContract, setEditingContract] = useState<DbRecurringContract | null>(null)
 
@@ -301,10 +303,15 @@ export default function RevenuePage() {
     }
     return [...m.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1))
   }, [rows])
-  const ledgerRows = useMemo(
-    () => (ledgerMonth === 'all' ? rows : rows.filter(r => (r.entry_date ? r.entry_date.slice(0, 7) : '日付なし') === ledgerMonth)),
-    [rows, ledgerMonth],
-  )
+  const ledgerRows = useMemo(() => {
+    const q = ledgerSearch.trim().toLowerCase().replace(/\s+/g, '')
+    return rows.filter(r => {
+      if (ledgerMonth !== 'all' && (r.entry_date ? r.entry_date.slice(0, 7) : '日付なし') !== ledgerMonth) return false
+      if (!q) return true
+      return (r.payer_name ?? '').toLowerCase().replace(/\s+/g, '').includes(q)
+    })
+  }, [rows, ledgerMonth, ledgerSearch])
+  const ledgerSearchTotal = useMemo(() => ledgerRows.reduce((s, r) => s + r.amount_excl_tax, 0), [ledgerRows])
 
   const openCreate = () => {
     setEditing(null)
@@ -589,6 +596,26 @@ export default function RevenuePage() {
           </button>
         ))}
       </div>
+
+      {tab === 'ledger' && (
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full sm:w-80">
+            <input
+              type="search"
+              value={ledgerSearch}
+              onChange={e => setLedgerSearch(e.target.value)}
+              placeholder="顧客名で検索"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-600 focus:outline-none"
+            />
+          </div>
+          {ledgerSearch.trim() && (
+            <span className="text-xs text-slate-500">
+              {ledgerRows.length}件　合計 {formatAmount(ledgerSearchTotal)}（税抜）
+              <button type="button" className="ml-2 text-brand-600 hover:underline" onClick={() => setLedgerSearch('')}>クリア</button>
+            </span>
+          )}
+        </div>
+      )}
 
       {tab === 'ledger' && (
         <div className="flex gap-1.5 overflow-x-auto pb-1">
