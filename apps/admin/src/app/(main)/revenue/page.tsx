@@ -456,6 +456,31 @@ export default function RevenuePage() {
     return table
   }, [rows, projects, contracts, year, categories])
 
+  // カテゴリ別の「件数/社数」の実数。1件の案件で基本料金と成功報酬が別明細になっても1件と数えるため、
+  // 売上明細の件数ではなく「その年にそのカテゴリで売上がある顧客数」で数える。
+  // 「カ）」「株式会社」などの表記ゆれは取り除いて同一顧客にまとめる。
+  const categoryCounts = useMemo(() => {
+    const normalize = (name: string) => name.replace(/[\s　]|カ[）】)]|株式会社|\(株\)|（株）/g, '')
+    const table = new Map<string, { confirmed: Map<string, string>; withForecast: Map<string, string> }>()
+    for (const cat of categories) table.set(cat.name, { confirmed: new Map(), withForecast: new Map() })
+    // 実績報告サポートのみの顧客は件数に含めない（売上金額には含まれる）。
+    // 案件由来の行は案件の補助金名、手入力の行はメモに「実績報告」とあるもので判定する。
+    const reportSupportProjectIds = new Set(
+      projects.filter(p => (p.subsidy_name ?? '').includes('実績報告')).map(p => p.id)
+    )
+    for (const r of [...rows, ...derivePipelineForecastRows(projects, manual), ...deriveFutureContractForecastRows(contracts, year)]) {
+      const d = r.entry_date ? new Date(r.entry_date) : null
+      if (!d || d.getFullYear() !== year) continue
+      if ((r.projectId && reportSupportProjectIds.has(r.projectId)) || (r.memo ?? '').includes('実績報告')) continue
+      const bucket = table.get(r.category) ?? table.get('その他')!
+      const key = normalize(r.payer_name ?? '') || r.id
+      if (r.status === 'confirmed') bucket.confirmed.set(key, r.payer_name ?? '')
+      bucket.withForecast.set(key, r.payer_name ?? '')
+    }
+    return table
+  }, [rows, projects, manual, contracts, year, categories])
+  const [countBreakdown, setCountBreakdown] = useState<{ category: string; status: 'confirmed' | 'all' } | null>(null)
+
   const yearTotalConfirmed = categories.reduce(
     (s, c) => s + (monthlyTotals.get(c.name)?.confirmed.reduce((a, b) => a + b, 0) ?? 0), 0
   )
@@ -779,6 +804,75 @@ export default function RevenuePage() {
               <p className="mt-1 text-xl font-bold text-amber-600">{formatAmount(yearTotalWithForecast)}</p>
               <p className="text-xs text-slate-400">達成率 {yearTargetTotal ? Math.round((yearTotalWithForecast / yearTargetTotal) * 100) : 0}%（クリックで内訳）</p>
             </button>
+          </div>
+
+          {/* カテゴリ別の目標件数と実数。売上の達成率とは別に「何件取れたか」を管理する */}
+          <div className="card overflow-x-auto p-0">
+            <div className="border-b border-slate-100 px-4 py-3">
+              <h3 className="text-sm font-semibold text-slate-900">目標件数と実数（{year}年）</h3>
+              <p className="mt-0.5 text-xs text-slate-400">
+                実数は、その年にカテゴリ内で売上のある顧客数です（基本料金と成功報酬が別明細でも1件、基本料金のみ・不採択でも1件）。実績報告サポートのみの売上は件数に含めません。月額のカテゴリは社数です。数字をクリックすると顧客一覧を表示します。
+              </p>
+            </div>
+            <table className="w-full min-w-[760px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
+                  <th className="px-3 py-2.5">カテゴリ</th>
+                  <th className="px-3 py-2.5 text-right">目標</th>
+                  <th className="px-3 py-2.5 text-right">実数（確定）</th>
+                  <th className="px-3 py-2.5 text-right">達成率</th>
+                  <th className="px-3 py-2.5 text-right">あと</th>
+                  <th className="px-3 py-2.5 text-right">見込み含む</th>
+                  <th className="px-3 py-2.5 text-right">目標単価</th>
+                  <th className="px-3 py-2.5 text-right">実績単価</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categories.map(cat => {
+                  const counts = categoryCounts.get(cat.name)
+                  const confirmedN = counts?.confirmed.size ?? 0
+                  const forecastN = counts?.withForecast.size ?? 0
+                  if (!cat.annualTargetCount && !forecastN) return null
+                  const rate = cat.annualTargetCount ? Math.round((confirmedN / cat.annualTargetCount) * 100) : null
+                  const remain = Math.max(0, cat.annualTargetCount - confirmedN)
+                  const confirmedSales = monthlyTotals.get(cat.name)?.confirmed.reduce((a, b) => a + b, 0) ?? 0
+                  const unit = cat.isMonthly ? '社' : '件'
+                  // 実績単価: 通常は確定売上÷件数。月額のカテゴリは目標単価と揃えるため、1社あたりの月額（確定売上÷社数÷売上のあった月数）
+                  const confirmedMonths = monthlyTotals.get(cat.name)?.confirmed.filter(v => v > 0).length ?? 0
+                  const actualUnit = confirmedN
+                    ? (cat.isMonthly ? (confirmedMonths ? confirmedSales / confirmedN / confirmedMonths : 0) : confirmedSales / confirmedN)
+                    : 0
+                  return (
+                    <tr key={cat.name} className="border-b border-slate-50">
+                      <td className="px-3 py-2.5 font-medium text-slate-700 whitespace-nowrap">
+                        {cat.name}{cat.isMonthly && <span className="ml-1 badge bg-slate-100 text-slate-500 text-[10px]">月額</span>}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-slate-500">{cat.annualTargetCount ? `${cat.annualTargetCount}${unit}` : '—'}</td>
+                      <td className="px-3 py-2.5 text-right">
+                        <button type="button" className="font-semibold text-emerald-600 hover:underline"
+                          onClick={() => setCountBreakdown({ category: cat.name, status: 'confirmed' })}>
+                          {confirmedN}{unit}
+                        </button>
+                      </td>
+                      <td className={`px-3 py-2.5 text-right font-medium ${rate === null ? 'text-slate-300' : rate >= 100 ? 'text-emerald-600' : rate >= 60 ? 'text-amber-600' : 'text-rose-500'}`}>
+                        {rate === null ? '—' : `${rate}%`}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-slate-500">{cat.annualTargetCount ? `${remain}${unit}` : '—'}</td>
+                      <td className="px-3 py-2.5 text-right">
+                        <button type="button" className="text-amber-600 hover:underline"
+                          onClick={() => setCountBreakdown({ category: cat.name, status: 'all' })}>
+                          {forecastN}{unit}
+                        </button>
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-slate-400">{cat.unitPrice ? formatAmount(cat.unitPrice) : '—'}</td>
+                      <td className={`px-3 py-2.5 text-right ${actualUnit && cat.unitPrice && actualUnit < cat.unitPrice * 0.8 ? 'text-rose-500' : 'text-slate-600'}`}>
+                        {actualUnit ? formatAmount(Math.round(actualUnit)) : '—'}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
 
           {/* 事業別の売上（補助金事業／WEB事業）。ウェブ売上と補助金事業の売上を分けて確認できるようにする */}
@@ -1393,6 +1487,22 @@ export default function RevenuePage() {
             </tfoot>
           </table>
         </div>
+      </Modal>
+
+      <Modal
+        title={countBreakdown
+          ? `${countBreakdown.category}の顧客一覧（${year}年・${countBreakdown.status === 'confirmed' ? '確定' : '確定＋見込み'}）`
+          : ''}
+        open={countBreakdown !== null}
+        onClose={() => setCountBreakdown(null)}
+      >
+        <ul className="max-h-[60vh] divide-y divide-slate-50 overflow-y-auto text-sm">
+          {countBreakdown && [...((countBreakdown.status === 'confirmed'
+            ? categoryCounts.get(countBreakdown.category)?.confirmed
+            : categoryCounts.get(countBreakdown.category)?.withForecast)?.values() ?? [])].map(name => (
+            <li key={name} className="px-2 py-2 text-slate-700">{name}</li>
+          ))}
+        </ul>
       </Modal>
 
       <Modal
