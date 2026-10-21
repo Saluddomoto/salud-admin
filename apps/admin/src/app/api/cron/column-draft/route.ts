@@ -108,8 +108,13 @@ export async function GET(req: Request) {
         article.title,
         '',
         article.unsure.length
-          ? `⚠ 要確認 ${article.unsure.length}点\n${article.unsure.slice(0, 8).map(u => `・${u}`).join('\n')}`
-          : '要確認の点: なし（公開前に内容をご確認ください）',
+          ? [
+              `⚠ 公開前に確認してほしい点（${article.unsure.length}件）`,
+              '記事内では断定せず「要確認」と書いてあります。内容が合っているか見てください。',
+              '',
+              ...article.unsure.slice(0, 8).map((u, i) => `${i + 1}. ${u}`),
+            ].join('\n')
+          : '✅ 確認が必要な点: なし（念のため公開前に全体をご確認ください）',
         '',
         article.insight.keywords.length ? `🔎 狙うキーワード: ${article.insight.keywords.join(' / ')}` : '',
         article.insight.seo ? `📈 SEO予測(目安): ${article.insight.seo}` : '',
