@@ -1199,6 +1199,56 @@ export async function deleteNewBusinessNote(id: string) {
   if (error) throw error
 }
 
+/* ─── 新規事業 PDCA（決めること・タスク・振り返り）─── */
+export type NewBusinessKind = 'decision' | 'task' | 'review'
+export type NewBusinessStatus = 'open' | 'doing' | 'done'
+export type DbNewBusinessItem = {
+  id: string
+  kind: NewBusinessKind
+  title: string
+  detail: string | null
+  status: NewBusinessStatus
+  assignee_id: string | null
+  due_date: string | null
+  conclusion: string | null
+  created_at: string
+  updated_at: string
+  assignee: { full_name: string } | null
+}
+
+export async function fetchNewBusinessItems(): Promise<DbNewBusinessItem[]> {
+  const { data, error } = await db()
+    .from('new_business_items')
+    .select('*, assignee:profiles!new_business_items_assignee_id_fkey(full_name)')
+    .order('created_at')
+  if (error) throw error
+  return (data ?? []) as unknown as DbNewBusinessItem[]
+}
+
+export async function insertNewBusinessItem(input: {
+  kind: NewBusinessKind
+  title: string
+  detail: string | null
+  assignee_id: string | null
+  due_date: string | null
+}) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client.from('new_business_items').insert({ ...input, created_by: user?.id ?? null })
+  if (error) throw error
+}
+
+export async function updateNewBusinessItem(id: string, patch: Partial<Pick<DbNewBusinessItem,
+  'title' | 'detail' | 'status' | 'assignee_id' | 'due_date' | 'conclusion'>>) {
+  const { error } = await db().from('new_business_items').update(patch).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteNewBusinessItem(id: string) {
+  const { error } = await db().from('new_business_items').delete().eq('id', id)
+  if (error) throw error
+}
+
 /* ─── 契約書作成（テンプレート差し込み）───────────── */
 export type DbContract = {
   id: string
