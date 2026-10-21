@@ -1200,7 +1200,7 @@ export async function deleteNewBusinessNote(id: string) {
 }
 
 /* ─── 新規事業 PDCA（決めること・タスク・振り返り）─── */
-export type NewBusinessKind = 'decision' | 'task' | 'review' | 'issue'
+export type NewBusinessKind = 'decision' | 'task' | 'review' | 'issue' | 'milestone' | 'requirement'
 export type NewBusinessSeverity = 'high' | 'mid' | 'low'
 export type NewBusinessStatus = 'open' | 'doing' | 'done'
 export type DbNewBusinessItem = {
@@ -1213,6 +1213,8 @@ export type DbNewBusinessItem = {
   due_date: string | null
   conclusion: string | null
   severity: NewBusinessSeverity | null
+  phase: string | null
+  category: string | null
   created_at: string
   updated_at: string
   assignee: { full_name: string } | null
@@ -1234,6 +1236,8 @@ export async function insertNewBusinessItem(input: {
   assignee_id: string | null
   due_date: string | null
   severity?: NewBusinessSeverity | null
+  phase?: string | null
+  category?: string | null
 }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
@@ -1242,7 +1246,7 @@ export async function insertNewBusinessItem(input: {
 }
 
 export async function updateNewBusinessItem(id: string, patch: Partial<Pick<DbNewBusinessItem,
-  'title' | 'detail' | 'status' | 'assignee_id' | 'due_date' | 'conclusion' | 'severity'>>) {
+  'title' | 'detail' | 'status' | 'assignee_id' | 'due_date' | 'conclusion' | 'severity' | 'phase' | 'category'>>) {
   const { error } = await db().from('new_business_items').update(patch).eq('id', id)
   if (error) throw error
 }

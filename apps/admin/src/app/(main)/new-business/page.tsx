@@ -243,7 +243,7 @@ function DetailModal({ note, categories, onClose, onSaved }: {
 }
 
 /* ─── PDCAダッシュボード ─── */
-const KIND_LABEL: Record<NewBusinessKind, string> = { decision: '決めること', task: 'タスク', review: '振り返り', issue: '課題' }
+const KIND_LABEL: Record<NewBusinessKind, string> = { decision: '決めること', task: 'タスク', review: '振り返り', issue: '課題', milestone: 'マイルストーン', requirement: 'ローンチ要件' }
 const STATUS_LABEL: Record<NewBusinessStatus, string> = { open: '未着手', doing: '進行中', done: '完了' }
 const STATUS_STYLE: Record<NewBusinessStatus, string> = {
   open: 'bg-slate-100 text-slate-600', doing: 'bg-amber-50 text-amber-700', done: 'bg-emerald-50 text-emerald-700',
@@ -265,6 +265,9 @@ function ItemRow({ it, onOpen, onStatus }: {
   return (
     <div className="card flex items-start gap-3 p-3">
       <button onClick={() => onOpen(it)} className="min-w-0 flex-1 text-left">
+        {(it.kind === 'milestone' || it.kind === 'requirement') && (it.phase || it.category) && (
+          <span className="badge mb-1 bg-slate-100 text-xs text-slate-600">{it.phase ?? it.category}</span>
+        )}
         {it.kind === 'issue' && it.severity && (
           <span className={`badge mb-1 text-xs ${SEVERITY_STYLE[it.severity]}`}>{SEVERITY_LABEL[it.severity]}</span>
         )}
@@ -322,6 +325,8 @@ export default function NewBusinessPage() {
   const [loading,  setLoading]  = useState(true)
   const [error,    setError]    = useState('')
   const [addKind,  setAddKind]  = useState<NewBusinessKind | null>(null)
+  const [addPreset, setAddPreset] = useState('')
+  const [tab, setTab] = useState<'board' | 'roadmap' | 'launch' | 'docs'>('board')
   const [detail,   setDetail]   = useState<DbNewBusinessItem | null>(null)
 
   const load = () => {
@@ -361,6 +366,16 @@ export default function NewBusinessPage() {
 
       {error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
 
+      <div className="flex gap-1 overflow-x-auto border-b border-slate-200">
+        {([['board', 'PDCAボード'], ['roadmap', 'ロードマップ'], ['launch', 'ローンチ準備'], ['docs', '資料・ノート']] as const).map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)}
+            className={`shrink-0 border-b-2 px-4 py-2 text-sm font-medium ${tab === k ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'board' && (<>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         {stats.map((s, i) => (
           <div key={i} className="card p-4">
@@ -382,12 +397,26 @@ export default function NewBusinessPage() {
           onAdd={() => setAddKind('review')} onOpen={setDetail} onStatus={setStatus} />
       </div>
 
-      <FilesSection />
+      </>)}
 
-      <NotesSection />
+      {tab === 'roadmap' && (
+        <RoadmapView items={items} onOpen={setDetail} onStatus={setStatus}
+          onAdd={p => { setAddPreset(p); setAddKind('milestone') }} />
+      )}
+
+      {tab === 'launch' && (
+        <LaunchView items={items} onOpen={setDetail} onStatus={setStatus}
+          onAdd={p => { setAddPreset(p); setAddKind('requirement') }} />
+      )}
+
+      {tab === 'docs' && (<>
+        <FilesSection />
+
+        <NotesSection />
+      </>)}
 
       {addKind && (
-        <ItemAddModal kind={addKind} profiles={profiles} onClose={() => setAddKind(null)} onSaved={() => { setAddKind(null); load() }} />
+        <ItemAddModal kind={addKind} preset={addPreset} profiles={profiles} onClose={() => { setAddKind(null); setAddPreset('') }} onSaved={() => { setAddKind(null); load() }} />
       )}
       {detail && (
         <ItemDetailModal item={detail} profiles={profiles} onClose={() => setDetail(null)} onSaved={() => { setDetail(null); load() }} />
@@ -396,8 +425,8 @@ export default function NewBusinessPage() {
   )
 }
 
-function ItemAddModal({ kind, profiles, onClose, onSaved }: {
-  kind: NewBusinessKind; profiles: DbProfile[]; onClose: () => void; onSaved: () => void
+function ItemAddModal({ kind, preset, profiles, onClose, onSaved }: {
+  kind: NewBusinessKind; preset: string; profiles: DbProfile[]; onClose: () => void; onSaved: () => void
 }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -413,6 +442,8 @@ function ItemAddModal({ kind, profiles, onClose, onSaved }: {
         assignee_id: (f.get('assignee') as string) || null,
         due_date: (f.get('due') as string) || null,
         severity: kind === 'issue' ? ((f.get('severity') as NewBusinessSeverity) || 'mid') : null,
+        phase: kind === 'milestone' ? (f.get('phase') as string) : null,
+        category: kind === 'requirement' ? (f.get('category') as string) : null,
       })
       onSaved()
     } catch { setErr('保存に失敗しました'); setBusy(false) }
@@ -428,6 +459,22 @@ function ItemAddModal({ kind, profiles, onClose, onSaved }: {
           <label className="mb-1.5 block text-sm font-medium text-slate-700">内容</label>
           <textarea name="detail" rows={4} className="input resize-y" />
         </div>
+        {kind === 'milestone' && (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">フェーズ</label>
+            <select name="phase" defaultValue={preset || PHASES[0]} className="input">
+              {PHASES.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+        )}
+        {kind === 'requirement' && (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">分野</label>
+            <select name="category" defaultValue={preset || CATEGORIES[0]} className="input">
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        )}
         {kind === 'issue' && (
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">重要度</label>
@@ -468,6 +515,8 @@ function ItemDetailModal({ item, profiles, onClose, onSaved }: {
   const [due, setDue] = useState(item.due_date ?? '')
   const [conclusion, setConclusion] = useState(item.conclusion ?? '')
   const [severity, setSeverity] = useState<NewBusinessSeverity>(item.severity ?? 'mid')
+  const [phase, setPhase] = useState(item.phase ?? PHASES[0])
+  const [category, setCategory] = useState(item.category ?? CATEGORIES[0])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
@@ -478,6 +527,8 @@ function ItemDetailModal({ item, profiles, onClose, onSaved }: {
         title: title.trim(), detail: detail.trim() || null, assignee_id: assignee || null,
         due_date: due || null, conclusion: conclusion.trim() || null,
         severity: item.kind === 'issue' ? severity : null,
+        phase: item.kind === 'milestone' ? phase : null,
+        category: item.kind === 'requirement' ? category : null,
       })
       onSaved()
     } catch { setErr('保存に失敗しました'); setBusy(false) }
@@ -498,6 +549,22 @@ function ItemDetailModal({ item, profiles, onClose, onSaved }: {
           <label className="mb-1.5 block text-sm font-medium text-slate-700">内容</label>
           <textarea value={detail} onChange={e => setDetail(e.target.value)} rows={4} className="input resize-y" />
         </div>
+        {item.kind === 'milestone' && (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">フェーズ</label>
+            <select value={phase} onChange={e => setPhase(e.target.value)} className="input">
+              {PHASES.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+        )}
+        {item.kind === 'requirement' && (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">分野</label>
+            <select value={category} onChange={e => setCategory(e.target.value)} className="input">
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        )}
         {item.kind === 'issue' && (
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">重要度</label>
@@ -613,5 +680,100 @@ function FilesSection() {
       ))}
       {files.length === 0 && <div className="card p-6 text-center text-xs text-slate-400">資料がまだありません</div>}
     </section>
+  )
+}
+
+/* ─── ロードマップ・ローンチ準備 ─── */
+const PHASES = ['① 準備', '② 林組テスト', '③ 検証・改善', '④ 本展開']
+const CATEGORIES = ['商品・料金', '営業・集客', '運営体制', '法務・契約', 'ツール・AI', '数値・KPI']
+
+const pct = (list: DbNewBusinessItem[]) =>
+  list.length ? Math.round((list.filter(i => i.status === 'done').length / list.length) * 100) : 0
+
+function ProgressBar({ value }: { value: number }) {
+  return (
+    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+      <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${value}%` }} />
+    </div>
+  )
+}
+
+type GroupHandlers = {
+  onAdd: (preset: string) => void
+  onOpen: (it: DbNewBusinessItem) => void
+  onStatus: (it: DbNewBusinessItem, s: NewBusinessStatus) => void
+}
+
+function RoadmapView({ items, onAdd, onOpen, onStatus }: { items: DbNewBusinessItem[] } & GroupHandlers) {
+  const ms = items.filter(i => i.kind === 'milestone')
+  // 現在フェーズ = 未完了のマイルストーンが残っている最初のフェーズ
+  const current = PHASES.find(p => ms.some(m => m.phase === p && m.status !== 'done'))
+  return (
+    <div className="flex flex-col gap-6">
+      <p className="text-sm text-slate-500">
+        準備 → 林組テスト → 検証・改善 → 本展開 の順に進めます。各マイルストーンを完了にすると進捗が上がります。
+      </p>
+      <div className="grid gap-6 lg:grid-cols-4">
+        {PHASES.map(ph => {
+          const list = ms.filter(m => m.phase === ph)
+          const sorted = [...list].sort((a, b) => Number(a.status === 'done') - Number(b.status === 'done'))
+          const isCurrent = ph === current
+          return (
+            <section key={ph} className={`flex flex-col gap-3 rounded-2xl p-3 ${isCurrent ? 'bg-brand-50/60 ring-1 ring-brand-200' : ''}`}>
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-slate-900">{ph}</h3>
+                  {isCurrent && <span className="badge bg-brand-600 text-xs text-white">いまここ</span>}
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <ProgressBar value={pct(list)} />
+                  <span className="shrink-0 text-xs text-slate-500">{list.filter(i => i.status === 'done').length}/{list.length}</span>
+                </div>
+              </div>
+              {sorted.map(it => <ItemRow key={it.id} it={it} onOpen={onOpen} onStatus={onStatus} />)}
+              <button className="btn-secondary text-xs" onClick={() => onAdd(ph)}>+ 追加</button>
+            </section>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function LaunchView({ items, onAdd, onOpen, onStatus }: { items: DbNewBusinessItem[] } & GroupHandlers) {
+  const reqs = items.filter(i => i.kind === 'requirement')
+  const total = pct(reqs)
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="card flex flex-col gap-2 p-4">
+        <div className="flex items-baseline justify-between">
+          <p className="text-sm font-semibold text-slate-900">ローンチ準備率</p>
+          <p className="text-2xl font-bold text-emerald-600">{total}<span className="text-sm">%</span></p>
+        </div>
+        <ProgressBar value={total} />
+        <p className="text-xs text-slate-400">
+          {reqs.filter(i => i.status === 'done').length} / {reqs.length} 項目が完了。分野ごとの穴を埋めてローンチに備えます。
+        </p>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        {CATEGORIES.map(cat => {
+          const list = reqs.filter(r => r.category === cat)
+          const sorted = [...list].sort((a, b) => Number(a.status === 'done') - Number(b.status === 'done'))
+          return (
+            <section key={cat} className="flex flex-col gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">{cat}</h3>
+                <div className="mt-2 flex items-center gap-2">
+                  <ProgressBar value={pct(list)} />
+                  <span className="shrink-0 text-xs text-slate-500">{list.filter(i => i.status === 'done').length}/{list.length}</span>
+                </div>
+              </div>
+              {sorted.map(it => <ItemRow key={it.id} it={it} onOpen={onOpen} onStatus={onStatus} />)}
+              <button className="btn-secondary text-xs" onClick={() => onAdd(cat)}>+ 追加</button>
+            </section>
+          )
+        })}
+      </div>
+    </div>
   )
 }
