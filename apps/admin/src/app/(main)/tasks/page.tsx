@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import {
   fetchTasks, fetchDraftTasks, fetchProjects, fetchProfiles, fetchMyProfile, fetchMyTaskOrders, saveMyTaskOrders,
-  insertTask, updateTask, approveDraftTask, dismissDraftTask, dismissDraftTasks, updateTaskStatus, deleteTask,
+  insertTask, updateTask, approveDraftTask, dismissDraftTask, dismissDraftTasks, updateTaskStatus, deleteTask, deleteTasks,
   fetchTaskCompletions, setTaskCompletion,
   formatDate, type DbTask, type DbProject, type DbProfile, type DbTaskCompletion,
 } from '@/lib/db'
@@ -89,6 +89,7 @@ export default function TasksPage() {
   const [me,         setMe]         = useState<DbProfile | null>(null)
   const [members,    setMembers]    = useState<DbProfile[]>([])
   const [assignee,   setAssignee]   = useState('') // '' = 全員
+  const assigneeInitialized = useRef(false)
   const [loading,    setLoading]    = useState(true)
   const [modalOpen,  setModalOpen]  = useState(false)
   const [editingTask, setEditingTask] = useState<DbTask | null>(null)
@@ -127,7 +128,14 @@ export default function TasksPage() {
       fetchTaskCompletions(today).catch(() => []), // task_completions 未マイグレーションでも壊れないように
       fetchMyTaskOrders().catch(() => ({} as Record<string, number>)),
     ])
-      .then(([t, d, p, mine, c, o]) => { setTasks(t); setDrafts(d); setProjects(p); setMe(mine); setTodayCompletions(c); setOrders(o) })
+      .then(([t, d, p, mine, c, o]) => { setTasks(t); setDrafts(d); setProjects(p); setMe(mine); setTodayCompletions(c); setOrders(o)
+        // 初回表示は自分のタスクから開始（再読込では選択を維持する）
+        if (!assigneeInitialized.current) {
+          assigneeInitialized.current = true
+          const myName = mine?.full_name
+          if (myName && t.some(x => x.profiles?.full_name === myName)) setAssignee(myName)
+        }
+      })
       .catch(() => setError('データの取得に失敗しました'))
       .finally(() => setLoading(false))
   }
@@ -293,6 +301,19 @@ export default function TasksPage() {
     }
   }
 
+  const handleDeleteAllDone = async () => {
+    const ids = columnItems('done').filter(canDeleteTask).map(t => t.id)
+    if (ids.length === 0) return
+    if (!confirm(`完了タスク${ids.length}件をすべて削除しますか？（元に戻せません）`)) return
+    setTasks(prev => prev.filter(t => !ids.includes(t.id)))
+    try {
+      await deleteTasks(ids)
+    } catch {
+      setError('一括削除に失敗しました')
+      load()
+    }
+  }
+
   const handleDismissDraft = async (id: string) => {
     if (!confirm('このタスク候補を却下しますか？')) return
     setDrafts(prev => prev.filter(t => t.id !== id))
@@ -321,23 +342,23 @@ export default function TasksPage() {
     <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
       <PageHeader title="タスク管理" description={`${doneCount}/${kanbanTasks.length + routineTasks.length} 件完了`}>
         {assigneeOptions.length > 0 && (
-          <select className="input w-32 text-sm" value={assignee} onChange={e => setAssignee(e.target.value)}>
+          <select className="input w-32 text-base" value={assignee} onChange={e => setAssignee(e.target.value)}>
             <option value="">全員</option>
             {assigneeOptions.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
         )}
-        <button className="btn-primary text-sm" onClick={openCreate}>+ タスクを追加</button>
+        <button className="btn-primary text-base" onClick={openCreate}>+ タスクを追加</button>
       </PageHeader>
 
       {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-base text-rose-700">{error}</div>
       )}
       {notice && (
-        <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">{notice}</div>
+        <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-base text-brand-700">{notice}</div>
       )}
 
       {assigneeOptions.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
           {assigneeOptions.map(name => {
             const c = assigneeColor(name)
             return (
@@ -352,7 +373,7 @@ export default function TasksPage() {
 
       {routineTasks.length > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
+          <h3 className="mb-3 flex items-center gap-2 text-base font-semibold text-slate-700">
             🔁 ルーティン（毎日）— {routineDoneCount}/{routineTasks.length} 件完了
           </h3>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -371,16 +392,16 @@ export default function TasksPage() {
                     className="mt-0.5 rounded border-slate-300 text-brand-600"
                   />
                   <span className="min-w-0 flex-1">
-                    <span className={`block text-sm font-medium ${done ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+                    <span className={`block text-base font-medium ${done ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
                       {t.title}
                     </span>
-                    <span className="text-xs text-slate-400">{t.profiles?.full_name ?? '—'}</span>
+                    <span className="text-sm text-slate-400">{t.profiles?.full_name ?? '—'}</span>
                   </span>
                   {editable && (
                     <button
                       type="button"
                       onClick={(e) => { e.preventDefault(); openEdit(t) }}
-                      className="flex-shrink-0 text-xs font-medium text-brand-600 hover:underline"
+                      className="flex-shrink-0 text-sm font-medium text-brand-600 hover:underline"
                     >編集</button>
                   )}
                 </label>
@@ -393,26 +414,26 @@ export default function TasksPage() {
       {drafts.length > 0 && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-800">
+            <h3 className="flex items-center gap-2 text-base font-semibold text-amber-800">
               🤖 LINEグループから検出したタスク候補（{drafts.length}件・要確認）
             </h3>
             <button
-              className="rounded-md border border-rose-200 bg-white px-2.5 py-1 text-xs text-rose-600 hover:bg-rose-50"
+              className="rounded-md border border-rose-200 bg-white px-2.5 py-1 text-sm text-rose-600 hover:bg-rose-50"
               onClick={handleDismissAllDrafts}
             >一括削除</button>
           </div>
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             {drafts.map(t => (
               <div key={t.id} className="card p-3.5">
-                <p className="text-sm font-medium leading-snug text-slate-900">{t.title}</p>
+                <p className="text-base font-medium leading-snug text-slate-900">{t.title}</p>
                 {t.description && (
-                  <p className="mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-slate-500">{t.description}</p>
+                  <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-slate-500">{t.description}</p>
                 )}
-                {t.due_date && <p className="mt-1.5 text-xs text-slate-400">〆 {formatDate(t.due_date)}</p>}
+                {t.due_date && <p className="mt-1.5 text-sm text-slate-400">〆 {formatDate(t.due_date)}</p>}
                 <div className="mt-3 flex gap-2 border-t border-slate-50 pt-2.5">
-                  <button className="btn-primary flex-1 text-xs" onClick={() => openEdit(t)}>内容を確認して承認</button>
+                  <button className="btn-primary flex-1 text-sm" onClick={() => openEdit(t)}>内容を確認して承認</button>
                   <button
-                    className="rounded-md border border-slate-200 px-2 py-1 text-xs text-rose-500 hover:bg-rose-50"
+                    className="rounded-md border border-slate-200 px-2 py-1 text-sm text-rose-500 hover:bg-rose-50"
                     onClick={() => handleDismissDraft(t.id)}
                   >却下</button>
                 </div>
@@ -430,8 +451,15 @@ export default function TasksPage() {
             <div key={col.key} className="flex flex-col rounded-2xl bg-slate-50/80 p-3">
               <div className="mb-3 flex items-center gap-2 px-1">
                 <span className={`h-2 w-2 rounded-full ${col.dot}`} />
-                <h3 className="text-sm font-semibold text-slate-700">{col.label}</h3>
-                <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">{items.length}</span>
+                <h3 className="text-base font-semibold text-slate-700">{col.label}</h3>
+                <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-sm text-slate-500">{items.length}</span>
+                {col.key === 'done' && items.some(canDeleteTask) && (
+                  <button
+                    type="button"
+                    className="rounded-md border border-rose-200 bg-white px-2.5 py-1 text-sm text-rose-600 hover:bg-rose-50"
+                    onClick={handleDeleteAllDone}
+                  >一括削除</button>
+                )}
               </div>
               <SortableContext items={items.map(t => t.id)} strategy={verticalListSortingStrategy}>
               <div className="flex flex-col gap-2.5">
@@ -449,7 +477,7 @@ export default function TasksPage() {
                       title={editable ? 'クリックして編集／長押しで並べ替え' : '長押しで並べ替え'}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className={`min-w-0 truncate text-sm font-medium ${t.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+                        <p className={`min-w-0 truncate text-base font-medium ${t.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
                           {t.title}
                         </p>
                         <div className="flex flex-shrink-0 items-center gap-0.5">
@@ -458,19 +486,19 @@ export default function TasksPage() {
                             disabled={idx === 0}
                             title="上へ移動"
                             aria-label="上へ移動"
-                            className="rounded px-1 py-0.5 text-[11px] leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-25 disabled:hover:bg-transparent"
+                            className="rounded px-1 py-0.5 text-xs leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-25 disabled:hover:bg-transparent"
                           >↑</button>
                           <button
                             onClick={e => { e.stopPropagation(); moveOrder(items, idx, 1) }}
                             disabled={idx === items.length - 1}
                             title="下へ移動"
                             aria-label="下へ移動"
-                            className="rounded px-1 py-0.5 text-[11px] leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-25 disabled:hover:bg-transparent"
+                            className="rounded px-1 py-0.5 text-xs leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-25 disabled:hover:bg-transparent"
                           >↓</button>
                           <button
                             onClick={e => { e.stopPropagation(); toggleExpanded(t.id) }}
                             title={isExpanded ? '閉じる' : '詳細を表示'}
-                            className="rounded p-0.5 text-xs text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                            className="rounded p-0.5 text-sm text-slate-400 hover:bg-slate-50 hover:text-slate-600"
                           >
                             {isExpanded ? '▲' : '▾'}
                           </button>
@@ -480,38 +508,38 @@ export default function TasksPage() {
                       {isExpanded && (
                         <div className="mt-2 space-y-1.5 border-t border-slate-50 pt-2">
                           <div className="flex items-center justify-between gap-2">
-                            <span className={`inline-flex min-w-0 items-center gap-1 text-xs font-medium ${ac.text}`}>
+                            <span className={`inline-flex min-w-0 items-center gap-1 text-sm font-medium ${ac.text}`}>
                               <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${ac.dot}`} />
                               <span className="truncate">{t.profiles?.full_name ?? '—'}</span>
                             </span>
-                            <span className={`badge flex-shrink-0 text-xs ${pr.cls}`}>{pr.label}</span>
+                            <span className={`badge flex-shrink-0 text-sm ${pr.cls}`}>{pr.label}</span>
                           </div>
-                          <div className="text-xs text-slate-400">
+                          <div className="text-sm text-slate-400">
                             {t.projects?.title ? `${t.projects.title} ・ ` : ''}〆{formatDate(t.due_date)}
                           </div>
                           {t.description && (
-                            <p className="whitespace-pre-wrap text-xs leading-relaxed text-slate-500">{t.description}</p>
+                            <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-500">{t.description}</p>
                           )}
                           <div className="flex justify-end gap-1 pt-0.5" onClick={e => e.stopPropagation()}>
                             {colIdx > 0 && (
                               <button
                                 onClick={() => moveStatus(t.id, COLUMNS[colIdx - 1]!.key)}
                                 title={`${COLUMNS[colIdx - 1]!.label}に戻す`}
-                                className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-50"
+                                className="rounded-md border border-slate-200 px-1.5 py-0.5 text-sm text-slate-500 hover:bg-slate-50"
                               >←</button>
                             )}
                             {colIdx < COLUMNS.length - 1 && (
                               <button
                                 onClick={() => moveStatus(t.id, COLUMNS[colIdx + 1]!.key)}
                                 title={`${COLUMNS[colIdx + 1]!.label}へ進める`}
-                                className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-50"
+                                className="rounded-md border border-slate-200 px-1.5 py-0.5 text-sm text-slate-500 hover:bg-slate-50"
                               >→</button>
                             )}
                             {canDeleteTask(t) && (
                               <button
                                 onClick={() => handleDelete(t.id)}
                                 title="削除"
-                                className="rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-rose-500 hover:bg-rose-50"
+                                className="rounded-md border border-slate-200 px-1.5 py-0.5 text-sm text-rose-500 hover:bg-rose-50"
                               >×</button>
                             )}
                           </div>
@@ -521,7 +549,7 @@ export default function TasksPage() {
                   )
                 })}
                 {!loading && items.length === 0 && (
-                  <p className="py-8 text-center text-xs text-slate-300">タスクなし</p>
+                  <p className="py-8 text-center text-sm text-slate-300">タスクなし</p>
                 )}
               </div>
               </SortableContext>
@@ -538,11 +566,11 @@ export default function TasksPage() {
       >
         <form key={editingTask?.id ?? 'new'} onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">タスク名 *</label>
+            <label className="mb-1.5 block text-base font-medium text-slate-700">タスク名 *</label>
             <input name="title" required className="input" placeholder="申請書類の確認" defaultValue={editingTask?.title ?? ''} />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">内容・メモ</label>
+            <label className="mb-1.5 block text-base font-medium text-slate-700">内容・メモ</label>
             <textarea
               name="description"
               rows={3}
@@ -553,14 +581,14 @@ export default function TasksPage() {
           </div>
           {canAssignOthers && (
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">担当者</label>
+              <label className="mb-1.5 block text-base font-medium text-slate-700">担当者</label>
               <select name="assigned_user_id" className="input" defaultValue={editingTask?.assigned_user_id ?? me?.id}>
                 {members.map(m => (
                   <option key={m.id} value={m.id}>{m.full_name}{m.id === me?.id ? '（自分）' : ''}</option>
                 ))}
               </select>
               {!editingTask && (
-                <label className="mt-2 flex cursor-pointer items-center gap-1.5 text-xs text-slate-500">
+                <label className="mt-2 flex cursor-pointer items-center gap-1.5 text-sm text-slate-500">
                   <input type="checkbox" name="notify" defaultChecked className="h-3.5 w-3.5 rounded border-slate-300 text-brand-600" />
                   本人にLINEで通知する（自分宛の場合は送信されません）
                 </label>
@@ -569,7 +597,7 @@ export default function TasksPage() {
           )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">優先度</label>
+              <label className="mb-1.5 block text-base font-medium text-slate-700">優先度</label>
               <select name="priority" className="input" defaultValue={editingTask?.priority ?? 'medium'}>
                 <option value="high">高</option>
                 <option value="medium">中</option>
@@ -577,14 +605,14 @@ export default function TasksPage() {
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">期限</label>
+              <label className="mb-1.5 block text-base font-medium text-slate-700">期限</label>
               <input
                 name="due_date" type="date" className="input" disabled={isRoutineForm}
                 defaultValue={editingTask?.due_date ?? ''}
               />
             </div>
           </div>
-          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500">
+          <label className="flex cursor-pointer items-center gap-1.5 text-sm text-slate-500">
             <input
               type="checkbox" name="is_routine" checked={isRoutineForm}
               onChange={e => setIsRoutineForm(e.target.checked)}
@@ -593,7 +621,7 @@ export default function TasksPage() {
             ルーティン（毎日のタスク・期限を設定しない。ダッシュボードとタスク管理に毎日表示され、完了は日ごとにリセットされます）
           </label>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">関連案件</label>
+            <label className="mb-1.5 block text-base font-medium text-slate-700">関連案件</label>
             <select name="project_id" className="input" defaultValue={editingTask?.project_id ?? ''}>
               <option value="">なし</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
@@ -601,17 +629,17 @@ export default function TasksPage() {
           </div>
           <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-4">
             {editingTask && isDraft(editingTask) ? (
-              <button type="button" className="text-sm font-medium text-rose-600 hover:underline" onClick={() => handleDismissDraft(editingTask.id)}>
+              <button type="button" className="text-base font-medium text-rose-600 hover:underline" onClick={() => handleDismissDraft(editingTask.id)}>
                 このタスク候補を却下
               </button>
             ) : editingTask && canDeleteTask(editingTask) ? (
-              <button type="button" className="text-sm font-medium text-rose-600 hover:underline" onClick={() => handleDelete(editingTask.id)}>
+              <button type="button" className="text-base font-medium text-rose-600 hover:underline" onClick={() => handleDelete(editingTask.id)}>
                 このタスクを削除
               </button>
             ) : <span />}
             <div className="flex gap-2">
-              <button type="button" className="btn-secondary text-sm" onClick={closeModal}>キャンセル</button>
-              <button type="submit" disabled={saving} className="btn-primary text-sm">
+              <button type="button" className="btn-secondary text-base" onClick={closeModal}>キャンセル</button>
+              <button type="submit" disabled={saving} className="btn-primary text-base">
                 {saving ? '保存中...' : (editingTask && isDraft(editingTask) ? '承認してタスク化' : '保存')}
               </button>
             </div>

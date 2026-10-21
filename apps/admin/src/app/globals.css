@@ -8,6 +8,12 @@
       system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
+  /* スマホは文字が小さく感じるため、rem基準で全体を約1割大きくする */
+  @media (max-width: 767px) {
+    html {
+      font-size: 112.5%;
+    }
+  }
 }
 
 @layer components {

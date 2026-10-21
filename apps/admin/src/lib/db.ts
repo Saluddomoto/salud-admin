@@ -738,6 +738,12 @@ export async function deleteTask(id: string) {
   if (error) throw error
 }
 
+export async function deleteTasks(ids: string[]) {
+  if (ids.length === 0) return
+  const { error } = await db().from('tasks').delete().in('id', ids)
+  if (error) throw error
+}
+
 export async function fetchTasksByProject(projectId: string): Promise<DbTask[]> {
   const { data, error } = await db()
     .from('tasks')
