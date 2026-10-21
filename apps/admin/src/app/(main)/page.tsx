@@ -389,35 +389,39 @@ export default function DashboardPage() {
                 d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
           </div>
-          <p className="flex-1 text-sm font-semibold text-rose-900">
-            返信が必要なメッセージが {needsReply} 件あります
-          </p>
-          <span className="text-sm font-medium text-rose-700">受信トレイへ →</span>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
+            <p className="flex-1 text-sm font-semibold text-rose-900">
+              返信が必要なメッセージが {needsReply} 件あります
+            </p>
+            <span className="text-sm font-medium text-rose-700">受信トレイへ →</span>
+          </div>
         </Link>
       )}
 
       {/* 期限アラート */}
       {alerts.length > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <div className="flex items-start gap-3">
+          <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap">
             <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-amber-100">
               <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-amber-900">補助金申請期限アラート（14日以内）</p>
-              <div className="mt-2 space-y-1.5">
+              <div className="mt-2 space-y-2">
                 {alerts.map(p => {
                   const days = daysUntil(p.deadline!, today)
                   const urgent = days <= 5
                   return (
-                    <div key={p.id} className="flex items-center gap-2 text-sm text-amber-800">
-                      <span className={`h-2 w-2 rounded-full ${urgent ? 'bg-rose-500' : 'bg-amber-500'}`} />
-                      <span className="font-medium">{p.customers?.company_name ?? '—'}</span>
-                      <span className="text-amber-600">— {p.title}</span>
-                      <span className={`ml-auto font-semibold ${urgent ? 'text-rose-700' : 'text-amber-700'}`}>
+                    <div key={p.id} className="flex items-start gap-2 rounded-lg bg-white/60 px-2.5 py-2 text-sm text-amber-800 sm:items-center sm:bg-transparent sm:p-0">
+                      <span className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full sm:mt-0 ${urgent ? 'bg-rose-500' : 'bg-amber-500'}`} />
+                      <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2">
+                        <span className="font-medium">{p.customers?.company_name ?? '—'}</span>
+                        <span className="text-amber-600 sm:flex-1"><span className="hidden sm:inline">— </span>{p.title}</span>
+                      </div>
+                      <span className={`flex-shrink-0 whitespace-nowrap font-semibold ${urgent ? 'text-rose-700' : 'text-amber-700'}`}>
                         {days === 0 ? '本日締切' : `残り ${days}日`}
                       </span>
                     </div>
@@ -425,7 +429,7 @@ export default function DashboardPage() {
                 })}
               </div>
             </div>
-            <Link href="/subsidies" className="text-sm font-medium text-amber-700 whitespace-nowrap hover:underline">
+            <Link href="/subsidies" className="w-full text-right text-sm font-medium text-amber-700 whitespace-nowrap hover:underline sm:w-auto">
               すべて確認 →
             </Link>
           </div>
