@@ -1143,6 +1143,62 @@ export async function deleteKnowhowNote(id: string) {
   if (error) throw error
 }
 
+/* ─── 新規事業ノート（新規事業の検討メモ・計画・議事要点をまとめる箱）─── */
+export type DbNewBusinessNote = {
+  id: string
+  title: string
+  category: string | null
+  body: string
+  created_by: string | null
+  updated_by: string | null
+  created_at: string
+  updated_at: string
+  author: { full_name: string } | null
+  editor: { full_name: string } | null
+}
+
+export async function fetchNewBusinessNotes(): Promise<DbNewBusinessNote[]> {
+  const { data, error } = await db()
+    .from('new_business_notes')
+    .select('*, author:profiles!new_business_notes_created_by_fkey(full_name), editor:profiles!new_business_notes_updated_by_fkey(full_name)')
+    .order('updated_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as unknown as DbNewBusinessNote[]
+}
+
+export async function insertNewBusinessNote(input: {
+  title: string
+  category: string | null
+  body: string
+}) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client.from('new_business_notes').insert({
+    ...input,
+    created_by: user?.id ?? null,
+    updated_by: user?.id ?? null,
+  })
+  if (error) throw error
+}
+
+export async function updateNewBusinessNote(id: string, patch: {
+  title: string
+  category: string | null
+  body: string
+}) {
+  const client = db()
+  const { data: { user } } = await client.auth.getUser()
+  const { error } = await client.from('new_business_notes')
+    .update({ ...patch, updated_by: user?.id ?? null, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteNewBusinessNote(id: string) {
+  const { error } = await db().from('new_business_notes').delete().eq('id', id)
+  if (error) throw error
+}
+
 /* ─── 契約書作成（テンプレート差し込み）───────────── */
 export type DbContract = {
   id: string
