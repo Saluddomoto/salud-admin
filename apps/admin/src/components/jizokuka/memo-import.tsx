@@ -118,7 +118,7 @@ export function MemoImport({ caseId, hearing, onApplied }: { caseId: string; hea
       {open && (
         <div className="mt-3 flex flex-col gap-3">
           <p className="text-xs text-slate-500">
-            ヒアリング中のメモを自由に貼り付けてください。AIが入力項目ごとに振り分けて提案します（メモに無い内容は補いません）。内容を確認して「反映」を押した項目だけが保存されます。貼り付けたメモの原文は、この案件に保存され、下の一覧からいつでも見返せます。
+            ヒアリング中のメモを自由に貼り付けてください。AIが入力項目ごとに振り分けて提案します（メモに無い内容は補いません）。内容を確認して「反映して保存」を押した項目は、その場で自動的に保存されます（一時保存は不要です）。貼り付けたメモの原文は、この案件に保存され、下の一覧からいつでも見返せます。
           </p>
           <p className="rounded bg-sky-50 p-2 text-xs text-sky-800">
             個人情報の保護: 電話番号・メール・生年月日・郵便番号・マイナンバー・口座番号・登録済みの代表者名／事業者名は、AIへ送る前に自動で伏せ字にします（AIには実データを渡しません）。電話・メール・生年月日・郵便番号は、AIを通さず基本情報へ直接振り分けます。マイナンバーと口座番号は、反映の対象にしません（ただし、メモの原文は保存されます。書かないことをおすすめします）。それ以外の氏名や住所は伏せられないため、メモに書く際はご注意ください。
@@ -132,6 +132,9 @@ export function MemoImport({ caseId, hearing, onApplied }: { caseId: string; hea
 
           {rows && (
             <div className="flex flex-col gap-3">
+              {rows.length > 0 && rows.every(r => r.applied) && (
+                <p className="rounded bg-emerald-50 p-2 text-xs text-emerald-800">すべて保存しました。上のヒアリングの入力欄にも反映されています。</p>
+              )}
               {maskedCount > 0 && <p className="text-xs text-slate-500">個人情報 {maskedCount} 件を伏せ字にしてAIへ送信しました。</p>}
               {rows.length === 0 && <p className="text-sm text-slate-500">振り分けられる項目が見つかりませんでした。</p>}
               {rows.map(r => (
@@ -141,7 +144,7 @@ export function MemoImport({ caseId, hearing, onApplied }: { caseId: string; hea
                       {r.label}<span className="ml-2 text-xs text-slate-400">{r.target === 'basic' ? '基本情報' : 'ヒアリング'}</span>
                     </span>
                     <button type="button" className="btn-secondary" disabled={r.applied} onClick={() => apply(r)}>
-                      {r.applied ? '反映済' : '反映'}
+                      {r.applied ? '✓ 保存済み' : '反映して保存'}
                     </button>
                   </div>
                   {r.kind === 'services' && <p className="mb-1 text-xs text-slate-400">1行1件「名前｜売上比率%｜単価」</p>}
@@ -159,7 +162,7 @@ export function MemoImport({ caseId, hearing, onApplied }: { caseId: string; hea
                 </div>
               ))}
               {rows.some(r => !r.applied) && (
-                <div><button type="button" className="btn-primary" onClick={applyAll}>未反映をすべて反映</button></div>
+                <div><button type="button" className="btn-primary" onClick={applyAll}>未反映をすべて反映して保存</button></div>
               )}
               {unmatched && (
                 <div className="rounded bg-amber-50 p-3 text-xs text-amber-800">
