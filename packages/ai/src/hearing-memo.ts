@@ -55,9 +55,25 @@ const SYSTEM_PROMPT =
   MEMO_FIELDS.map(f => `- ${f.key}（${f.label}）: ${f.hint}`).join('\n') +
   '\n厳守事項: メモに書かれていない事実・数字・固有名詞を絶対に補わない。推測で埋めない。' +
   '値はメモの表現を活かして簡潔な日本語に整える（箇条書き可）。1つの項目に入れるべき内容が複数箇所に散らばっていれば統合する。' +
-  'どの項目にも当てはまらない内容は unmatched に原文に近い形で入れる。' +
-  '出力は次のJSON形式のみとし、前後に説明文やコードブロック記法を付けないこと: ' +
-  '{"fields": {"<項目key>": "<値>"}, "unmatched": "<振り分けできなかった内容、無ければ空文字>"}'
+  'どの項目にも当てはまらない内容は unmatched に原文に近い形で入れる。結果は必ず record_fields ツールで返すこと。'
+
+// JSON文字列をAIに書かせると引用符や改行で壊れることがあるため、ツール呼び出しで構造化して受け取る
+const RECORD_TOOL: Anthropic.Tool = {
+  name: 'record_fields',
+  description: 'メモを入力項目へ振り分けた結果を記録する',
+  input_schema: {
+    type: 'object',
+    properties: {
+      fields: {
+        type: 'object',
+        description: '項目key → 値。メモに根拠がある項目だけ含める',
+        properties: Object.fromEntries(MEMO_FIELDS.map(f => [f.key, { type: 'string', description: f.hint }])),
+      },
+      unmatched: { type: 'string', description: '振り分けできなかった内容（無ければ空文字）' },
+    },
+    required: ['fields', 'unmatched'],
+  },
+}
 
 /** ヒアリングメモを、入力項目ごとの提案に振り分ける（反映は呼び出し側で行う） */
 export async function sortHearingMemo(memo: string): Promise<{ proposals: MemoProposal[]; unmatched: string }> {
@@ -65,14 +81,13 @@ export async function sortHearingMemo(memo: string): Promise<{ proposals: MemoPr
     model: 'claude-sonnet-5',
     max_tokens: 4000,
     system: SYSTEM_PROMPT,
+    tools: [RECORD_TOOL],
+    tool_choice: { type: 'tool', name: 'record_fields' },
     messages: [{ role: 'user', content: `【ヒアリングメモ】\n${memo}` }],
   })
-  const block = response.content.find(b => b.type === 'text')
-  if (!block || block.type !== 'text') throw new Error('AIの応答が空でした')
-  // 前後に説明文やコードブロックが付いても、最初の { から最後の } までを取り出す
-  const text = block.text
-  const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)
-  const parsed = JSON.parse(json) as { fields?: Record<string, unknown>; unmatched?: unknown }
+  const block = response.content.find(b => b.type === 'tool_use')
+  if (!block || block.type !== 'tool_use') throw new Error('AIの応答が空でした')
+  const parsed = block.input as { fields?: Record<string, unknown>; unmatched?: unknown }
 
   const proposals: MemoProposal[] = []
   for (const f of MEMO_FIELDS) {
