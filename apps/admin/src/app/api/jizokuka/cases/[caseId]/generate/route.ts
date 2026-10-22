@@ -60,7 +60,7 @@ export async function POST(_req: Request, { params }: { params: { caseId: string
     const { error: insertErr } = await jz.from('case_draft_sections').insert(rows)
     if (insertErr) throw insertErr
 
-    await jz.from('cases').update({ status: 'review', updated_at: new Date().toISOString() }).eq('id', params.caseId)
+    await jz.from('cases').update({ status: 'review', draft_generated_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', params.caseId)
 
     return NextResponse.json({ ok: true })
   } catch (e) {

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { StatusPill } from '@/components/jizokuka/status-pill'
+import { StaleDraftNotice } from '@/components/jizokuka/stale-draft-notice'
 import {
   fetchCaseDetail, updateSectionBody, updateCaseStatus, regenerateSection, evaluateCase,
   type JizokukaCase, type JizokukaDraftSection, type JizokukaEvaluation,
@@ -83,6 +84,7 @@ export default function ReviewPage() {
   const router = useRouter()
   const [caseInfo, setCaseInfo] = useState<JizokukaCase | null>(null)
   const [sections, setSections] = useState<JizokukaDraftSection[]>([])
+  const [hearingUpdatedAt, setHearingUpdatedAt] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [confirming, setConfirming] = useState(false)
   const [downloading, setDownloading] = useState(false)
@@ -90,7 +92,8 @@ export default function ReviewPage() {
   const [evaluation, setEvaluation] = useState<JizokukaEvaluation | null>(null)
 
   useEffect(() => {
-    fetchCaseDetail(caseId).then(({ case: c, sections: s }) => {
+    fetchCaseDetail(caseId).then(({ case: c, sections: s, hearing: h }) => {
+      setHearingUpdatedAt((h as { updated_at?: string }).updated_at ?? null)
       setCaseInfo(c)
       setSections(s)
     }).finally(() => setLoading(false))
@@ -155,6 +158,8 @@ export default function ReviewPage() {
           {confirming ? '確定中…' : '確定してエクスポートへ'}
         </button>
       </PageHeader>
+
+      <StaleDraftNotice caseId={caseId} hearingUpdatedAt={hearingUpdatedAt} draftGeneratedAt={caseInfo?.draft_generated_at} />
 
       {sections.length === 0 && (
         <div className="card p-6 text-center text-slate-400">下書きがまだ生成されていません</div>

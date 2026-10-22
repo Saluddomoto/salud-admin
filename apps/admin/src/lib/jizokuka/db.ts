@@ -16,6 +16,7 @@ export interface JizokukaCase {
   updated_at: string
   subsidy_rate: number
   subsidy_cap: number
+  draft_generated_at?: string | null
   self_funds: number | null
   loan_funds: number | null
   other_funds: number | null

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { StaleDraftNotice } from '@/components/jizokuka/stale-draft-notice'
 import { fetchCaseDetail, type JizokukaCase, type JizokukaDraftSection } from '@/lib/jizokuka/db'
 import { splitSectionTitle, isAddedSection, splitConfirmMarkers } from '@/lib/jizokuka/sections'
 import { buildApplicationDocxBlob, downloadBlob } from '@/lib/jizokuka/word-export'
@@ -12,12 +13,14 @@ export default function ExportPage() {
   const { caseId } = useParams<{ caseId: string }>()
   const [caseInfo, setCaseInfo] = useState<JizokukaCase | null>(null)
   const [sections, setSections] = useState<JizokukaDraftSection[]>([])
+  const [hearingUpdatedAt, setHearingUpdatedAt] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
-    fetchCaseDetail(caseId).then(({ case: c, sections: s }) => {
+    fetchCaseDetail(caseId).then(({ case: c, sections: s, hearing: h }) => {
+      setHearingUpdatedAt((h as { updated_at?: string }).updated_at ?? null)
       setCaseInfo(c)
       setSections(s)
     }).finally(() => setLoading(false))
@@ -67,6 +70,8 @@ export default function ExportPage() {
           {copiedId === 'all' ? 'コピーしました' : '全文をコピー'}
         </button>
       </PageHeader>
+
+      <StaleDraftNotice caseId={caseId} hearingUpdatedAt={hearingUpdatedAt} draftGeneratedAt={caseInfo?.draft_generated_at} />
 
       <div className="flex flex-col gap-4">
         {sections.map((s, i) => {
