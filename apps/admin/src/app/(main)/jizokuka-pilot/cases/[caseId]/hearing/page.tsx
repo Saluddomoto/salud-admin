@@ -9,6 +9,7 @@ import {
 } from '@/lib/jizokuka/db'
 import { forecastSales } from '@/lib/jizokuka/hearing-sheet'
 import { StepNav, StepTabs } from '@/components/jizokuka/step-nav'
+import { SaveLogPanel } from '@/components/jizokuka/save-log-panel'
 import { MemoImport } from '@/components/jizokuka/memo-import'
 import { HearingSheetImport } from '@/components/jizokuka/hearing-sheet-import'
 import { buildFieldsDocxBlob, downloadBlob } from '@/lib/jizokuka/word-export'
@@ -130,6 +131,9 @@ export default function HearingPage() {
   // メモ反映後の再取得で、古い取得結果が新しいものを上書きしないための連番と、画面に反映済みのDB内容
   const reloadSeq = useRef(0)
   const baseline = useRef<JizokukaHearing | null>(null)
+  // DBに保存されている内容（保存用の形に正規化したもの）。画面の内容と違うときだけ保存する
+  const savedKey = useRef<string | null>(null)
+  const [saveState, setSaveState] = useState<'saved' | 'unsaved' | 'saving' | 'error'>('saved')
   const [form, setForm] = useState<FormState>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
@@ -140,6 +144,7 @@ export default function HearingPage() {
       setCaseInfo(c)
       setHearing(hearing)
       baseline.current = hearing
+      savedKey.current = JSON.stringify(buildHearingPayload(toFormState(hearing)))
       setForm(toFormState(hearing))
     }).finally(() => setLoading(false))
   }, [caseId])
@@ -160,62 +165,62 @@ export default function HearingPage() {
       implementation_schedule: f.implementation_schedule.map((row, idx) => (idx === i ? { ...row, [field]: v } : row)),
     }))
 
-  const topServices = (): TopService[] =>
-    form.top_services
+  const topServices = (f: FormState = form): TopService[] =>
+    f.top_services
       .filter(t => t.name.trim())
       .map(t => ({ name: t.name.trim(), ratio_pct: numOrNull(t.ratio_pct), unit_price: numOrNull(t.unit_price) }))
 
-  const salesEffects = (): SalesEffect[] =>
-    form.sales_effects
+  const salesEffects = (f: FormState = form): SalesEffect[] =>
+    f.sales_effects
       .filter(e => e.target.trim() || e.offering.trim() || e.unit_price)
       .map(e => ({
         target: e.target.trim(), offering: e.offering.trim(),
         unit_price: numOrNull(e.unit_price), customers: numOrNull(e.customers), frequency: numOrNull(e.frequency),
       }))
 
-  const buildHearingPayload = () => ({
-    industry: form.industry || null,
-    employee_count: numOrNull(form.employee_count),
-    recent_revenue: form.recent_revenue || null,
-    top_services: topServices(),
-    customer_segments: form.customer_segments || null,
-    swot_strength: form.swot_strength || null,
-    swot_weakness: form.swot_weakness || null,
-    swot_opportunity: form.swot_opportunity || null,
-    swot_threat: form.swot_threat || null,
-    subsidy_goal: form.subsidy_goal || null,
-    sales_effects: salesEffects(),
-    gross_margin_pct: numOrNull(form.gross_margin_pct),
-    growth_pct: numOrNull(form.growth_pct),
-    appeal_points: form.appeal_points || null,
-    market_trends: form.market_trends || null,
-    business_policy_goal: form.business_policy_goal || null,
-    future_plan: form.future_plan || null,
-    implementation_schedule: form.implementation_schedule
+  const buildHearingPayload = (f: FormState = form) => ({
+    industry: f.industry || null,
+    employee_count: numOrNull(f.employee_count),
+    recent_revenue: f.recent_revenue || null,
+    top_services: topServices(f),
+    customer_segments: f.customer_segments || null,
+    swot_strength: f.swot_strength || null,
+    swot_weakness: f.swot_weakness || null,
+    swot_opportunity: f.swot_opportunity || null,
+    swot_threat: f.swot_threat || null,
+    subsidy_goal: f.subsidy_goal || null,
+    sales_effects: salesEffects(f),
+    gross_margin_pct: numOrNull(f.gross_margin_pct),
+    growth_pct: numOrNull(f.growth_pct),
+    appeal_points: f.appeal_points || null,
+    market_trends: f.market_trends || null,
+    business_policy_goal: f.business_policy_goal || null,
+    future_plan: f.future_plan || null,
+    implementation_schedule: f.implementation_schedule
       .filter(i => i.task.trim() || i.start.trim() || i.end.trim())
       .map((i): ScheduleItem => ({ task: i.task.trim(), start: i.start.trim(), end: i.end.trim() })),
-    efficiency_enabled: form.efficiency_enabled === '' ? null : form.efficiency_enabled === 'true',
-    efficiency_items: form.efficiency_items || null,
-    efficiency_current: form.efficiency_current || null,
-    efficiency_effect: form.efficiency_effect || null,
-    order_channels: form.order_channels || null,
-    marketing_issues: form.marketing_issues || null,
-    payment_terms: form.payment_terms || null,
-    expansion_plans: form.expansion_plans || null,
-    profit_target: form.profit_target || null,
-    founder_background: form.founder_background || null,
-    company_history: form.company_history || null,
-    market_sources: form.market_sources || null,
-    customer_examples: form.customer_examples || null,
-    track_record: form.track_record || null,
-    attachments_note: form.attachments_note || null,
+    efficiency_enabled: f.efficiency_enabled === '' ? null : f.efficiency_enabled === 'true',
+    efficiency_items: f.efficiency_items || null,
+    efficiency_current: f.efficiency_current || null,
+    efficiency_effect: f.efficiency_effect || null,
+    order_channels: f.order_channels || null,
+    marketing_issues: f.marketing_issues || null,
+    payment_terms: f.payment_terms || null,
+    expansion_plans: f.expansion_plans || null,
+    profit_target: f.profit_target || null,
+    founder_background: f.founder_background || null,
+    company_history: f.company_history || null,
+    market_sources: f.market_sources || null,
+    customer_examples: f.customer_examples || null,
+    track_record: f.track_record || null,
+    attachments_note: f.attachments_note || null,
   })
 
   const handleSubmit = async (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault()
     setGenerating(true)
     try {
-      await saveHearing(caseId, buildHearingPayload())
+      await persist()
       await generateInitialDraft(caseId)
       router.push(`/jizokuka-pilot/cases/${caseId}/review`)
     } catch (e) {
@@ -239,10 +244,39 @@ export default function HearingPage() {
       return out
     })
     baseline.current = h
+    savedKey.current = JSON.stringify(buildHearingPayload(next))
     setHearing(h)
   }
 
-  const persist = () => saveHearing(caseId, buildHearingPayload())
+  // 変更があるときだけ保存する（変更がないのに保存すると、更新時刻だけが進んで下書きが「古い」と誤判定される）
+  const persist = async (source = '一時保存') => {
+    const payload = buildHearingPayload()
+    const key = JSON.stringify(payload)
+    if (key === savedKey.current) return
+    const before = JSON.parse(savedKey.current ?? '{}') as Record<string, unknown>
+    const changed = Object.keys(payload).filter(k => JSON.stringify(before[k]) !== JSON.stringify((payload as Record<string, unknown>)[k]))
+    await saveHearing(caseId, payload, { source, keys: changed })
+    savedKey.current = key
+  }
+
+  // 自動保存: 入力が止まって1.5秒後に保存する
+  useEffect(() => {
+    if (loading || savedKey.current === null) return
+    if (JSON.stringify(buildHearingPayload()) === savedKey.current) { setSaveState('saved'); return }
+    setSaveState('unsaved')
+    const t = setTimeout(async () => {
+      setSaveState('saving')
+      try { await persist('自動保存'); setSaveState('saved') } catch { setSaveState('error') }
+    }, 1500)
+    return () => clearTimeout(t)
+  }, [form, loading]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 未保存のまま閉じようとしたら警告する
+  useEffect(() => {
+    const warn = (ev: BeforeUnloadEvent) => { if (saveState === 'unsaved' || saveState === 'saving') ev.preventDefault() }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [saveState])
 
   const forecast = forecastSales(salesEffects(), numOrNull(form.gross_margin_pct), numOrNull(form.growth_pct))
 
@@ -314,6 +348,13 @@ export default function HearingPage() {
         </div>
       )}
 
+      <p className={`text-xs ${saveState === 'error' ? 'text-red-600' : 'text-slate-400'}`}>
+        {saveState === 'saved' && '自動保存: 保存済み'}
+        {saveState === 'unsaved' && '自動保存: 入力を保存します…'}
+        {saveState === 'saving' && '自動保存: 保存中…'}
+        {saveState === 'error' && '自動保存に失敗しました。通信を確認して、もう一度入力するか「一時保存」を押してください'}
+      </p>
+
       {hearing && (
         <MemoImport
           caseId={caseId}
@@ -321,6 +362,8 @@ export default function HearingPage() {
           onApplied={reloadAfterMemo}
         />
       )}
+
+      <SaveLogPanel caseId={caseId} />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         <div className="card flex flex-col gap-4 p-5">

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { StatusPill } from '@/components/jizokuka/status-pill'
+import { SaveLogPanel } from '@/components/jizokuka/save-log-panel'
 import { StaleDraftNotice } from '@/components/jizokuka/stale-draft-notice'
 import {
   fetchCaseDetail, updateSectionBody, updateCaseStatus, regenerateSection, evaluateCase,
@@ -158,6 +159,8 @@ export default function ReviewPage() {
           {confirming ? '確定中…' : '確定してエクスポートへ'}
         </button>
       </PageHeader>
+
+      <SaveLogPanel caseId={caseId} />
 
       <StaleDraftNotice caseId={caseId} hearingUpdatedAt={hearingUpdatedAt} draftGeneratedAt={caseInfo?.draft_generated_at} />
 

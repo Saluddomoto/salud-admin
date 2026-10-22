@@ -84,15 +84,15 @@ export function MemoImport({ caseId, hearing, onApplied }: { caseId: string; hea
           ...(r.mode === 'append' ? ((hearing.top_services ?? []) as TopService[]) : []),
           ...linesToServices(r.value),
         ]
-        await saveHearing(caseId, { top_services: merged })
+        await saveHearing(caseId, { top_services: merged }, { source: 'メモ反映' })
       } else if (r.kind === 'number') {
         const n = Number(r.value.replace(/,/g, ''))
         if (Number.isNaN(n)) throw new Error(`「${r.label}」は数値で入力してください`)
-        await saveHearing(caseId, { [r.key]: n })
+        await saveHearing(caseId, { [r.key]: n }, { source: 'メモ反映' })
       } else {
         const value = r.mode === 'append' && r.current ? `${r.current}\n${r.value}` : r.value
-        if (r.target === 'hearing') await saveHearing(caseId, { [r.key]: value })
-        else await saveBasicInfo(caseId, { [r.key]: value })
+        if (r.target === 'hearing') await saveHearing(caseId, { [r.key]: value }, { source: 'メモ反映' })
+        else await saveBasicInfo(caseId, { [r.key]: value }, { source: 'メモ反映' })
       }
       setRows(prev => prev!.map(x => (x.key === r.key ? { ...x, applied: true } : x)))
       appliedLabels.current = [...appliedLabels.current, r.label]

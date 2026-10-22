@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase'
+import { logSave } from './save-log'
+import { splitSectionTitle } from './sections'
 
 // 持続化パイロット（小規模事業者持続化補助金の申請書AI下書きツール）専用のデータアクセス層。
 // Salud本体の src/lib/db.ts とは意図的に分離し、`jizokuka` スキーマのみを扱う
@@ -232,12 +234,14 @@ export async function fetchCaseDetail(caseId: string): Promise<{
 export async function saveHearing(
   caseId: string,
   input: Partial<Omit<JizokukaHearing, 'case_id'>>,
+  log: { source?: string; keys?: string[] } = {},
 ): Promise<void> {
   const { error } = await jz()
     .from('case_hearings')
     .update({ ...input, updated_at: new Date().toISOString() })
     .eq('case_id', caseId)
   if (error) throw new Error(error.message)
+  await logSave(caseId, log.source ?? 'ヒアリング保存', log.keys ?? Object.keys(input))
 }
 
 export async function updateCaseStatus(caseId: string, status: JizokukaCaseStatus): Promise<void> {
@@ -249,11 +253,14 @@ export async function updateCaseStatus(caseId: string, status: JizokukaCaseStatu
 }
 
 export async function updateSectionBody(sectionId: string, body: string): Promise<void> {
-  const { error } = await jz()
+  const { data, error } = await jz()
     .from('case_draft_sections')
     .update({ body, updated_at: new Date().toISOString() })
     .eq('id', sectionId)
+    .select('case_id, title')
+    .single()
   if (error) throw new Error(error.message)
+  await logSave(data.case_id, '下書き編集', splitSectionTitle(data.title).label)
 }
 
 export async function generateInitialDraft(caseId: string): Promise<void> {
@@ -262,6 +269,7 @@ export async function generateInitialDraft(caseId: string): Promise<void> {
     const body = await res.json().catch(() => ({}))
     throw new Error(body.error ?? 'AI下書きの生成に失敗しました')
   }
+  await logSave(caseId, '下書き生成', '全セクションをAIで作り直し')
 }
 
 export async function fetchBasicInfo(caseId: string): Promise<JizokukaBasicInfo> {
@@ -278,11 +286,13 @@ export async function fetchBasicInfo(caseId: string): Promise<JizokukaBasicInfo>
 export async function saveBasicInfo(
   caseId: string,
   input: Partial<Omit<JizokukaBasicInfo, 'case_id'>>,
+  log: { source?: string; keys?: string[] } = {},
 ): Promise<void> {
   const { error } = await jz()
     .from('case_basic_info')
     .upsert({ case_id: caseId, ...input, updated_at: new Date().toISOString() })
   if (error) throw new Error(error.message)
+  await logSave(caseId, log.source ?? '基本情報保存', log.keys ?? Object.keys(input))
 }
 
 export async function fetchExpenseItems(caseId: string): Promise<JizokukaExpenseItem[]> {
@@ -358,6 +368,8 @@ export async function regenerateSection(sectionId: string, instruction: string):
   })
   const body = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(body.error ?? 'AI再生成に失敗しました')
+  const { data } = await jz().from('case_draft_sections').select('case_id, title').eq('id', sectionId).single()
+  if (data) await logSave(data.case_id, '下書きをAIで再生成', splitSectionTitle(data.title).label)
   return body.body as string
 }
 
