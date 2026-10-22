@@ -18,6 +18,7 @@
 
 export { analyzeMeetingMinutes, type MeetingAnalysis } from './minutes'
 export { generateColumn, type ColumnArticle, type ColumnSubsidy as ColumnSubsidyInput } from './column-article'
+export { sortHearingMemo, type MemoProposal, type MemoTarget } from './hearing-memo'
 export { classifyLineMessageForTask, type LineTaskCandidate } from './line-task'
 export { summarizeMonthlyReports, type MonthlyReportPerson, type MonthlyReportSummary } from './monthly-report-summary'
 export { summarizeAnnualReports, type AnnualReportPerson, type AnnualReportSummary } from './annual-report-summary'

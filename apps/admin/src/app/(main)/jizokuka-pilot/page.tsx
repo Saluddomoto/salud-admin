@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { StatusPill } from '@/components/jizokuka/status-pill'
 import {
-  fetchCaseOverviews, createCase, deleteCase, duplicateCase,
+  fetchCaseOverviews, createCase, deleteCase, duplicateCase, updateCaseNames,
   type JizokukaCaseOverview, type JizokukaCaseStatus,
 } from '@/lib/jizokuka/db'
 
@@ -33,6 +33,7 @@ export default function JizokukaPilotPage() {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState<JizokukaCaseOverview | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -47,6 +48,26 @@ export default function JizokukaPilotPage() {
       load()
     } catch (e) {
       alert(`複製に失敗しました: ${e instanceof Error ? e.message : e}`)
+    }
+  }
+
+  const handleEditSubmit = async (ev: React.FormEvent<HTMLFormElement>) => {
+    ev.preventDefault()
+    if (!editing) return
+    const f = new FormData(ev.currentTarget)
+    setSaving(true)
+    try {
+      await updateCaseNames(editing.id, {
+        business_name: String(f.get('business_name')).trim(),
+        representative: String(f.get('representative')).trim() || null,
+        deadline_date: String(f.get('deadline_date')) || null,
+      })
+      setEditing(null)
+      load()
+    } catch (e) {
+      alert(`変更に失敗しました: ${e instanceof Error ? e.message : e}`)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -170,6 +191,7 @@ export default function JizokukaPilotPage() {
                 <td className="px-4 py-3 text-slate-600">{c.deadline_date ?? '—'}</td>
                 <td className="px-4 py-3 text-slate-500">{new Date(c.updated_at).toLocaleDateString('ja-JP')}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-right" onClick={ev => ev.stopPropagation()}>
+                  <button className="mr-3 text-xs text-slate-500 hover:text-slate-900" onClick={() => setEditing(c)}>名前変更</button>
                   <button className="mr-3 text-xs text-slate-500 hover:text-slate-900" onClick={() => handleDuplicate(c)}>複製</button>
                   <button className="text-xs text-red-500 hover:text-red-700" onClick={() => handleDelete(c)}>削除</button>
                 </td>
@@ -178,6 +200,29 @@ export default function JizokukaPilotPage() {
           </tbody>
         </table>
       </div>
+
+      <Modal title="案件情報を変更" open={!!editing} onClose={() => setEditing(null)}>
+        {editing && (
+          <form key={editing.id} onSubmit={handleEditSubmit} className="flex flex-col gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">事業者名</label>
+              <input name="business_name" required className="input" defaultValue={editing.business_name} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">代表者</label>
+              <input name="representative" className="input" defaultValue={editing.representative ?? ''} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">申請期限</label>
+              <input name="deadline_date" type="date" className="input" defaultValue={editing.deadline_date ?? ''} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" className="btn-secondary" onClick={() => setEditing(null)}>キャンセル</button>
+              <button type="submit" className="btn-primary" disabled={saving}>{saving ? '保存中…' : '保存'}</button>
+            </div>
+          </form>
+        )}
+      </Modal>
 
       <Modal title="新規案件を作成" open={modalOpen} onClose={() => setModalOpen(false)}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

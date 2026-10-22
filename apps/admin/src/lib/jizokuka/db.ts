@@ -406,7 +406,7 @@ export async function applyHearingSheet(
 /** ヒアリングシートの事業者名・代表者名に合わせて案件名を更新する（下書き・エクスポートはこの名称を使う） */
 export async function updateCaseNames(
   caseId: string,
-  input: { business_name?: string; representative?: string },
+  input: { business_name?: string; representative?: string | null; deadline_date?: string | null },
 ): Promise<void> {
   const { error } = await jz()
     .from('cases')

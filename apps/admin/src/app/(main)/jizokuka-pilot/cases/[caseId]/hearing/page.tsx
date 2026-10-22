@@ -9,6 +9,7 @@ import {
 } from '@/lib/jizokuka/db'
 import { forecastSales } from '@/lib/jizokuka/hearing-sheet'
 import { StepNav, StepTabs } from '@/components/jizokuka/step-nav'
+import { MemoImport } from '@/components/jizokuka/memo-import'
 import { HearingSheetImport } from '@/components/jizokuka/hearing-sheet-import'
 import { buildFieldsDocxBlob, downloadBlob } from '@/lib/jizokuka/word-export'
 
@@ -289,6 +290,14 @@ export default function HearingPage() {
         <div className="card border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
           ヒアリングシート「{hearing.sheet_file_name}」を反映済み（{new Date(hearing.sheet_imported_at).toLocaleString('ja-JP')}）
         </div>
+      )}
+
+      {hearing && (
+        <MemoImport
+          caseId={caseId}
+          hearing={hearing}
+          onApplied={() => fetchCaseDetail(caseId).then(({ hearing: h }) => { setHearing(h); setForm(toFormState(h)) })}
+        />
       )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
