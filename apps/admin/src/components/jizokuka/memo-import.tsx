@@ -5,6 +5,7 @@ import {
   fetchBasicInfo, saveBasicInfo, saveHearing, fetchMemos, saveMemo, markMemoApplied, deleteMemo,
   type JizokukaHearing, type JizokukaMemo, type TopService,
 } from '@/lib/jizokuka/db'
+import { announceAiCost } from '@/lib/jizokuka/save-log'
 
 type Kind = 'text' | 'number' | 'services'
 type Proposal = { target: 'hearing' | 'basic'; key: string; label: string; value: string; kind?: Kind }
@@ -50,6 +51,7 @@ export function MemoImport({ caseId, hearing, onApplied }: { caseId: string; hea
       const res = await fetch(`/api/jizokuka/cases/${caseId}/parse-memo`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ memo }),
       })
+      announceAiCost(res, 'メモ振り分け')
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(`${body.error ?? '振り分けに失敗しました'}（メモは保存済みです）`)
       const basic = await fetchBasicInfo(caseId)

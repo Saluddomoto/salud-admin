@@ -21,6 +21,37 @@ const LABELS: Record<string, string> = {
 
 export const fieldLabel = (key: string) => LABELS[key] ?? key
 
+/** 概算料金の為替レート（円/ドル）。サーバー側の ai-usage.ts と同じ値 */
+export const JPY_PER_USD = 150
+
+export interface AiUsageEntry {
+  id: string
+  operation: string
+  calls: number
+  input_tokens: number
+  output_tokens: number
+  web_searches: number
+  cost_usd: number
+  created_at: string
+}
+
+export async function fetchAiUsage(caseId: string): Promise<AiUsageEntry[]> {
+  const { data, error } = await createClient().schema('jizokuka').from('case_ai_usage')
+    .select('id, operation, calls, input_tokens, output_tokens, web_searches, cost_usd, created_at')
+    .eq('case_id', caseId).order('created_at', { ascending: false }).limit(100)
+  if (error) throw new Error(error.message)
+  return ((data ?? []) as AiUsageEntry[]).map(r => ({ ...r, cost_usd: Number(r.cost_usd) }))
+}
+
+/** AI処理の応答ヘッダーにある今回の概算費用（円）を、画面へ知らせる（保存ログ欄が表示する） */
+export function announceAiCost(res: Response, operation: string): void {
+  const yen = res.headers.get('X-AI-Cost-Yen')
+  if (yen == null || typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent('jizokuka-ai-cost', { detail: { operation, yen: Number(yen) } }))
+}
+
+export const formatYen = (yen: number) => (yen < 1 ? `約${yen.toFixed(2)}円` : `約${yen.toFixed(1)}円`)
+
 export interface SaveLogEntry {
   id: string
   case_id: string

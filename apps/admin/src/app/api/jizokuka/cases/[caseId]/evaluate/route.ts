@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { runTracked } from '@/lib/jizokuka/ai-usage'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { evaluateApplicationDraft } from '@salud/ai'
 import { splitSectionTitle } from '@/lib/jizokuka/sections'
@@ -11,7 +12,7 @@ function formatYen(n: number) {
 }
 
 // 持続化パイロット: 下書き済みの申請文章を、審査の4観点に照らしてAIにチェックさせる。
-export async function POST(_req: Request, { params }: { params: { caseId: string } }) {
+async function handle(_req: Request, { params }: { params: { caseId: string } }) {
   const supabase = createServerSupabaseClient()
   const jz = supabase.schema('jizokuka')
 
@@ -49,4 +50,8 @@ export async function POST(_req: Request, { params }: { params: { caseId: string
     console.error('持続化パイロット: 審査基準チェックに失敗', e)
     return NextResponse.json({ error: '審査基準のチェックに失敗しました' }, { status: 500 })
   }
+}
+
+export async function POST(_req: Request, { params }: { params: { caseId: string } }) {
+  return runTracked('審査基準チェック', async () => params.caseId, () => handle(_req, { params }))
 }

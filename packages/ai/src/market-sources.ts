@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { recordUsage } from './usage'
 
 // 持続化パイロット: 「2-1 市場の動向」の根拠にする政府統計を、政府サイトに限定したWeb検索で集める。
 // AIの記憶だけで統計名・数値・URLを書かせると誤りが混ざるため、
@@ -116,6 +117,7 @@ export async function researchMarketSources(input: MarketResearchInput, today: D
       ],
       messages,
     })
+    recordUsage('claude-sonnet-5', response.usage)
 
     for (const block of response.content) {
       if (block.type === 'web_search_tool_result' && Array.isArray(block.content)) {

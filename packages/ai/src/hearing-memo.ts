@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { recordUsage } from './usage'
 
 let client: Anthropic | null = null
 function getClient(): Anthropic {
@@ -119,6 +120,7 @@ export async function sortHearingMemo(memo: string): Promise<{ proposals: MemoPr
     tool_choice: { type: 'tool', name: 'record_fields' },
     messages: [{ role: 'user', content: `【ヒアリングメモ】\n${memo}` }],
   })
+  recordUsage('claude-sonnet-5', response.usage)
   const block = response.content.find(b => b.type === 'tool_use')
   if (!block || block.type !== 'tool_use') throw new Error('AIの応答が空でした')
   const parsed = block.input as { fields?: Record<string, unknown>; unmatched?: unknown }

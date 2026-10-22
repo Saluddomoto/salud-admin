@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { runTracked } from '@/lib/jizokuka/ai-usage'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { regenerateApplicationSection, applicationSectionKeyFromTitle, sanitizeCitations, extractUrls } from '@salud/ai'
 import { buildDraftInput } from '@/lib/jizokuka/draft-input'
@@ -7,7 +8,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 // 持続化パイロット: 担当者の追加指示を反映して1セクションだけ再生成する。
-export async function POST(req: Request, { params }: { params: { sectionId: string } }) {
+async function handle(req: Request, { params }: { params: { sectionId: string } }) {
   const { instruction } = (await req.json().catch(() => ({}))) as { instruction?: string }
   if (!instruction?.trim()) {
     return NextResponse.json({ error: '修正指示を入力してください' }, { status: 400 })
@@ -56,4 +57,12 @@ ${section.body}`
     console.error('持続化パイロット: セクション再生成に失敗', e)
     return NextResponse.json({ error: 'AI再生成に失敗しました' }, { status: 500 })
   }
+}
+
+export async function POST(req: Request, { params }: { params: { sectionId: string } }) {
+  const resolveCaseId = async () => {
+    const { data } = await createServerSupabaseClient().schema('jizokuka').from('case_draft_sections').select('case_id').eq('id', params.sectionId).single()
+    return data?.case_id as string | undefined
+  }
+  return runTracked('下書きのAI再生成', resolveCaseId, () => handle(req, { params }))
 }

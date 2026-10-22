@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { recordUsage } from './usage'
 
 let client: Anthropic | null = null
 function getClient(): Anthropic {
@@ -238,6 +239,7 @@ export async function generateApplicationDraft(input: ApplicationHearingInput): 
     tool_choice: { type: 'tool', name: tool.name },
     messages: [{ role: 'user', content: buildHearingText(input) }],
   })
+  recordUsage('claude-sonnet-5', response.usage)
 
   if (response.stop_reason === 'max_tokens') {
     throw new Error('AIの応答が長すぎて途中で切れました。もう一度お試しください')
@@ -289,6 +291,7 @@ export async function regenerateApplicationSection(
     tool_choice: { type: 'tool', name: SECTION_TOOL.name },
     messages: [{ role: 'user', content: userContent }],
   })
+  recordUsage('claude-sonnet-5', response.usage)
 
   const toolBlock = response.content.find(
     (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use' && block.name === SECTION_TOOL.name,

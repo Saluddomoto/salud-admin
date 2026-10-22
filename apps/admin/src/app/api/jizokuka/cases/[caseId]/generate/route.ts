@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { runTracked } from '@/lib/jizokuka/ai-usage'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import {
   generateApplicationDraft, APPLICATION_SECTION_LABELS, APPLICATION_SECTION_ORDER,
@@ -13,7 +14,7 @@ export const maxDuration = 300
 
 // 持続化パイロット: ヒアリング内容から全セクションの初稿を一括生成する。
 // ANTHROPIC_API_KEY を使うため（ブラウザに露出させたくない）API route 側で実行する。
-export async function POST(_req: Request, { params }: { params: { caseId: string } }) {
+async function handle(_req: Request, { params }: { params: { caseId: string } }) {
   const supabase = createServerSupabaseClient()
   const jz = supabase.schema('jizokuka')
 
@@ -67,4 +68,8 @@ export async function POST(_req: Request, { params }: { params: { caseId: string
     console.error('持続化パイロット: 下書き生成に失敗', e)
     return NextResponse.json({ error: 'AI下書きの生成に失敗しました' }, { status: 500 })
   }
+}
+
+export async function POST(_req: Request, { params }: { params: { caseId: string } }) {
+  return runTracked('下書き生成', async () => params.caseId, () => handle(_req, { params }))
 }

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase'
-import { logSave } from './save-log'
+import { logSave, announceAiCost } from './save-log'
 import { splitSectionTitle } from './sections'
 
 // 持続化パイロット（小規模事業者持続化補助金の申請書AI下書きツール）専用のデータアクセス層。
@@ -269,6 +269,7 @@ export async function generateInitialDraft(caseId: string): Promise<void> {
     const body = await res.json().catch(() => ({}))
     throw new Error(body.error ?? 'AI下書きの生成に失敗しました')
   }
+  announceAiCost(res, '下書き生成')
   await logSave(caseId, '下書き生成', '全セクションをAIで作り直し')
 }
 
@@ -357,6 +358,7 @@ export async function evaluateCase(caseId: string): Promise<JizokukaEvaluation> 
   const res = await fetch(`/api/jizokuka/cases/${caseId}/evaluate`, { method: 'POST' })
   const body = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(body.error ?? '審査基準のチェックに失敗しました')
+  announceAiCost(res, '審査基準チェック')
   return body as JizokukaEvaluation
 }
 
@@ -368,6 +370,7 @@ export async function regenerateSection(sectionId: string, instruction: string):
   })
   const body = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(body.error ?? 'AI再生成に失敗しました')
+  announceAiCost(res, '下書きのAI再生成')
   const { data } = await jz().from('case_draft_sections').select('case_id, title').eq('id', sectionId).single()
   if (data) await logSave(data.case_id, '下書きをAIで再生成', splitSectionTitle(data.title).label)
   return body.body as string

@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { recordUsage } from './usage'
 
 let client: Anthropic | null = null
 function getClient(): Anthropic {
@@ -74,6 +75,7 @@ export async function evaluateApplicationDraft(draftText: string, expenseSummary
     tool_choice: { type: 'tool', name: EVAL_TOOL.name },
     messages: [{ role: 'user', content: userContent }],
   })
+  recordUsage('claude-sonnet-5', response.usage)
 
   const toolBlock = response.content.find(
     (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use' && block.name === EVAL_TOOL.name,
