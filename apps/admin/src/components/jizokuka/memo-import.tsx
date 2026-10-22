@@ -58,12 +58,18 @@ export function MemoImport({ caseId, hearing, onApplied }: { caseId: string; hea
         if (Array.isArray(v)) return servicesToLines(v as TopService[])
         return v == null ? '' : String(v)
       }
-      setRows((body.proposals as Proposal[]).map(p => {
+      const next = (body.proposals as Proposal[]).map(p => {
         const current = cur(p)
         return { ...p, kind: p.kind ?? 'text', current, mode: current ? 'append' : 'replace', applied: false } as Row
-      }))
+      })
+      setRows(next)
       setUnmatched(body.unmatched ?? '')
       setMaskedCount(body.maskedCount ?? 0)
+      // 自動保存: 空の項目は入力、入力済みの文章は追記。入力済みの数値は上書きせず、ボタンで選ばせる
+      for (const r of next) {
+        if (r.kind === 'number' && r.current) continue
+        if (!(await apply(r))) break
+      }
     } catch (e) {
       alert(e instanceof Error ? e.message : '振り分けに失敗しました')
     } finally {
@@ -71,7 +77,7 @@ export function MemoImport({ caseId, hearing, onApplied }: { caseId: string; hea
     }
   }
 
-  const apply = async (r: Row) => {
+  const apply = async (r: Row): Promise<boolean> => {
     try {
       if (r.kind === 'services') {
         const merged = [
@@ -92,8 +98,10 @@ export function MemoImport({ caseId, hearing, onApplied }: { caseId: string; hea
       appliedLabels.current = [...appliedLabels.current, r.label]
       if (memoId.current) markMemoApplied(memoId.current, appliedLabels.current).then(loadHistory).catch(() => {})
       await onApplied()
+      return true
     } catch (e) {
       alert(e instanceof Error ? e.message : '反映に失敗しました')
+      return false
     }
   }
 
@@ -118,7 +126,7 @@ export function MemoImport({ caseId, hearing, onApplied }: { caseId: string; hea
       {open && (
         <div className="mt-3 flex flex-col gap-3">
           <p className="text-xs text-slate-500">
-            ヒアリング中のメモを自由に貼り付けてください。AIが入力項目ごとに振り分けて提案します（メモに無い内容は補いません）。内容を確認して「反映して保存」を押した項目は、その場で自動的に保存されます（一時保存は不要です）。貼り付けたメモの原文は、この案件に保存され、下の一覧からいつでも見返せます。
+            ヒアリング中のメモを自由に貼り付けてください。AIが入力項目ごとに振り分けて提案します（メモに無い内容は補いません）。振り分けた内容は、自動でヒアリングの入力欄に保存されます（空の項目は入力、入力済みの文章は追記。入力済みの数値だけは上書きせず、ボタンで選べます）。一時保存は不要です。貼り付けたメモの原文は、この案件に保存され、下の一覧からいつでも見返せます。
           </p>
           <p className="rounded bg-sky-50 p-2 text-xs text-sky-800">
             個人情報の保護: 電話番号・メール・生年月日・郵便番号・マイナンバー・口座番号・登録済みの代表者名／事業者名は、AIへ送る前に自動で伏せ字にします（AIには実データを渡しません）。電話・メール・生年月日・郵便番号は、AIを通さず基本情報へ直接振り分けます。マイナンバーと口座番号は、反映の対象にしません（ただし、メモの原文は保存されます。書かないことをおすすめします）。それ以外の氏名や住所は伏せられないため、メモに書く際はご注意ください。
