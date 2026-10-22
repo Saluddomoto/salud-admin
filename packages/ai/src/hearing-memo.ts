@@ -62,14 +62,16 @@ const SYSTEM_PROMPT =
 /** ヒアリングメモを、入力項目ごとの提案に振り分ける（反映は呼び出し側で行う） */
 export async function sortHearingMemo(memo: string): Promise<{ proposals: MemoProposal[]; unmatched: string }> {
   const response = await getClient().messages.create({
-    model: 'claude-sonnet-5-5',
+    model: 'claude-sonnet-5',
     max_tokens: 4000,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: `【ヒアリングメモ】\n${memo}` }],
   })
   const block = response.content.find(b => b.type === 'text')
   if (!block || block.type !== 'text') throw new Error('AIの応答が空でした')
-  const json = block.text.trim().replace(/^```(json)?/, '').replace(/```$/, '').trim()
+  // 前後に説明文やコードブロックが付いても、最初の { から最後の } までを取り出す
+  const text = block.text
+  const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)
   const parsed = JSON.parse(json) as { fields?: Record<string, unknown>; unmatched?: unknown }
 
   const proposals: MemoProposal[] = []
