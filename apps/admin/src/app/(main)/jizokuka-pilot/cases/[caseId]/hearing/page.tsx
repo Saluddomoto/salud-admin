@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import {
@@ -127,6 +127,9 @@ export default function HearingPage() {
   const router = useRouter()
   const [caseInfo, setCaseInfo] = useState<JizokukaCase | null>(null)
   const [hearing, setHearing] = useState<JizokukaHearing | null>(null)
+  // メモ反映後の再取得で、古い取得結果が新しいものを上書きしないための連番と、画面に反映済みのDB内容
+  const reloadSeq = useRef(0)
+  const baseline = useRef<JizokukaHearing | null>(null)
   const [form, setForm] = useState<FormState>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
@@ -136,6 +139,7 @@ export default function HearingPage() {
     fetchCaseDetail(caseId).then(({ case: c, hearing }) => {
       setCaseInfo(c)
       setHearing(hearing)
+      baseline.current = hearing
       setForm(toFormState(hearing))
     }).finally(() => setLoading(false))
   }, [caseId])
@@ -220,6 +224,24 @@ export default function HearingPage() {
     }
   }
 
+  // メモ反映後は、DBで変わった項目だけをフォームへ取り込む（手入力中の内容や他の項目は消さない）
+  const reloadAfterMemo = async () => {
+    const seq = ++reloadSeq.current
+    const { hearing: h } = await fetchCaseDetail(caseId)
+    if (seq !== reloadSeq.current) return
+    const next = toFormState(h)
+    const prev = toFormState(baseline.current ?? h)
+    setForm(f => {
+      const out: FormState = { ...f }
+      for (const k of Object.keys(next) as (keyof FormState)[]) {
+        if (JSON.stringify(next[k]) !== JSON.stringify(prev[k])) (out as Record<string, unknown>)[k] = next[k]
+      }
+      return out
+    })
+    baseline.current = h
+    setHearing(h)
+  }
+
   const persist = () => saveHearing(caseId, buildHearingPayload())
 
   const forecast = forecastSales(salesEffects(), numOrNull(form.gross_margin_pct), numOrNull(form.growth_pct))
@@ -296,7 +318,7 @@ export default function HearingPage() {
         <MemoImport
           caseId={caseId}
           hearing={hearing}
-          onApplied={() => fetchCaseDetail(caseId).then(({ hearing: h }) => { setHearing(h); setForm(toFormState(h)) })}
+          onApplied={reloadAfterMemo}
         />
       )}
 

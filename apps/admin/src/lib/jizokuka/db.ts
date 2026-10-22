@@ -538,3 +538,35 @@ export async function duplicateCase(caseId: string): Promise<string> {
   }
   return newId
 }
+
+// ---- ヒアリングメモ（貼り付けた原文の履歴。反映した項目名も残す） ----
+
+export interface JizokukaMemo {
+  id: string
+  case_id: string
+  body: string
+  applied_labels: string[]
+  created_at: string
+}
+
+export async function fetchMemos(caseId: string): Promise<JizokukaMemo[]> {
+  const { data, error } = await jz().from('case_memos').select('*').eq('case_id', caseId).order('created_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  return (data ?? []) as JizokukaMemo[]
+}
+
+export async function saveMemo(caseId: string, body: string): Promise<JizokukaMemo> {
+  const { data, error } = await jz().from('case_memos').insert({ case_id: caseId, body }).select().single()
+  if (error) throw new Error(error.message)
+  return data as JizokukaMemo
+}
+
+export async function markMemoApplied(memoId: string, labels: string[]): Promise<void> {
+  const { error } = await jz().from('case_memos').update({ applied_labels: labels }).eq('id', memoId)
+  if (error) throw new Error(error.message)
+}
+
+export async function deleteMemo(memoId: string): Promise<void> {
+  const { error } = await jz().from('case_memos').delete().eq('id', memoId)
+  if (error) throw new Error(error.message)
+}
