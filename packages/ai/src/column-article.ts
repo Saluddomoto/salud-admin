@@ -37,6 +37,7 @@ type Block =
   | { type: 'chat'; lines: { who: '経営者' | '担当者'; text: string }[] }
   | { type: 'flow'; steps: string[] }
   | { type: 'cards'; cards: { label: string; value: string; note: string }[] }
+  | { type: 'pics'; cards: { icon: string; title: string; text: string }[] }
 
 type BuiltArticle = {
   title: string
@@ -48,6 +49,15 @@ type BuiltArticle = {
   faq: { q: string; a: string }[]
   summary_points: string[]
   unsure: string[]
+  /** おばあちゃんにも伝わるひとことまとめ（2〜4行） */
+  easy_summary: string[]
+  /** h2ごとの「やさしく言うと」（h2の出現順） */
+  easy_callouts: string[]
+  /** むずかしい言葉の言いかえ表 */
+  glossary: { term: string; easy: string }[]
+  /** AIO対策欄: 結論1文と、数字・条件の一覧表 */
+  aio_answer: string
+  aio_rows: { label: string; value: string }[]
 }
 
 type ArticleDraft = {
@@ -88,6 +98,26 @@ const ARTICLE_TOOL: Anthropic.Tool = {
         type: 'string',
         description: 'よくある質問と回答（4〜5個）。1問につき「Q: 質問」の行と「A: 回答」の行を書き、問と問の間は空行にする。',
       },
+      easy_summary: {
+        type: 'string',
+        description: '「おばあちゃんにも伝わる、ひとことまとめ」。専門用語を使わず、やさしい言葉で2〜4行（1行1文、改行で区切る）。この記事で一番大事なことを言い切る。',
+      },
+      easy_callouts: {
+        type: 'string',
+        description: '本文のh2ごとの「やさしく言うと」。h2の出現順に1行ずつ（1行=1つのh2、改行で区切る）。専門用語を使わず、1〜2文で、そのh2の結論をやさしく言い換える。h2の数と同じ行数にする。',
+      },
+      glossary: {
+        type: 'string',
+        description: '「むずかしい言葉を、やさしく言いかえると？」の表。5〜9行。1行=「用語｜やさしい言い換え」。この記事に出てくる専門用語だけを選ぶ。',
+      },
+      aio_answer: {
+        type: 'string',
+        description: 'AIO対策欄の結論。記事の問いへの答えを、主語を省かず1〜2文（80字前後）で言い切る。',
+      },
+      aio_rows: {
+        type: 'string',
+        description: 'AIO対策欄の一覧表。8〜12行。1行=「項目｜内容」。用語の定義、金額・上限額・補助率、割合・目標値、期間・締切日、主な要件、要件を満たせない場合の扱いなど、根拠テキストにある事実だけを書き写す。',
+      },
       summary_points: { type: 'array', items: { type: 'string' }, description: 'まとめの箇条書き（3〜4個）' },
       unsure: {
         type: 'array',
@@ -95,7 +125,7 @@ const ARTICLE_TOOL: Anthropic.Tool = {
         description: '根拠テキストだけでは断定できず、人の確認が必要な点（なければ空配列）。1件ごとに必ず「[記事のどこか（見出し名）] 何が分からないか → どこで確認するか（例: 公募要領○○章／事務局）」の形式で、40〜80字、専門用語を避けて平易に書く',
       },
     },
-    required: ['title', 'slug', 'meta_description', 'target_keywords', 'seo_forecast', 'aio_forecast', 'thumb_line1', 'thumb_line2', 'thumb_sub', 'lead', 'key_points', 'body', 'faq_text', 'summary_points', 'unsure'],
+    required: ['title', 'slug', 'meta_description', 'target_keywords', 'seo_forecast', 'aio_forecast', 'thumb_line1', 'thumb_line2', 'thumb_sub', 'lead', 'key_points', 'body', 'faq_text', 'easy_summary', 'easy_callouts', 'glossary', 'aio_answer', 'aio_rows', 'summary_points', 'unsure'],
   },
 }
 
@@ -126,6 +156,12 @@ const SYSTEM_PROMPT = [
   '・手順や流れには、必ず番号付きの手順（1. 2. 3.）を使う。記事全体で最低1つ入れる。',
   '・読者がつまずきやすい疑問を、経営者と担当者の短い会話（4〜6行）で1か所入れる。会話の中身も、根拠テキストの事実だけで作る。',
   '・日付・金額・件数など、根拠テキストにある具体的な数字は、はっきり書く（書き写す。作らない）。',
+  '・AIO対策欄（必須）: aio_answer（結論1〜2文）と aio_rows（数字・条件の一覧表）を必ず出す。表の中身は、根拠テキストにある事実だけ。推測や計算で作った数字は入れない。',
+  '',
+  '【おばあちゃんでもわかる（全記事で必須）】',
+  '・easy_summary、easy_callouts（h2の数と同じ行数）、glossary を必ず出す。専門用語を使わず、「お金が増える」「点数が足される」のような、やさしい言葉で言い換える。',
+  '・やさしい言い換えでも、事実は変えない。数字・日付・条件は根拠テキストのとおり。たとえ話は、事実と取り違えない範囲で使う。',
+  '・絵（必須）: 本文に、絵つきカードを1か所（2〜3枚）入れる。連続した行で「絵：アイコン名｜見出し｜説明」と書く。アイコン名は次の中から選ぶ: coins（お金・金額）、sheet（書類・審査・点数）、calendar（期限・日程）、people（従業員・人・事業者）、check（要件・確認）、doc（計画書・手続き）。見出しは10字以内、説明は30字以内、根拠テキストの事実のみ。',
   '',
   '【担当者向けの分析（記事には載せない）】',
   '・target_keywords は、実際の検索で使われそうな言葉にする。seo_forecast と aio_forecast は、検索ボリュームや順位を数字で断定せず、根拠のある見立て（高/中/低と理由）として書く。「必ず上位表示される」とは書かない。',
@@ -135,6 +171,7 @@ const SYSTEM_PROMPT = [
   '・箇条書きは行頭の「- 」。番号付きの手順は行頭の「1. 」「2. 」…。',
   '・表は、行を「| 項目 | 内容A | 内容B |」の形で書き、2行目に「|---|---|---|」を置く。セルの中では改行しない。',
   '・会話は、行頭を「経営者：」または「担当者：」で始める（1行に1発言）。',
+  '・絵つきカードは、連続した行で「絵：coins｜見出し｜説明」の形で2〜3行書く（前後に空行）。',
   '・図解（必須）: 記事全体で、流れ図を最低1つ、数字カードを（金額・割合・期間など数字が根拠テキストにあれば）1つ入れる。',
   '  流れ図は、1行で「図：申請準備 → 電子申請 → 採択発表 → 交付申請」のように「→」でつなぐ（3〜6段階、各段階は15字以内、その行だけで完結させる）。',
   '  数字カードは、連続した行で「数字：項目名｜値｜補足」と書く（2〜4枚、例「数字：補助上限額（6〜20人）｜1,500万円｜特例適用時は2,000万円」）。値は根拠テキストの表記どおり。',
@@ -184,6 +221,59 @@ export const SUPERVISOR_BOX_HTML =
   '<p style="margin:0;font-size:16px;line-height:1.7;"><strong>堂本 拓央</strong>（株式会社Salud 代表取締役）</p>' +
   '<p style="margin:6px 0 0;font-size:14px;line-height:1.7;"><a href="https://salud-web.jp/ceo/">代表者のプロフィールはこちら</a></p></div>'
 
+// 絵つきカード用のアイコン（インラインSVG。画像ファイルは使わない）
+const ICON_WRAP = (inner: string, label: string) =>
+  `<svg viewBox="0 0 120 110" width="110" height="100" role="img" aria-label="${label}" style="display:block;margin:0 auto;">${inner}</svg>`
+const ICONS: Record<string, string> = {
+  coins: ICON_WRAP(
+    '<ellipse cx="38" cy="96" rx="26" ry="8" fill="#e0a800"/><rect x="12" y="82" width="52" height="14" fill="#f5b400"/><ellipse cx="38" cy="82" rx="26" ry="8" fill="#ffd54a"/><ellipse cx="38" cy="70" rx="26" ry="8" fill="#e0a800"/><rect x="12" y="56" width="52" height="14" fill="#f5b400"/><ellipse cx="38" cy="56" rx="26" ry="8" fill="#ffd54a"/><ellipse cx="86" cy="96" rx="22" ry="7" fill="#e0a800"/><rect x="64" y="84" width="44" height="12" fill="#f5b400"/><ellipse cx="86" cy="84" rx="22" ry="7" fill="#ffd54a"/><path d="M60 44 L60 18 M48 28 L60 14 L72 28" stroke="#1d8a4a" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="38" y="62" font-size="14" font-weight="700" fill="#8a6200" text-anchor="middle">円</text>',
+    'お金のイラスト',
+  ),
+  sheet: ICON_WRAP(
+    '<rect x="22" y="8" width="76" height="96" rx="8" fill="#fff" stroke="#1d8a4a" stroke-width="4"/><rect x="34" y="24" width="52" height="6" rx="3" fill="#c9d6e0"/><rect x="34" y="38" width="40" height="6" rx="3" fill="#c9d6e0"/><rect x="34" y="52" width="46" height="6" rx="3" fill="#c9d6e0"/><circle cx="84" cy="82" r="22" fill="#fff3f0" stroke="#e0402a" stroke-width="4"/><text x="84" y="90" font-size="22" font-weight="700" fill="#e0402a" text-anchor="middle">+点</text>',
+    '審査の用紙のイラスト',
+  ),
+  calendar: ICON_WRAP(
+    '<rect x="16" y="20" width="88" height="80" rx="10" fill="#fff" stroke="#1f6a96" stroke-width="4"/><rect x="16" y="20" width="88" height="24" rx="10" fill="#1f6a96"/><rect x="34" y="8" width="8" height="22" rx="4" fill="#183e5c"/><rect x="78" y="8" width="8" height="22" rx="4" fill="#183e5c"/><circle cx="40" cy="64" r="6" fill="#c9d6e0"/><circle cx="60" cy="64" r="6" fill="#c9d6e0"/><circle cx="80" cy="64" r="6" fill="#e0402a"/><circle cx="40" cy="84" r="6" fill="#c9d6e0"/><circle cx="60" cy="84" r="6" fill="#c9d6e0"/>',
+    'カレンダーのイラスト',
+  ),
+  people: ICON_WRAP(
+    '<circle cx="40" cy="36" r="16" fill="#1f6a96"/><path d="M12 96 C12 68 68 68 68 96 Z" fill="#1f6a96"/><circle cx="82" cy="42" r="13" fill="#7fb2d6"/><path d="M60 98 C60 74 106 74 106 98 Z" fill="#7fb2d6"/>',
+    '人のイラスト',
+  ),
+  check: ICON_WRAP(
+    '<rect x="20" y="10" width="80" height="92" rx="10" fill="#fff" stroke="#1f6a96" stroke-width="4"/><path d="M34 34 L42 42 L56 26" stroke="#1d8a4a" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="64" y="30" width="24" height="6" rx="3" fill="#c9d6e0"/><path d="M34 60 L42 68 L56 52" stroke="#1d8a4a" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="64" y="56" width="24" height="6" rx="3" fill="#c9d6e0"/><path d="M34 86 L42 94 L56 78" stroke="#1d8a4a" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="64" y="82" width="24" height="6" rx="3" fill="#c9d6e0"/>',
+    '確認のチェックリストのイラスト',
+  ),
+  doc: ICON_WRAP(
+    '<path d="M26 8 H72 L96 32 V102 H26 Z" fill="#fff" stroke="#1f6a96" stroke-width="4" stroke-linejoin="round"/><path d="M72 8 V32 H96" fill="#eaf2f8" stroke="#1f6a96" stroke-width="4" stroke-linejoin="round"/><rect x="38" y="48" width="46" height="6" rx="3" fill="#c9d6e0"/><rect x="38" y="62" width="46" height="6" rx="3" fill="#c9d6e0"/><rect x="38" y="76" width="30" height="6" rx="3" fill="#c9d6e0"/>',
+    '書類のイラスト',
+  ),
+}
+
+function picsHtml(cards: { icon: string; title: string; text: string }[]): string {
+  return (
+    `<figure style="margin:20px 0;"><div style="display:flex;flex-wrap:wrap;gap:12px;background:#f4f8fb;border:1px solid #c9d6e0;border-radius:12px;padding:14px;">` +
+    cards.map(c =>
+      `<div style="flex:1 1 200px;min-width:180px;background:#fff;border:2px solid #1f6a96;border-radius:14px;padding:12px 14px;text-align:center;">` +
+      (ICONS[c.icon] ?? ICONS.doc!) +
+      `<div style="font-weight:700;font-size:18px;color:#183e5c;margin-top:6px;">${inline(c.title)}</div>` +
+      `<div style="font-size:14px;line-height:1.7;color:#2b3f52;margin-top:4px;">${inline(c.text)}</div></div>`,
+    ).join('') + `</div></figure>`
+  )
+}
+
+function easyCallout(text: string): string {
+  return (
+    `<div style="background:#fff8e1;border-left:6px solid #f5b400;border-radius:8px;padding:12px 16px;margin:14px 0;">` +
+    `<div style="display:inline-block;background:#f5b400;color:#3a2a00;font-weight:700;font-size:13px;border-radius:999px;padding:1px 12px;margin-bottom:6px;">やさしく言うと</div>` +
+    `<div style="font-size:16px;line-height:1.9;color:#2b3f52;">${inline(text)}</div></div>`
+  )
+}
+
+const TH = 'text-align:left;padding:10px 12px;background:#eaf2f8;border:1px solid #c9d6e0;font-size:14.5px;vertical-align:top;'
+const TD = 'padding:10px 12px;border:1px solid #c9d6e0;font-size:14.5px;line-height:1.8;'
+
 function buildHtml(a: BuiltArticle, subsidy: ColumnSubsidy, today: string): string {
   const slugKey = String(a.slug ?? '').replace(/[^a-z0-9-]/g, '').slice(0, 24)
   const parts: string[] = []
@@ -197,13 +287,26 @@ function buildHtml(a: BuiltArticle, subsidy: ColumnSubsidy, today: string): stri
     `<p style="margin:0 0 8px;font-weight:700;color:#183e5c;font-size:17px;">この記事の結論（要点）</p>` +
     `<ul style="margin:0;padding-left:20px;line-height:1.9;">${a.key_points.map(p => `<li>${inline(p)}</li>`).join('')}</ul></div>`,
   )
+  if (a.easy_summary.length) {
+    parts.push(
+      `<div style="background:#fff8e1;border:2px solid #f5b400;border-radius:12px;padding:16px 18px;margin:20px 0;">` +
+      `<div style="font-weight:700;font-size:18px;color:#3a2a00;margin-bottom:8px;">おばあちゃんにも伝わる、ひとことまとめ</div>` +
+      `<div style="font-size:16px;line-height:2;color:#2b3f52;">${a.easy_summary.map(inline).join('<br>')}</div></div>`,
+    )
+  }
   parts.push(
     `<p><strong>ご注意：</strong>この記事は、${esc(subsidy.sourceLabel)}をもとにした概要です。公募要領は改訂されることがあります。申請の前に、必ず最新の公募要領でご確認ください。</p>`,
   )
   parts.push(ctaBar(`p_${slugKey}_top`))
 
   let h2Count = 0
+  // 各h2の最初の段落の直後に「やさしく言うと」を入れる
+  let pendingEasy: string | null = null
   for (const b of a.blocks) {
+    if (b.type === 'pics') {
+      if (b.cards.length) parts.push(picsHtml(b.cards))
+      continue
+    }
     if (b.type === 'table') {
       const [head, ...body] = b.rows
       if (!head?.length) continue
@@ -265,13 +368,33 @@ function buildHtml(a: BuiltArticle, subsidy: ColumnSubsidy, today: string): stri
       // 2つ目の見出しの手前に中ほどのCTAを入れる
       if (h2Count === 3) parts.push(ctaBar(`p_${slugKey}_mid`))
       parts.push(`<h2>${esc(plain(b.text))}</h2>`)
+      pendingEasy = a.easy_callouts[h2Count - 1] ?? null
     } else if (b.type === 'h3') {
       parts.push(`<h3>${esc(plain(b.text))}</h3>`)
     } else if (b.type === 'p') {
       parts.push(`<p>${inline(b.text)}</p>`)
+      if (pendingEasy) { parts.push(easyCallout(pendingEasy)); pendingEasy = null }
     } else if (b.type === 'ul') {
       parts.push(`<ul>${(b.items ?? []).map(i => `<li>${inline(i)}</li>`).join('')}</ul>`)
     }
+  }
+
+  // AIO対策欄（全記事必須）。AIが返さなかったときは、結論の要点で代用する
+  const aioRows = a.aio_rows.length ? a.aio_rows : a.key_points.map((p, i) => ({ label: `要点${i + 1}`, value: p }))
+  parts.push(
+    '<h2>この記事の要点を、数字と条件で一覧にすると？</h2>',
+    `<p><strong>${inline(a.aio_answer || a.key_points[0] || '')}</strong></p>`,
+    `<div style="border:2px solid #1f6a96;border-radius:12px;padding:14px 16px;margin:12px 0;background:#f4f8fb;">` +
+    `<div style="font-weight:700;color:#183e5c;font-size:16px;margin-bottom:8px;">AIO対策欄：この記事の要点（${esc(subsidy.name)}）</div>` +
+    `<table style="width:100%;border-collapse:collapse;"><tbody>${aioRows.map(r => `<tr><th style="${TH}width:34%;">${inline(r.label)}</th><td style="${TD}">${inline(r.value)}</td></tr>`).join('')}</tbody></table></div>`,
+  )
+  // むずかしい言葉の言いかえ表
+  if (a.glossary.length) {
+    parts.push(
+      '<h2>むずかしい言葉を、やさしく言いかえると？</h2>',
+      '<p><strong>公募要領や申請書に出てくる言葉は、次のように言いかえると分かりやすくなります。</strong></p>',
+      `<table style="width:100%;border-collapse:collapse;margin:12px 0;"><tbody>${a.glossary.map(g => `<tr><th style="${TH}white-space:nowrap;">${inline(g.term)}</th><td style="${TD}">${inline(g.easy)}</td></tr>`).join('')}</tbody></table>`,
+    )
   }
 
   parts.push('<h2>よくある質問（Q&amp;A）</h2>')
@@ -305,6 +428,17 @@ function buildHtml(a: BuiltArticle, subsidy: ColumnSubsidy, today: string): stri
     reviewedBy: { '@type': 'Person', name: '堂本 拓央', jobTitle: '代表取締役', worksFor: { '@type': 'Organization', name: '株式会社Salud' } },
   }
   parts.push(`<p><script type="application/ld+json">${JSON.stringify(articleJson).replace(/</g, '\\u003c')}</script></p>`)
+  // 番号付きの手順があれば、手順の構造化データ（HowTo）も付ける
+  const firstOl = a.blocks.find((b): b is { type: 'ul' | 'ol'; items: string[] } => b.type === 'ol')
+  if (firstOl && firstOl.items.length >= 2) {
+    const howtoJson = {
+      '@context': 'https://schema.org',
+      '@type': 'HowTo',
+      name: plain(a.title),
+      step: firstOl.items.map((it, i) => ({ '@type': 'HowToStep', position: i + 1, name: plain(it).slice(0, 60), text: plain(it) })),
+    }
+    parts.push(`<p><script type="application/ld+json">${JSON.stringify(howtoJson).replace(/</g, '\\u003c')}</script></p>`)
+  }
 
   parts.push('<h2>まとめ</h2>', `<ul>${a.summary_points.map(p => `<li>${inline(p)}</li>`).join('')}</ul>`)
   parts.push(ctaEnd(`p_${slugKey}_end`, '自社の場合はどうなる？まずは無料でご相談ください'))
@@ -392,14 +526,16 @@ export async function generateColumn(params: {
   let tableRows: string[][] = []
   let chat: { who: '経営者' | '担当者'; text: string }[] = []
   let cards: { label: string; value: string; note: string }[] = []
+  let pics: { icon: string; title: string; text: string }[] = []
   const flush = () => {
+    if (pics.length) blocks.push({ type: 'pics', cards: pics })
     if (para.length) blocks.push({ type: 'p', text: para.join('') })
     if (items.length) blocks.push({ type: 'ul', items })
     if (steps.length) blocks.push({ type: 'ol', items: steps })
     if (tableRows.length) blocks.push({ type: 'table', rows: tableRows })
     if (chat.length) blocks.push({ type: 'chat', lines: chat })
     if (cards.length) blocks.push({ type: 'cards', cards })
-    para = []; items = []; steps = []; tableRows = []; chat = []; cards = []
+    para = []; items = []; steps = []; tableRows = []; chat = []; cards = []; pics = []
   }
   for (const line of str(raw.body).split('\n')) {
     const t = line.trim()
@@ -416,6 +552,11 @@ export async function generateColumn(params: {
       flush()
       const st = t.replace(/^図[:：]\s*/, '').split(/\s*(?:→|->)\s*/).map(x => x.trim()).filter(Boolean)
       blocks.push({ type: 'flow', steps: st })
+    }
+    else if (/^絵[:：]/.test(t)) {
+      if (!pics.length) flush()
+      const [icon = '', title = '', text = ''] = t.replace(/^絵[:：]\s*/, '').split(/\s*[|｜]\s*/)
+      if (title) pics.push({ icon: icon.trim().toLowerCase(), title, text })
     }
     else if (/^数字[:：]/.test(t)) {
       if (!cards.length) flush()
@@ -452,6 +593,11 @@ export async function generateColumn(params: {
     faq: faq.filter(f => f.q && f.a),
     summary_points: toArr(raw.summary_points),
     unsure: toArr(raw.unsure),
+    easy_summary: toArr(raw.easy_summary),
+    easy_callouts: toArr(raw.easy_callouts),
+    glossary: toArr(raw.glossary).map(l => { const [term = '', easy = ''] = l.split(/\s*[|｜]\s*/); return { term, easy } }).filter(g => g.term && g.easy),
+    aio_answer: str(raw.aio_answer),
+    aio_rows: toArr(raw.aio_rows).map(l => { const [label = '', value = ''] = l.split(/\s*[|｜]\s*/); return { label, value } }).filter(r => r.label && r.value),
   }
   if (!draft.title || !draft.blocks.length || !draft.faq.length) {
     throw new Error(`column: AIの出力が不完全です ${rawInfo}`)
