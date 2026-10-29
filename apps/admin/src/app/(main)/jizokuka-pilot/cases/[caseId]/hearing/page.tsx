@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import {
   fetchCaseDetail, saveHearing, generateInitialDraft,
-  type JizokukaCase, type JizokukaHearing, type SalesEffect, type ScheduleItem, type TopService,
+  type JizokukaCase, type JizokukaHearing, type PastFinancial, type SalesEffect, type ScheduleItem, type TopService,
 } from '@/lib/jizokuka/db'
 import { forecastSales } from '@/lib/jizokuka/hearing-sheet'
 import { StepNav, StepTabs } from '@/components/jizokuka/step-nav'
@@ -22,6 +22,7 @@ type FormState = {
   industry: string
   employee_count: string
   recent_revenue: string
+  past_financials: { period: string; revenue: string; gross_profit: string; ordinary_profit: string }[]
   top_services: { name: string; ratio_pct: string; unit_price: string }[]
   customer_segments: string
   swot_strength: string
@@ -57,6 +58,7 @@ type FormState = {
 
 const ROWS = 3
 const SCHEDULE_ROWS = 6
+const FIN_PERIODS = ['前々期', '前期', '直近期'] as const
 const pad = <T,>(rows: T[], blank: T): T[] => [...rows, ...Array.from({ length: ROWS }, () => blank)].slice(0, ROWS)
 const s = (v: string | number | null | undefined) => (v === null || v === undefined ? '' : String(v))
 
@@ -65,6 +67,10 @@ function toFormState(h: JizokukaHearing): FormState {
     industry: s(h.industry),
     employee_count: s(h.employee_count),
     recent_revenue: s(h.recent_revenue),
+    past_financials: FIN_PERIODS.map(period => {
+      const p = (h.past_financials ?? []).find(x => x.period === period)
+      return { period, revenue: s(p?.revenue), gross_profit: s(p?.gross_profit), ordinary_profit: s(p?.ordinary_profit) }
+    }),
     top_services: pad(
       (h.top_services ?? []).map(t => ({ name: t.name, ratio_pct: s(t.ratio_pct), unit_price: s(t.unit_price) })),
       { name: '', ratio_pct: '', unit_price: '' },
@@ -170,6 +176,14 @@ export default function HearingPage() {
       .filter(t => t.name.trim())
       .map(t => ({ name: t.name.trim(), ratio_pct: numOrNull(t.ratio_pct), unit_price: numOrNull(t.unit_price) }))
 
+  const setFin = (i: number, field: 'revenue' | 'gross_profit' | 'ordinary_profit', v: string) =>
+    setForm(f => ({ ...f, past_financials: f.past_financials.map((row, idx) => (idx === i ? { ...row, [field]: v } : row)) }))
+
+  const pastFinancials = (f: FormState = form): PastFinancial[] =>
+    f.past_financials
+      .filter(p => p.revenue || p.gross_profit || p.ordinary_profit)
+      .map(p => ({ period: p.period, revenue: numOrNull(p.revenue), gross_profit: numOrNull(p.gross_profit), ordinary_profit: numOrNull(p.ordinary_profit) }))
+
   const salesEffects = (f: FormState = form): SalesEffect[] =>
     f.sales_effects
       .filter(e => e.target.trim() || e.offering.trim() || e.unit_price)
@@ -182,6 +196,7 @@ export default function HearingPage() {
     industry: f.industry || null,
     employee_count: numOrNull(f.employee_count),
     recent_revenue: f.recent_revenue || null,
+    past_financials: pastFinancials(f),
     top_services: topServices(f),
     customer_segments: f.customer_segments || null,
     swot_strength: f.swot_strength || null,
@@ -380,6 +395,21 @@ export default function HearingPage() {
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">直近売上（円）</label>
               <input className="input" type="number" min={0} value={form.recent_revenue} onChange={set('recent_revenue')} />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">過去の決算実績（円）</label>
+            <p className="mb-1 text-xs text-slate-400">申請書「1-2 現在の売上・利益の状況」に使います。3期分そろわない場合は、ある期だけ入力してください</p>
+            <div className="flex flex-col gap-2">
+              {form.past_financials.map((p, i) => (
+                <div key={p.period} className="grid grid-cols-[3.5rem_1fr_1fr_1fr] items-center gap-2">
+                  <span className="text-xs text-slate-500">{p.period}</span>
+                  <input className="input" type="number" min={0} placeholder="売上高" value={p.revenue} onChange={ev => setFin(i, 'revenue', ev.target.value)} />
+                  <input className="input" type="number" placeholder="売上総利益（粗利）" value={p.gross_profit} onChange={ev => setFin(i, 'gross_profit', ev.target.value)} />
+                  <input className="input" type="number" placeholder="経常利益" value={p.ordinary_profit} onChange={ev => setFin(i, 'ordinary_profit', ev.target.value)} />
+                </div>
+              ))}
             </div>
           </div>
 

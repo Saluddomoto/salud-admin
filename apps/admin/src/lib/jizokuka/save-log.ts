@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase'
 // ログの記録に失敗しても、保存自体は失敗させない。
 
 const LABELS: Record<string, string> = {
-  industry: '業種', employee_count: '従業員数', recent_revenue: '直近売上', top_services: '主力商品・サービス',
+  industry: '業種', employee_count: '従業員数', recent_revenue: '直近売上', past_financials: '決算実績（3期分）', top_services: '主力商品・サービス',
   customer_segments: '顧客層', swot_strength: '強み', swot_weakness: '弱み', swot_opportunity: '機会', swot_threat: '脅威',
   subsidy_goal: '補助事業で目指すこと', sales_effects: '売上の見込み', gross_margin_pct: '粗利率', growth_pct: '売上伸び率',
   appeal_points: 'アピールポイント', market_trends: '市場の動向', business_policy_goal: '経営方針・目標', future_plan: '今後のプラン',

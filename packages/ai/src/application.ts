@@ -30,6 +30,8 @@ export interface ApplicationHearingInput {
   expenseSummary?: string
   // 売上見込み（現状→1〜3年後）。効果の試算・経営目標の数値に使う
   salesForecast?: string
+  // 決算実績（前々期・前期・直近期のうち入力のある期）。1-2「現在の売上・利益の状況」の根拠
+  financials?: string
   // 業務効率化の取組（機械装置・ソフトウェア等の導入）を含む事業か。true のとき 3-1・3-2 を生成する
   includeEfficiency?: boolean
   // ヒアリングシート v2「補足情報」由来（任意）
@@ -54,6 +56,7 @@ export interface ApplicationHearingInput {
 
 export interface ApplicationDraft {
   overview: string
+  salesProfit: string
   issues: string
   marketTrends: string
   customerNeeds: string
@@ -76,10 +79,10 @@ export interface ApplicationDraft {
 }
 
 // 実際の電子申請ポータル（jizokuka-portal.info）の入力画面キャプチャと、採択された申請書（様式2）の
-// 項目構成に合わせている。数値のみのセクション（1-2売上・利益の状況）と
-// 様式3（経費明細表・資金調達方法、金額ベース）はAI生成の対象外。
+// 項目構成に合わせている。様式3（経費明細表・資金調達方法、金額ベース）はAI生成の対象外。
 const SECTION_LABELS: Record<keyof ApplicationDraft, string> = {
   overview: '1-1．自社の概要',
+  salesProfit: '1-2．現在の売上・利益の状況',
   issues: '1-3．経営課題',
   marketTrends: '2-1．市場の動向',
   customerNeeds: '2-2．顧客ニーズ',
@@ -148,10 +151,11 @@ function sectionSchema(label: string, hint: string) {
 }
 
 const SECTION_HINTS: Record<keyof ApplicationDraft, string> = {
-  overview: '次の3つの小見出しに分けて書く（全体で400〜600文字程度）。「■企業の概要」（所在地・事業内容・売上構成の割合）、「■特徴」（受注構造・代表者の経歴や強みなど。複数あれば段落を分ける）、「■現在の状況」（事業拡大に向けた直近の取組・計画）',
+  overview: '一般論や業界の説明で終わらせず、この事業者ならではの特徴（具体的な商品・サービス、顧客、受注の仕方、代表者の経歴や経験年数、沿革、他社との違い）が読み取れるように、ヒアリング内容の固有の事実を入れる。次の3つの小見出しに分けて書く（全体で400〜600文字程度）。「■企業の概要」（所在地・事業内容・売上構成の割合）、「■特徴」（受注構造・代表者の経歴や強みなど。複数あれば段落を分ける）、「■現在の状況」（事業拡大に向けた直近の取組・計画）',
+  salesProfit: '【決算実績】にある期だけを使い（1期・2期・3期のいずれでも可。ない期は書かない）、期ごとの売上高・売上総利益・経常利益と、売上総利益率、前の期からの増減（％）を数字で整理し、その推移から読み取れることを一言添える。全体で200〜300文字程度。【決算実績】がない場合は創作せず「【要確認：直近の売上・利益（決算ベース）】」と書く',
   issues: '課題を①②③の3点で、各100〜150文字程度',
   marketTrends: '市場の動向を①②の2点で、各150〜200文字程度。各項目の直後に「（出典：機関名「統計名」◯年◯月公表　URL）」を付ける。出典は【調査済みの政府統計】のものだけ',
-  customerNeeds: '顧客ニーズを①②③の3点で、各100〜150文字程度',
+  customerNeeds: '顧客ニーズを①②③の3点で、各100〜150文字程度。顧客が求めていること・困っていることだけを書き、自社の強み・取組・サービスの特徴（強みの記載）は混ぜない（強みは「3．自社の強み」に書く）',
   strength: '強みを①②③の3点で、各150〜250文字程度（根拠・実績を添える）',
   weakness: '弱みを2点程度、各100〜150文字程度',
   policyGoal: '「■経営方針」（200〜300文字。最後に「〜への転換を経営方針とする。」の形で、転換後のあるべき姿を一言で言い切る）と、「■目標」（現状→1年後→3年後の売上目標と現在比％。売上構成の変化があれば併記）',
@@ -159,11 +163,11 @@ const SECTION_HINTS: Record<keyof ApplicationDraft, string> = {
   projectName: '30文字以内、体言止めの短いタイトル',
   projectOverview: '本事業の全体像を300〜400文字程度',
   background: '経営課題・市場動向を踏まえ、なぜ今この事業を行うのかを300〜400文字程度',
-  initiativesSummary: '取組を①②の1〜2行ずつの概要で',
+  initiativesSummary: '入力欄は改行できず文字数も少ないため、改行や空行は入れず1段落で書く。「（詳細）」で説明する取組の項目を「①〜　②〜　③〜」のように箇条書き程度に並べ、全体で100〜150文字程度。説明文や文章にはしない',
   initiatives: '取組ごとに「現状の課題（具体的な不具合を「・」で）→本事業での解決策→期待される結果」の順で、全体で600〜900文字程度',
   schedule: '取組ごとの実施時期を「取組名：◯月〜◯月」の形で一覧に。時期がヒアリングにない場合は「【要確認：実施時期】」',
   efficiencyBackground: '作業の非効率が生む具体的な問題（時間・人件費・負担）と、導入しないと困る点を300〜400文字程度',
-  efficiencySummary: '導入する機械装置・ソフトウェア等を1〜2行で',
+  efficiencySummary: '入力欄は改行できず文字数も少ないため、改行や空行は入れず1段落で書く。「（詳細）」で説明する導入内容の項目を「①〜　②〜」のように箇条書き程度に並べ、全体で100〜150文字程度。説明文や文章にはしない',
   efficiencyDetail: '導入するものごとに「現状→導入による変化→効果」を、全体で400〜600文字程度',
   efficiencySchedule: '導入・習熟・運用開始の時期を「内容：◯月」の形で一覧に。時期がない場合は「【要確認：導入時期】」',
   effect: '効果を①②③④の項目（売上・生産性・利益・資金繰り等）で、各100〜150文字程度',
@@ -204,6 +208,7 @@ function buildHearingText(input: ApplicationHearingInput): string {
     input.topServices ? `利益に貢献している主力サービス: ${input.topServices}` : '',
     input.customerSegments ? `主な顧客層: ${input.customerSegments}` : '',
     input.salesPlan ? `補助事業による売上の見込み: ${input.salesPlan}` : '',
+    input.financials ? `決算実績: ${input.financials}` : '',
     input.salesForecast ? `売上見込み（現状→1〜3年後）: ${input.salesForecast}` : '',
     input.appealPoints ? `補助事業のこだわりポイント（独自の工夫）: ${input.appealPoints}` : '',
     input.expenseSummary ? `補助対象経費の予定: ${input.expenseSummary}` : '',

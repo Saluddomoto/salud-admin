@@ -21,7 +21,13 @@ export function buildDraftInput(
   const margin = hearing.gross_margin_pct as number | null
 
   const forecast = forecastSales(effects, margin, growth)
-  const recent = Number(hearing.recent_revenue) || 0
+  const financials = (hearing.past_financials ?? []) as { period: string; revenue: number | null; gross_profit: number | null; ordinary_profit: number | null }[]
+  const latestFinancial = financials.find(p => p.period === '直近期')
+  const recent = Number(hearing.recent_revenue) || latestFinancial?.revenue || 0
+  const yen = (n: number | null) => (n == null ? '未入力' : `${n.toLocaleString()}円`)
+  const financialsText = financials
+    .map(p => `${p.period}：売上高${yen(p.revenue)}／売上総利益${yen(p.gross_profit)}／経常利益${yen(p.ordinary_profit)}`)
+    .join('、')
   const salesPlan = effects.length
     ? effects.map(e => `${e.target}に「${e.offering}」を単価${e.unit_price ?? '—'}円×客数${e.customers ?? '—'}×月${e.frequency ?? '—'}回`).join('／') +
       `。1年後の売上高見込み約${forecast[0]?.sales.toLocaleString()}円` +
@@ -55,6 +61,7 @@ export function buildDraftInput(
     subsidyGoal: String(hearing.subsidy_goal ?? ''),
     topServices: services.map((t, i) => `${i + 1}位 ${t.name}（売上比${t.ratio_pct ?? '—'}%・平均単価${t.unit_price ?? '—'}円）`).join('、'),
     customerSegments: String(hearing.customer_segments ?? ''),
+    financials: financialsText || undefined,
     salesPlan,
     salesForecast,
     appealPoints: String(hearing.appeal_points ?? ''),

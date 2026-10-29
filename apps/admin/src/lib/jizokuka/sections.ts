@@ -11,6 +11,7 @@ export function splitSectionTitle(title: string): { group: string; label: string
 
 // 採択申請書の構成に合わせて後から追加したセクション（コピー用テキスト画面で赤く表示する）
 const ADDED_LABELS = new Set([
+  '1-2．現在の売上・利益の状況',
   '2-3．具体的な取組（概要）',
   '2-3．スケジュール',
   '3-1．業務効率化の取組：背景・目的',

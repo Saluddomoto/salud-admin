@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs'
-import type { JizokukaBasicInfo, JizokukaHearing, SalesEffect, ScheduleItem, TopService } from './db'
+import type { JizokukaBasicInfo, JizokukaHearing, PastFinancial, SalesEffect, ScheduleItem, TopService } from './db'
 
 // 「01_小規模事業者持続化補助金_ヒアリングシート（2026）」(.xlsx) を読み取り、
 // 基本情報・ヒアリング・経費明細の各画面に反映できる形へ変換する。
@@ -226,6 +226,16 @@ export async function parseHearingSheet(buffer: ArrayBuffer): Promise<ParsedHear
     growth_pct: num(s3, 'B22') ?? undefined,
   })
   Object.assign(hearing, supplement)
+  // 1ページ目「（2）過去3年間の業績」: 前々期=F列・前期=M列・直近期=T列、28行=売上高・29行=売上総利益・30行=経常利益
+  const pastFinancials: PastFinancial[] = ([['F', '前々期'], ['M', '前期'], ['T', '直近期']] as const)
+    .map(([col, period]) => ({
+      period,
+      revenue: num(s1, `${col}28`),
+      gross_profit: num(s1, `${col}29`),
+      ordinary_profit: num(s1, `${col}30`),
+    }))
+    .filter(p => p.revenue != null || p.gross_profit != null || p.ordinary_profit != null)
+  if (pastFinancials.length) hearing.past_financials = pastFinancials
   if (topServices.length) hearing.top_services = topServices
   if (salesEffects.length) hearing.sales_effects = salesEffects
 

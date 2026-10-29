@@ -44,11 +44,20 @@ export interface ScheduleItem {
   end: string
 }
 
+/** 決算実績（1期分）。period は '前々期' | '前期' | '直近期'。3期に満たない場合は、ある期だけ入れる */
+export interface PastFinancial {
+  period: string
+  revenue: number | null
+  gross_profit: number | null
+  ordinary_profit: number | null
+}
+
 export interface JizokukaHearing {
   case_id: string
   industry: string | null
   employee_count: number | null
   recent_revenue: string | null
+  past_financials: PastFinancial[]
   swot_strength: string | null
   swot_weakness: string | null
   swot_opportunity: string | null
