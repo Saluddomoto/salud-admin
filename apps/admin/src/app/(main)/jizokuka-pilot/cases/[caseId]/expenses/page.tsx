@@ -133,7 +133,7 @@ export default function ExpensesPage() {
   const rateNum = Number(rate) || 0
   const capNum = Number(cap) || 0
   const prTotal = items.filter(i => !i.is_website_related && (i.category ?? '').includes('広報費')).reduce((s, i) => s + (i.amount || 0), 0)
-  const { grantNonWeb, grantWeb, totalGrant } = calcGrant(nonWebTotal, webTotal, rateNum, capNum, prTotal)
+  const { grantNonWeb, grantWeb, totalGrant, nonWebMin, nonWebMax, webMin, webMax } = calcGrant(nonWebTotal, webTotal, rateNum, capNum, prTotal)
   const totalExpense = nonWebTotal + webTotal
   const fundingTotal = totalGrant + (Number(selfFunds) || 0) + (Number(loanFunds) || 0) + (Number(otherFunds) || 0)
 
@@ -252,15 +252,28 @@ export default function ExpensesPage() {
         <div className="flex justify-between"><span>(d) ウェブサイト関連費 交付申請額</span><span>{formatYen(grantWeb)}</span></div>
         <div className="flex justify-between border-t border-slate-100 pt-2 font-bold"><span>(e) 補助対象経費合計</span><span>{formatYen(totalExpense)}</span></div>
         <div className="flex justify-between font-bold"><span>(f) 補助金交付申請額合計</span><span>{formatYen(totalGrant)}</span></div>
+        {(nonWebMin !== nonWebMax || webMin !== webMax) && (
+          <p className="text-xs text-slate-500">
+            補助上限額に達するため、(b)と(d)は合計が(f)になる範囲で配分を選べます（(b) {formatYen(nonWebMin)}〜{formatYen(nonWebMax)}／(d) {formatYen(webMin)}〜{formatYen(webMax)}）。ここでは(d)が最大の配分で表示しています。
+          </p>
+        )}
         {nonWebTotal === 0 && webTotal > 0 && (
           <p className="text-rose-600">ウェブサイト関連費のみでの申請はできません（ほかの経費と一緒に申請してください）</p>
         )}
         <div className="mt-2 flex justify-between border-t border-slate-100 pt-2">
           <span>資金調達合計（(f)+自己資金+借入金+その他）</span>
-          <span className={fundingTotal < totalExpense ? 'text-rose-600' : 'text-slate-900'}>
-            {formatYen(fundingTotal)}{fundingTotal < totalExpense && '（経費合計に不足あり）'}
+          <span className={fundingTotal !== totalExpense ? 'text-rose-600' : 'text-slate-900'}>
+            {formatYen(fundingTotal)}
+            {fundingTotal < totalExpense && '（経費合計に不足あり）'}
+            {fundingTotal > totalExpense && '（経費合計を超えています）'}
           </span>
         </div>
+        {fundingTotal !== totalExpense && (
+          <p className="text-xs text-rose-600">
+            資金調達合計は、(e) 補助対象経費合計と一致させてください。自己資金の目安は {formatYen(Math.max(0, totalExpense - totalGrant - (Number(loanFunds) || 0) - (Number(otherFunds) || 0)))}
+            （＝(e) − (f) − 借入金 − その他）です。
+          </p>
+        )}
       </div>
     </div>
   )
