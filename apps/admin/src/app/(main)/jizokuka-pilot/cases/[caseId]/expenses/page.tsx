@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import {
-  fetchCaseDetail, fetchExpenseItems, addExpenseItem, updateExpenseItem, deleteExpenseItem, updateCaseFunding,
+  fetchCaseDetail, fetchBasicInfo, fetchExpenseItems, addExpenseItem, updateExpenseItem, deleteExpenseItem, updateCaseFunding,
   type JizokukaCase, type JizokukaExpenseItem,
 } from '@/lib/jizokuka/db'
 import { StepNav, StepTabs } from '@/components/jizokuka/step-nav'
 import { buildFieldsDocxBlob, downloadBlob } from '@/lib/jizokuka/word-export'
-import { calcGrant } from '@/lib/jizokuka/grant'
+import { calcGrant, specialRule } from '@/lib/jizokuka/grant'
 
 const CATEGORIES = [
   '①機械装置等費', '②広報費', '③ウェブサイト関連費', '④展示会等出展費',
@@ -79,14 +79,25 @@ export default function ExpensesPage() {
   const [loanFunds, setLoanFunds] = useState('')
   const [otherFunds, setOtherFunds] = useState('')
   const [saving, setSaving] = useState(false)
+  const [rule, setRule] = useState<ReturnType<typeof specialRule> | null>(null)
   const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
-    Promise.all([fetchCaseDetail(caseId), fetchExpenseItems(caseId)]).then(([{ case: c }, expenseItems]) => {
+    Promise.all([fetchCaseDetail(caseId), fetchExpenseItems(caseId), fetchBasicInfo(caseId)]).then(([{ case: c }, expenseItems, basic]) => {
       setCaseInfo(c)
       setItems(expenseItems)
-      setRate(c.subsidy_rate?.toString() ?? '0.6667')
-      setCap(c.subsidy_cap?.toString() ?? '500000')
+      const r = specialRule(basic.invoice_exception, basic.wage_increase_exception)
+      setRule(r)
+      let rateNow = c.subsidy_rate?.toString() ?? '0.6667'
+      let capNow = c.subsidy_cap?.toString() ?? '500000'
+      // 上限・補助率が初期値のままなら、基本情報の特例の選択に合わせて自動で設定・保存する
+      if (Number(capNow) === 500000 && Number(rateNow) === 0.6667 && (r.cap !== 500000 || r.rate !== 0.6667)) {
+        rateNow = String(r.rate)
+        capNow = String(r.cap)
+        updateCaseFunding(caseId, { subsidy_rate: r.rate, subsidy_cap: r.cap }).catch(() => {})
+      }
+      setRate(rateNow)
+      setCap(capNow)
       setSelfFunds(c.self_funds?.toString() ?? '')
       setLoanFunds(c.loan_funds?.toString() ?? '')
       setOtherFunds(c.other_funds?.toString() ?? '')
@@ -133,7 +144,11 @@ export default function ExpensesPage() {
   const rateNum = Number(rate) || 0
   const capNum = Number(cap) || 0
   const prTotal = items.filter(i => !i.is_website_related && (i.category ?? '').includes('広報費')).reduce((s, i) => s + (i.amount || 0), 0)
-  const { grantNonWeb, grantWeb, totalGrant, nonWebMin, nonWebMax, webMin, webMax } = calcGrant(nonWebTotal, webTotal, rateNum, capNum, prTotal)
+  const { totalGrant, nonWebMin, nonWebMax, webMin, webMax } = calcGrant(nonWebTotal, webTotal, rateNum, capNum, prTotal)
+  // 補助上限額に達するときは、様式3と同じく(b)(d)を範囲で表示する（合計は(f)）
+  const yenRange = (lo: number, hi: number) => (lo === hi ? formatYen(lo) : `${formatYen(lo)}〜${formatYen(hi)}`)
+  const grantNonWebText = yenRange(nonWebMin, nonWebMax)
+  const grantWebText = yenRange(webMin, webMax)
   const totalExpense = nonWebTotal + webTotal
   const fundingTotal = totalGrant + (Number(selfFunds) || 0) + (Number(loanFunds) || 0) + (Number(otherFunds) || 0)
 
@@ -167,9 +182,9 @@ export default function ExpensesPage() {
           heading: '計算結果（目安）',
           fields: [
             { label: '(a) 補助対象経費小計（ウェブ除く）', value: formatYen(nonWebTotal) },
-            { label: '(b) 補助金交付申請額（ウェブ除く）', value: formatYen(grantNonWeb) },
+            { label: '(b) 補助金交付申請額（ウェブ除く）', value: grantNonWebText },
             { label: '(c) ウェブサイト関連費小計', value: formatYen(webTotal) },
-            { label: '(d) ウェブサイト関連費 交付申請額', value: formatYen(grantWeb) },
+            { label: '(d) ウェブサイト関連費 交付申請額', value: grantWebText },
             { label: '(e) 補助対象経費合計', value: formatYen(totalExpense) },
             { label: '(f) 補助金交付申請額合計', value: formatYen(totalGrant) },
             { label: '資金調達合計', value: formatYen(fundingTotal) },
@@ -213,6 +228,14 @@ export default function ExpensesPage() {
         <p className="text-xs text-slate-500 sm:col-span-2">
           通常枠は補助率2/3・上限50万円（補助金交付申請額の合計の上限）。広報費・ウェブサイト関連費は、それぞれ交付申請額の上限が30万円です。特例（インボイス+50万円／賃金引上げ+150万円／両方+200万円。賃金引上げのうち赤字事業者は補助率3/4）を選んだ場合は「基本情報」ページの選択に合わせて手動で変更してください。
         </p>
+        {rule && (Number(cap) !== rule.cap || Number(rate) !== rule.rate) && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-800 sm:col-span-2">
+            <span>基本情報の選択（{rule.label}）では、補助上限額は{rule.cap.toLocaleString()}円・補助率は{rule.rate}です。</span>
+            <button type="button" className="btn-secondary text-xs" onClick={() => { setCap(String(rule.cap)); setRate(String(rule.rate)) }}>
+              基本情報に合わせる
+            </button>
+          </div>
+        )}
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">補助率</label>
           <input className="input" type="number" step="0.0001" value={rate} onChange={ev => setRate(ev.target.value)} />
@@ -247,14 +270,14 @@ export default function ExpensesPage() {
       <div className="card flex flex-col gap-2 p-5 text-sm">
         <h3 className="mb-1 text-sm font-bold text-slate-900">計算結果（目安）</h3>
         <div className="flex justify-between"><span>(a) 補助対象経費小計（ウェブ除く）</span><span>{formatYen(nonWebTotal)}</span></div>
-        <div className="flex justify-between"><span>(b) 補助金交付申請額（ウェブ除く）</span><span>{formatYen(grantNonWeb)}</span></div>
+        <div className="flex justify-between"><span>(b) 補助金交付申請額（ウェブ除く）</span><span>{grantNonWebText}</span></div>
         <div className="flex justify-between"><span>(c) ウェブサイト関連費小計</span><span>{formatYen(webTotal)}</span></div>
-        <div className="flex justify-between"><span>(d) ウェブサイト関連費 交付申請額</span><span>{formatYen(grantWeb)}</span></div>
+        <div className="flex justify-between"><span>(d) ウェブサイト関連費 交付申請額</span><span>{grantWebText}</span></div>
         <div className="flex justify-between border-t border-slate-100 pt-2 font-bold"><span>(e) 補助対象経費合計</span><span>{formatYen(totalExpense)}</span></div>
         <div className="flex justify-between font-bold"><span>(f) 補助金交付申請額合計</span><span>{formatYen(totalGrant)}</span></div>
         {(nonWebMin !== nonWebMax || webMin !== webMax) && (
           <p className="text-xs text-slate-500">
-            補助上限額に達するため、(b)と(d)は合計が(f)になる範囲で配分を選べます（(b) {formatYen(nonWebMin)}〜{formatYen(nonWebMax)}／(d) {formatYen(webMin)}〜{formatYen(webMax)}）。ここでは(d)が最大の配分で表示しています。
+            補助上限額に達するため、(b)と(d)は範囲で表示しています。合計が(f)になるように、配分を選んで電子申請に入力してください（様式3の判定式と同じです）。
           </p>
         )}
         {nonWebTotal === 0 && webTotal > 0 && (

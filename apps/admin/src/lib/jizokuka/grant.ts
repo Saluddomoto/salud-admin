@@ -45,3 +45,15 @@ export function calcGrant(nonWebTotal: number, webTotal: number, rate: number, c
     webMax,
   }
 }
+
+/** 基本情報の特例の選択から、補助上限額と補助率を決める（公募要領 第20回 6．補助率、補助上限額等）
+ *  通常50万円／インボイス特例+50万円／賃金引上げ特例+150万円／両方で+200万円（=250万円）。
+ *  賃金引上げ特例のうち赤字事業者は補助率3/4 */
+export function specialRule(invoice: string | null | undefined, wage: string | null | undefined): { cap: number; rate: number; label: string } {
+  const inv = !!invoice && invoice.startsWith('希望する')
+  const wg = !!wage && wage.startsWith('希望する')
+  const cap = 500_000 + (inv ? 500_000 : 0) + (wg ? 1_500_000 : 0)
+  const red = wg && !!wage && wage.includes('赤字')
+  const label = [inv && 'インボイス特例', wg && (red ? '賃金引上げ特例（赤字事業者）' : '賃金引上げ特例')].filter(Boolean).join('＋') || '通常枠'
+  return { cap, rate: red ? 0.75 : 0.6667, label }
+}
