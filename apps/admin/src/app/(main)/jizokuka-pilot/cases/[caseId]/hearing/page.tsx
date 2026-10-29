@@ -58,7 +58,7 @@ type FormState = {
 
 const ROWS = 3
 const SCHEDULE_ROWS = 6
-const FIN_PERIODS = ['前々期', '前期', '直近期'] as const
+const FIN_PERIODS = ['前前々期', '前々期', '直前期'] as const
 const pad = <T,>(rows: T[], blank: T): T[] => [...rows, ...Array.from({ length: ROWS }, () => blank)].slice(0, ROWS)
 const s = (v: string | number | null | undefined) => (v === null || v === undefined ? '' : String(v))
 

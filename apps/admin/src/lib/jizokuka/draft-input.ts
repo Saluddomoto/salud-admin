@@ -22,7 +22,7 @@ export function buildDraftInput(
 
   const forecast = forecastSales(effects, margin, growth)
   const financials = (hearing.past_financials ?? []) as { period: string; revenue: number | null; gross_profit: number | null; ordinary_profit: number | null }[]
-  const latestFinancial = financials.find(p => p.period === '直近期')
+  const latestFinancial = financials.find(p => p.period === '直前期')
   const recent = Number(hearing.recent_revenue) || latestFinancial?.revenue || 0
   const yen = (n: number | null) => (n == null ? '未入力' : `${n.toLocaleString()}円`)
   const financialsText = financials

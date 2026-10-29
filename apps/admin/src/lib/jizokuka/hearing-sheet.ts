@@ -226,8 +226,8 @@ export async function parseHearingSheet(buffer: ArrayBuffer): Promise<ParsedHear
     growth_pct: num(s3, 'B22') ?? undefined,
   })
   Object.assign(hearing, supplement)
-  // 1ページ目「（2）過去3年間の業績」: 前々期=F列・前期=M列・直近期=T列、28行=売上高・29行=売上総利益・30行=経常利益
-  const pastFinancials: PastFinancial[] = ([['F', '前々期'], ['M', '前期'], ['T', '直近期']] as const)
+  // 1ページ目「（2）過去3年間の業績」: 前前々期=F列・前々期=M列・直前期=T列、28行=売上高・29行=売上総利益・30行=経常利益
+  const pastFinancials: PastFinancial[] = ([['F', '前前々期'], ['M', '前々期'], ['T', '直前期']] as const)
     .map(([col, period]) => ({
       period,
       revenue: num(s1, `${col}28`),

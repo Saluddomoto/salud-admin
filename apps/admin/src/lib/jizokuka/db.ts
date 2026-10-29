@@ -44,7 +44,7 @@ export interface ScheduleItem {
   end: string
 }
 
-/** 決算実績（1期分）。period は '前々期' | '前期' | '直近期'。3期に満たない場合は、ある期だけ入れる */
+/** 決算実績（1期分）。period は '前前々期' | '前々期' | '直前期'。3期に満たない場合は、ある期だけ入れる */
 export interface PastFinancial {
   period: string
   revenue: number | null
