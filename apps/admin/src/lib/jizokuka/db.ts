@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase'
 import { logSave, announceAiCost } from './save-log'
 import { splitSectionTitle } from './sections'
+import { calcGrant } from './grant'
 
 // 持続化パイロット（小規模事業者持続化補助金の申請書AI下書きツール）専用のデータアクセス層。
 // Salud本体の src/lib/db.ts とは意図的に分離し、`jizokuka` スキーマのみを扱う
@@ -470,7 +471,7 @@ export async function fetchCaseOverviews(): Promise<JizokukaCaseOverview[]> {
     client.from('cases').select('*').order('updated_at', { ascending: false }),
     client.from('case_basic_info').select('*'),
     client.from('case_hearings').select('*'),
-    client.from('case_expense_items').select('case_id, amount, is_website_related'),
+    client.from('case_expense_items').select('case_id, amount, is_website_related, category'),
     client.from('case_draft_sections').select('case_id'),
   ])
   for (const r of [cases, basics, hearings, expenses, sections]) if (r.error) throw new Error(r.error.message)
@@ -486,10 +487,10 @@ export async function fetchCaseOverviews(): Promise<JizokukaCaseOverview[]> {
     const items = (expenses.data ?? []).filter(e => e.case_id === c.id)
     const sum = (web: boolean) =>
       items.filter(i => i.is_website_related === web).reduce((s, i) => s + (Number(i.amount) || 0), 0)
-    // 経費明細画面と同じ計算（通常経費は上限まで、ウェブサイト関連費は通常分の1/4・50万円が上限）
+    // 経費明細画面と同じ計算（合計は補助上限額まで、広報費・ウェブサイト関連費は各30万円まで）
     const rate = Number(c.subsidy_rate) || 0
-    const grantNonWeb = Math.min(Math.floor(sum(false) * rate), Number(c.subsidy_cap) || 0)
-    const grantWeb = Math.min(Math.floor(sum(true) * rate), Math.floor(grantNonWeb / 4), 500000)
+    const prSum = items.filter(i => !i.is_website_related && String(i.category ?? '').includes('広報費')).reduce((s, i) => s + (Number(i.amount) || 0), 0)
+    const { grantNonWeb: gNon, grantWeb: gWeb } = calcGrant(sum(false), sum(true), rate, Number(c.subsidy_cap) || 0, prSum)
 
     const hearingChecks = [
       'swot_strength', 'swot_weakness', 'swot_opportunity', 'swot_threat', 'customer_segments',
@@ -503,7 +504,7 @@ export async function fetchCaseOverviews(): Promise<JizokukaCaseOverview[]> {
       hearingTotal: hearingChecks.length,
       expenseCount: items.length,
       totalExpense: sum(false) + sum(true),
-      estimatedGrant: grantNonWeb + grantWeb,
+      estimatedGrant: gNon + gWeb,
       draftCount: draftCount.get(c.id) ?? 0,
       employeeCount: (h.employee_count as number | null) ?? null,
       recentRevenue: h.recent_revenue ? Number(h.recent_revenue) || null : null,

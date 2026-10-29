@@ -258,7 +258,7 @@ export default function BasicInfoPage() {
         <Select label="賃金引上げ特例の希望" value={form.wage_increase_exception} onChange={set('wage_increase_exception')}
           options={[
             { value: '希望しない', label: '希望しない' },
-            { value: '希望する（補助上限+50万円）', label: '希望する（補助上限+50万円）' },
+            { value: '希望する（補助上限+150万円）', label: '希望する（補助上限+150万円）' },
             { value: '希望する（赤字事業者、補助上限+150万円、補助率3/4に引き上げ）', label: '希望する（赤字事業者、補助上限+150万円、補助率3/4に引き上げ）' },
           ]} />
         <Field label="依頼する商工会議所" value={form.referred_chamber} onChange={set('referred_chamber')} />

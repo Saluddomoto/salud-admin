@@ -9,6 +9,7 @@ import {
 } from '@/lib/jizokuka/db'
 import { StepNav, StepTabs } from '@/components/jizokuka/step-nav'
 import { buildFieldsDocxBlob, downloadBlob } from '@/lib/jizokuka/word-export'
+import { calcGrant } from '@/lib/jizokuka/grant'
 
 const CATEGORIES = [
   '①機械装置等費', '②広報費', '③ウェブサイト関連費', '④展示会等出展費',
@@ -131,10 +132,9 @@ export default function ExpensesPage() {
   const webTotal = items.filter(i => i.is_website_related).reduce((s, i) => s + (i.amount || 0), 0)
   const rateNum = Number(rate) || 0
   const capNum = Number(cap) || 0
-  const grantNonWeb = Math.min(Math.floor(nonWebTotal * rateNum), capNum)
-  const grantWeb = Math.min(Math.floor(webTotal * rateNum), Math.floor(grantNonWeb / 4), 500000)
+  const prTotal = items.filter(i => !i.is_website_related && (i.category ?? '').includes('広報費')).reduce((s, i) => s + (i.amount || 0), 0)
+  const { grantNonWeb, grantWeb, totalGrant } = calcGrant(nonWebTotal, webTotal, rateNum, capNum, prTotal)
   const totalExpense = nonWebTotal + webTotal
-  const totalGrant = grantNonWeb + grantWeb
   const fundingTotal = totalGrant + (Number(selfFunds) || 0) + (Number(loanFunds) || 0) + (Number(otherFunds) || 0)
 
   const handleDownload = async () => {
@@ -152,7 +152,7 @@ export default function ExpensesPage() {
           heading: '補助率・上限額',
           fields: [
             { label: '補助率', value: rate },
-            { label: '補助上限額（円・ウェブ除く）', value: cap },
+            { label: '補助上限額（円・ウェブサイト関連費を含む合計）', value: cap },
           ],
         },
         {
@@ -211,14 +211,14 @@ export default function ExpensesPage() {
       <div className="card grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
         <h3 className="text-sm font-bold text-slate-900 sm:col-span-2">補助率・上限額</h3>
         <p className="text-xs text-slate-500 sm:col-span-2">
-          通常枠は補助率2/3・上限50万円。特例（インボイス+50万円／賃金引上げ+50万円／賃金引上げ(赤字)+150万円・補助率3/4）を選んだ場合は「基本情報」ページの選択に合わせて手動で変更してください。
+          通常枠は補助率2/3・上限50万円（補助金交付申請額の合計の上限）。広報費・ウェブサイト関連費は、それぞれ交付申請額の上限が30万円です。特例（インボイス+50万円／賃金引上げ+150万円／両方+200万円。賃金引上げのうち赤字事業者は補助率3/4）を選んだ場合は「基本情報」ページの選択に合わせて手動で変更してください。
         </p>
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">補助率</label>
           <input className="input" type="number" step="0.0001" value={rate} onChange={ev => setRate(ev.target.value)} />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">補助上限額（円・ウェブ除く）</label>
+          <label className="mb-1 block text-sm font-medium text-slate-700">補助上限額（円・ウェブサイト関連費を含む合計）</label>
           <input className="input" type="number" value={cap} onChange={ev => setCap(ev.target.value)} />
         </div>
       </div>
@@ -252,6 +252,9 @@ export default function ExpensesPage() {
         <div className="flex justify-between"><span>(d) ウェブサイト関連費 交付申請額</span><span>{formatYen(grantWeb)}</span></div>
         <div className="flex justify-between border-t border-slate-100 pt-2 font-bold"><span>(e) 補助対象経費合計</span><span>{formatYen(totalExpense)}</span></div>
         <div className="flex justify-between font-bold"><span>(f) 補助金交付申請額合計</span><span>{formatYen(totalGrant)}</span></div>
+        {nonWebTotal === 0 && webTotal > 0 && (
+          <p className="text-rose-600">ウェブサイト関連費のみでの申請はできません（ほかの経費と一緒に申請してください）</p>
+        )}
         <div className="mt-2 flex justify-between border-t border-slate-100 pt-2">
           <span>資金調達合計（(f)+自己資金+借入金+その他）</span>
           <span className={fundingTotal < totalExpense ? 'text-rose-600' : 'text-slate-900'}>
