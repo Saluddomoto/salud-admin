@@ -1322,7 +1322,7 @@ export type DbContractTemplate = {
   description: string | null
   title: string
   body_template: string
-  fields: { token: string; label: string; type: 'text' | 'date' }[]
+  fields: { token: string; label: string; type: 'text' | 'date' | 'select'; options?: { label: string; value: string }[] }[]
   updated_by: string | null
   created_at: string
   updated_at: string

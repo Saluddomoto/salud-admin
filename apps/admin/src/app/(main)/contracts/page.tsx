@@ -392,12 +392,22 @@ function AddModal({ templates, customers, onClose, onSaved }: {
         {template.fields.map(f => (
           <div key={f.token}>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">{f.label}</label>
-            <input
-              type={f.type === 'date' ? 'date' : 'text'}
-              value={values[f.token] ?? (f.type === 'date' ? todayIso() : '')}
-              onChange={e => setField(f.token, e.target.value)}
-              className="input"
-            />
+            {f.type === 'select' ? (
+              <select
+                value={values[f.token] ?? f.options?.[0]?.label ?? ''}
+                onChange={e => setField(f.token, e.target.value)}
+                className="input"
+              >
+                {f.options?.map(o => <option key={o.label} value={o.label}>{o.label}</option>)}
+              </select>
+            ) : (
+              <input
+                type={f.type === 'date' ? 'date' : 'text'}
+                value={values[f.token] ?? (f.type === 'date' ? todayIso() : '')}
+                onChange={e => setField(f.token, e.target.value)}
+                className="input"
+              />
+            )}
           </div>
         ))}
         <p className="text-xs text-slate-400">未確定の項目は空欄のまま作成し、あとで「入力内容を編集」から埋められます。</p>
@@ -492,12 +502,22 @@ function EditValuesModal({ contract, template, customers, onClose, onSaved }: {
         {template.fields.map(f => (
           <div key={f.token}>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">{f.label}</label>
-            <input
-              type={f.type === 'date' ? 'date' : 'text'}
-              value={values[f.token] ?? ''}
-              onChange={e => setField(f.token, e.target.value)}
-              className="input"
-            />
+            {f.type === 'select' ? (
+              <select
+                value={values[f.token] ?? f.options?.[0]?.label ?? ''}
+                onChange={e => setField(f.token, e.target.value)}
+                className="input"
+              >
+                {f.options?.map(o => <option key={o.label} value={o.label}>{o.label}</option>)}
+              </select>
+            ) : (
+              <input
+                type={f.type === 'date' ? 'date' : 'text'}
+                value={values[f.token] ?? ''}
+                onChange={e => setField(f.token, e.target.value)}
+                className="input"
+              />
+            )}
           </div>
         ))}
 
