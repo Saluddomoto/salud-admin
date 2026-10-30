@@ -548,7 +548,7 @@ function TemplateEditModal({ template, onClose, onSaved }: {
   }
 
   return (
-    <Modal title="契約書ひな形を編集" open onClose={onClose}>
+    <Modal title="契約書ひな形を編集" open onClose={onClose} size="screen">
       <div className="space-y-4">
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
           ここで編集した内容は、今後この画面から作成するすべての契約書に反映されます。既に作成済みの契約書は変わりません。
@@ -571,7 +571,7 @@ function TemplateEditModal({ template, onClose, onSaved }: {
             value={body}
             onChange={e => setBody(e.target.value)}
             rows={16}
-            className="input resize-y whitespace-pre-wrap font-mono text-xs leading-normal"
+            className="input h-[calc(100vh-420px)] min-h-[320px] resize-y whitespace-pre-wrap font-mono text-sm leading-relaxed"
           />
           <div className="mt-2 flex flex-wrap gap-1.5">
             {template.fields.map(f => (
