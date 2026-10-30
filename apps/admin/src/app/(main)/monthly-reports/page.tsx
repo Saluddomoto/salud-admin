@@ -170,6 +170,23 @@ export default function MonthlyReportsPage() {
   const { role, isLoading: authLoading } = useAuth()
   const [{ y, m }, setYm] = useState(jstNow)
 
+  // 画面共有用の全画面モード。サイドバーを隠し、ブラウザ自体も全画面にする（Escで終了）
+  const [presenting, setPresenting] = useState(false)
+  const startPresenting = () => {
+    setPresenting(true)
+    document.documentElement.requestFullscreen?.().catch(() => {})
+  }
+  const stopPresenting = () => {
+    setPresenting(false)
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+  }
+  useEffect(() => {
+    if (!presenting) return
+    const onFsChange = () => { if (!document.fullscreenElement) setPresenting(false) }
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
+  }, [presenting])
+
   const [me,        setMe]        = useState<DbProfile | null>(null)
   const [meLoading, setMeLoading] = useState(true)
   const [execs,     setExecs]     = useState<DbProfile[]>([])
@@ -509,8 +526,17 @@ export default function MonthlyReportsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6">
-      <PageHeader title="役員月報" description="役員メンバーの月次活動報告・役員会議の事前シート（相互閲覧）" />
+    <div className={presenting
+      ? 'fixed inset-0 z-40 overflow-y-auto bg-slate-50'
+      : 'contents'}>
+    <div className={`flex flex-col gap-6 p-4 sm:p-6 ${presenting ? 'mx-auto max-w-6xl sm:p-8' : ''}`}>
+      <PageHeader title="役員月報" description="役員メンバーの月次活動報告・役員会議の事前シート（相互閲覧）">
+        {presenting ? (
+          <button className="btn-secondary text-sm" onClick={stopPresenting}>全画面を終了（Esc）</button>
+        ) : (
+          <button className="btn-secondary text-sm" onClick={startPresenting}>全画面表示（画面共有用）</button>
+        )}
+      </PageHeader>
 
       {/* 役員会議 事前シートセクション */}
       <h2 className="text-sm font-bold text-slate-800">役員会議 事前シート</h2>
@@ -924,6 +950,7 @@ export default function MonthlyReportsPage() {
           )}
         </div>
       )}
+    </div>
     </div>
   )
 }
