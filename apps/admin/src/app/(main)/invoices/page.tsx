@@ -418,6 +418,7 @@ export default function InvoicesPage() {
   const [addOpen, setAddOpen]   = useState(false)
   const [detail, setDetail]     = useState<DbInvoice | null>(null)
   const [editing, setEditing]   = useState<DbInvoice | null>(null)
+  const [unchecked, setUnchecked] = useState<Set<string>>(new Set())
   const [driveMsg, setDriveMsg] = useState('')
   const [driveBusy, setDriveBusy] = useState(false)
 
@@ -440,12 +441,18 @@ export default function InvoicesPage() {
     })
   }
 
+  // 月・種別を切り替えたら選択は全件チェックに戻す
+  useEffect(() => { setUnchecked(new Set()); setDriveMsg('') }, [activeType, y, m])
+  const toggleOne = (id: string) =>
+    setUnchecked(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
+
   const saveMonthToDrive = async () => {
     setDriveBusy(true)
     let done = 0
+    const targets = selected
     try {
-      for (const inv of visible) {
-        setDriveMsg(`Driveに保存中... ${done}/${visible.length}`)
+      for (const inv of targets) {
+        setDriveMsg(`Driveに保存中... ${done}/${targets.length}`)
         const res = await fetch('/api/invoices/drive-upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -475,6 +482,10 @@ export default function InvoicesPage() {
   const visible = useMemo(
     () => invoices.filter(inv => inv.doc_type === activeType && isInMonth(inv.issue_date, y, m)),
     [invoices, activeType, y, m]
+  )
+  const selected = useMemo(
+    () => visible.filter(inv => !unchecked.has(inv.id)).sort((a, b) => a.invoice_no.localeCompare(b.invoice_no)),
+    [visible, unchecked]
   )
   const monthTotal = useMemo(
     () => visible.reduce((sum, inv) => sum + computeTotals(inv.items, inv.tax_rate).total, 0),
@@ -537,17 +548,23 @@ export default function InvoicesPage() {
 
       {!loading && visible.length > 0 && (
         <div>
+          <label className="mr-3 inline-flex items-center gap-1.5 text-xs text-slate-500">
+            <input
+              type="checkbox"
+              checked={selected.length === visible.length}
+              onChange={e => setUnchecked(e.target.checked ? new Set() : new Set(visible.map(v => v.id)))}
+            />
+            すべて選択
+          </label>
           <button
             className="btn-secondary text-sm"
-            onClick={() => openInvoicesBatchWindow(
-              [...visible].sort((a, b) => a.invoice_no.localeCompare(b.invoice_no)),
-              `${DOC_TYPE_LABELS[activeType]}_${y}年${m}月分`
-            )}
+            disabled={selected.length === 0}
+            onClick={() => openInvoicesBatchWindow(selected, `${DOC_TYPE_LABELS[activeType]}_${y}年${m}月分`)}
           >
-            {y}年{m}月分を一括PDF化（{visible.length}件）
+            選択した{selected.length}件を一括PDF化
           </button>
-          <button className="btn-secondary ml-2 text-sm" disabled={driveBusy} onClick={saveMonthToDrive}>
-            Driveに一括保存
+          <button className="btn-secondary ml-2 text-sm" disabled={driveBusy || selected.length === 0} onClick={saveMonthToDrive}>
+            選択した{selected.length}件をDriveに保存
           </button>
           {driveMsg && <span className="ml-3 text-xs text-slate-500">{driveMsg}</span>}
         </div>
@@ -559,11 +576,15 @@ export default function InvoicesPage() {
         {!loading && visible.map(inv => {
           const { total } = computeTotals(inv.items, inv.tax_rate)
           return (
-            <button
-              key={inv.id}
-              onClick={() => setDetail(inv)}
-              className="card flex items-start gap-4 p-4 text-left transition-shadow hover:shadow-md"
-            >
+            <div key={inv.id} className="card flex items-start gap-3 p-4 transition-shadow hover:shadow-md">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={!unchecked.has(inv.id)}
+                onChange={() => toggleOne(inv.id)}
+                aria-label={`${inv.invoice_no}を選択`}
+              />
+              <button onClick={() => setDetail(inv)} className="flex min-w-0 flex-1 items-start gap-4 text-left">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs text-slate-400">{inv.invoice_no}</span>
@@ -574,7 +595,8 @@ export default function InvoicesPage() {
                   {inv.author ? ` ・ 作成: ${inv.author.full_name}` : ''}
                 </p>
               </div>
-            </button>
+              </button>
+            </div>
           )
         })}
 
