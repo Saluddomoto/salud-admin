@@ -204,26 +204,6 @@ export function openInvoiceWindow(invoice: InvoiceLike, autoPrint: boolean) {
   if (autoPrint) setTimeout(() => w.print(), 300)
 }
 
-// 複数の書類を1つのウィンドウに1件1ページで並べ、まとめて印刷/PDF化する（月ごとの一括ダウンロード用）
-export function openInvoicesBatchWindow(invoices: InvoiceLike[], title: string) {
-  if (invoices.length === 0) return
-  const w = window.open('', '_blank')
-  if (!w) return
-  w.document.title = title
-  const style = w.document.createElement('style')
-  style.textContent = PRINT_STYLE + `
-  .batch-page { page-break-after: always; break-after: page; }
-  .batch-page:last-child { page-break-after: auto; break-after: auto; }
-`
-  w.document.head.appendChild(style)
-  w.document.body.innerHTML = invoices
-    .map(inv => `<div class="batch-page">${buildInvoiceHtml(inv)}</div>`)
-    .join('')
-  fitToOnePage(w)
-  w.focus()
-  setTimeout(() => w.print(), 300)
-}
-
 export async function copyInvoiceToClipboard(invoice: InvoiceLike) {
   const meta = DOC_TYPE_META[invoice.doc_type]
   const { subtotal, tax, total } = computeTotals(invoice.items, invoice.tax_rate)

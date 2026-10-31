@@ -11,7 +11,7 @@ import {
   type DbInvoiceNoteTemplate,
 } from '@/lib/db'
 import {
-  DEFAULT_NOTES, DOC_TYPE_LABELS, computeTotals, formatYen, formatJaDate, openInvoiceWindow, openInvoicesBatchWindow, invoiceToPdfBase64,
+  DEFAULT_NOTES, DOC_TYPE_LABELS, computeTotals, formatYen, formatJaDate, openInvoiceWindow, invoiceToPdfBase64,
   copyInvoiceToClipboard, emptyItem,
 } from '@/lib/invoiceDocument'
 
@@ -23,6 +23,10 @@ const DUE_DATE_LABELS: Record<InvoiceDocType, string> = {
 
 function todayIso(): string {
   return new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
+}
+
+function pdfFileName(inv: DbInvoice): string {
+  return `${DOC_TYPE_LABELS[inv.doc_type]}_${inv.invoice_no}_${inv.billing_name}.pdf`.replace(/[\/:*?"<>|]/g, '_')
 }
 
 function jstNow(): { y: number; m: number } {
@@ -446,6 +450,31 @@ export default function InvoicesPage() {
   const toggleOne = (id: string) =>
     setUnchecked(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
 
+  const downloadZip = async () => {
+    setDriveBusy(true)
+    let done = 0
+    try {
+      const { default: JSZip } = await import('jszip')
+      const zip = new JSZip()
+      for (const inv of selected) {
+        setDriveMsg(`PDFを作成中... ${done}/${selected.length}`)
+        zip.file(pdfFileName(inv), await invoiceToPdfBase64(inv), { base64: true })
+        done++
+      }
+      const url = URL.createObjectURL(await zip.generateAsync({ type: 'blob' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${DOC_TYPE_LABELS[activeType]}_${y}年${m}月分.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+      setDriveMsg(`${done}件のPDFをZIPでダウンロードしました`)
+    } catch {
+      setDriveMsg(`${done}件作成後にエラーが発生しました`)
+    } finally {
+      setDriveBusy(false)
+    }
+  }
+
   const saveMonthToDrive = async () => {
     setDriveBusy(true)
     let done = 0
@@ -458,7 +487,7 @@ export default function InvoicesPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             month: `${y}年${m}月`,
-            fileName: `${DOC_TYPE_LABELS[inv.doc_type]}_${inv.invoice_no}_${inv.billing_name}.pdf`,
+            fileName: pdfFileName(inv),
             pdfBase64: await invoiceToPdfBase64(inv),
           }),
         })
@@ -556,12 +585,8 @@ export default function InvoicesPage() {
             />
             すべて選択
           </label>
-          <button
-            className="btn-secondary text-sm"
-            disabled={selected.length === 0}
-            onClick={() => openInvoicesBatchWindow(selected, `${DOC_TYPE_LABELS[activeType]}_${y}年${m}月分`)}
-          >
-            選択した{selected.length}件を一括PDF化
+          <button className="btn-secondary text-sm" disabled={driveBusy || selected.length === 0} onClick={downloadZip}>
+            選択した{selected.length}件をPDFでダウンロード（ZIP）
           </button>
           <button className="btn-secondary ml-2 text-sm" disabled={driveBusy || selected.length === 0} onClick={saveMonthToDrive}>
             選択した{selected.length}件をDriveに保存
