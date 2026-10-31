@@ -180,8 +180,10 @@ const A4_PRINTABLE_HEIGHT_PX = (297 - 16 * 2) * (96 / 25.4) * 0.9
 // 縮小前のレイアウト高さのまま行われてしまう（＝画面では収まって見えても
 // 印刷/PDFでは2ページ目にあふれる）ため、レイアウト自体を縮めるzoomを使う。
 function fitToOnePage(win: Window) {
-  const doc = win.document.querySelector<HTMLElement>('.doc')
-  if (!doc) return
+  win.document.querySelectorAll<HTMLElement>('.doc').forEach(fitDocToOnePage)
+}
+
+function fitDocToOnePage(doc: HTMLElement) {
   const contentHeight = doc.scrollHeight
   if (contentHeight <= A4_PRINTABLE_HEIGHT_PX) return
   const scale = A4_PRINTABLE_HEIGHT_PX / contentHeight
@@ -200,6 +202,26 @@ export function openInvoiceWindow(invoice: InvoiceLike, autoPrint: boolean) {
   fitToOnePage(w)
   w.focus()
   if (autoPrint) setTimeout(() => w.print(), 300)
+}
+
+// 複数の書類を1つのウィンドウに1件1ページで並べ、まとめて印刷/PDF化する（月ごとの一括ダウンロード用）
+export function openInvoicesBatchWindow(invoices: InvoiceLike[], title: string) {
+  if (invoices.length === 0) return
+  const w = window.open('', '_blank')
+  if (!w) return
+  w.document.title = title
+  const style = w.document.createElement('style')
+  style.textContent = PRINT_STYLE + `
+  .batch-page { page-break-after: always; break-after: page; }
+  .batch-page:last-child { page-break-after: auto; break-after: auto; }
+`
+  w.document.head.appendChild(style)
+  w.document.body.innerHTML = invoices
+    .map(inv => `<div class="batch-page">${buildInvoiceHtml(inv)}</div>`)
+    .join('')
+  fitToOnePage(w)
+  w.focus()
+  setTimeout(() => w.print(), 300)
 }
 
 export async function copyInvoiceToClipboard(invoice: InvoiceLike) {
@@ -235,4 +257,30 @@ export async function copyInvoiceToClipboard(invoice: InvoiceLike) {
 
 export function emptyItem(): InvoiceItem {
   return { name: '', work: '', quantity: 1, unit_price: 0 }
+}
+
+// 書類1件をA4の1ページPDFにして base64 で返す（Drive格納用）。
+// アプリ本体のCSSに影響しないよう、非表示iframeの中で描画してから画像化する。
+export async function invoiceToPdfBase64(invoice: InvoiceLike): Promise<string> {
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')])
+  const iframe = document.createElement('iframe')
+  iframe.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0'
+  document.body.appendChild(iframe)
+  try {
+    const idoc = iframe.contentDocument!
+    idoc.open()
+    idoc.write(`<!doctype html><html><head><meta charset="utf-8"><style>${PRINT_STYLE}</style></head><body>${buildInvoiceHtml(invoice)}</body></html>`)
+    idoc.close()
+    await idoc.fonts?.ready
+    const doc = idoc.querySelector<HTMLElement>('.doc')
+    if (doc) fitDocToOnePage(doc)
+    const canvas = await html2canvas(idoc.body, { scale: 2, backgroundColor: '#ffffff', windowWidth: 794 })
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
+    const pageW = 210, pageH = 297
+    const imgH = Math.min((canvas.height * pageW) / canvas.width, pageH)
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, pageW, imgH)
+    return pdf.output('datauristring').split(',')[1] ?? ''
+  } finally {
+    iframe.remove()
+  }
 }

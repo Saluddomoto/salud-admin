@@ -18,7 +18,7 @@ export function googleAuthUrl(state: string): string {
     client_id:     process.env.GOOGLE_CLIENT_ID!,
     redirect_uri:  googleRedirectUri(),
     response_type: 'code',
-    scope:         'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly',
+    scope:         'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
     access_type:   'offline',
     prompt:        'consent',
     state,
@@ -284,4 +284,93 @@ export async function syncGoogleMeetMinutes(opts: { force?: boolean } = {}): Pro
     }
   }
   return { processed, checked, errors }
+}
+
+
+// ---- Drive 書き込み（請求書PDFの格納）----
+// drive.file スコープは「このアプリが作成したファイル/フォルダ」だけを扱える。
+const DRIVE_UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3'
+
+function escapeDriveQuery(v: string): string {
+  return v.replaceAll('\\', '\\\\').replaceAll("'", "\\'")
+}
+
+async function findOrCreateFolder(name: string, parentId: string | null, token: string): Promise<string> {
+  const esc = escapeDriveQuery(name)
+  let q = `name = '${esc}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+  q += parentId ? ` and '${parentId}' in parents` : " and 'root' in parents"
+  const res = await fetch(`${DRIVE_API}/files?q=${encodeURIComponent(q)}&fields=files(id)&pageSize=1`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error(`drive folder search failed: ${res.status} ${await res.text()}`)
+  const found = (await res.json()).files?.[0]?.id as string | undefined
+  if (found) return found
+  const created = await fetch(`${DRIVE_API}/files?fields=id`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name, mimeType: 'application/vnd.google-apps.folder', ...(parentId ? { parents: [parentId] } : {}),
+    }),
+  })
+  if (!created.ok) throw new Error(`drive folder create failed: ${created.status} ${await created.text()}`)
+  return (await created.json()).id as string
+}
+
+/**
+ * PDFを folderPath（例: ['Salud 請求書・見積書', '2026年10月']）配下へ保存する。
+ * 同名ファイルが既にあれば上書き（再実行しても重複しない）。
+ */
+export async function uploadPdfToDrive(
+  userId: string, folderPath: string[], fileName: string, pdf: Buffer,
+): Promise<{ id: string; webViewLink: string }> {
+  const admin = createAdminClient()
+  const { data: conn } = await admin
+    .from('google_calendar_connections').select('refresh_token').eq('user_id', userId).maybeSingle()
+  if (!conn) throw new Error('NOT_CONNECTED')
+  const token = await accessTokenFor(conn.refresh_token)
+
+  let parent: string | null = null
+  for (const name of folderPath) parent = await findOrCreateFolder(name, parent, token)
+
+  const esc = escapeDriveQuery(fileName)
+  const q = `name = '${esc}' and '${parent}' in parents and trashed = false`
+  const list = await fetch(`${DRIVE_API}/files?q=${encodeURIComponent(q)}&fields=files(id)&pageSize=1`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!list.ok) throw new Error(`drive file search failed: ${list.status} ${await list.text()}`)
+  const existingId = (await list.json()).files?.[0]?.id as string | undefined
+
+  const boundary = 'salud' + Math.random().toString(36).slice(2)
+  const meta = JSON.stringify(existingId ? { name: fileName } : { name: fileName, parents: [parent] })
+  const body = Buffer.concat([
+    Buffer.from(`--${boundary}
+
+Content-Type: application/json; charset=UTF-8
+
+
+
+${meta}
+
+--${boundary}
+
+Content-Type: application/pdf
+
+
+
+`),
+    pdf,
+    Buffer.from(`
+
+--${boundary}--`),
+  ])
+  const url = existingId
+    ? `${DRIVE_UPLOAD_API}/files/${existingId}?uploadType=multipart&fields=id,webViewLink`
+    : `${DRIVE_UPLOAD_API}/files?uploadType=multipart&fields=id,webViewLink`
+  const up = await fetch(url, {
+    method: existingId ? 'PATCH' : 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body,
+  })
+  if (!up.ok) throw new Error(`drive upload failed: ${up.status} ${await up.text()}`)
+  return up.json()
 }

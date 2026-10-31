@@ -11,7 +11,7 @@ import {
   type DbInvoiceNoteTemplate,
 } from '@/lib/db'
 import {
-  DEFAULT_NOTES, DOC_TYPE_LABELS, computeTotals, formatYen, formatJaDate, openInvoiceWindow,
+  DEFAULT_NOTES, DOC_TYPE_LABELS, computeTotals, formatYen, formatJaDate, openInvoiceWindow, openInvoicesBatchWindow, invoiceToPdfBase64,
   copyInvoiceToClipboard, emptyItem,
 } from '@/lib/invoiceDocument'
 
@@ -418,6 +418,8 @@ export default function InvoicesPage() {
   const [addOpen, setAddOpen]   = useState(false)
   const [detail, setDetail]     = useState<DbInvoice | null>(null)
   const [editing, setEditing]   = useState<DbInvoice | null>(null)
+  const [driveMsg, setDriveMsg] = useState('')
+  const [driveBusy, setDriveBusy] = useState(false)
 
   const load = () => {
     Promise.all([fetchInvoices(), fetchCustomers()])
@@ -436,6 +438,38 @@ export default function InvoicesPage() {
       const total = (prev.y * 12 + (prev.m - 1)) + delta
       return { y: Math.floor(total / 12), m: (total % 12) + 1 }
     })
+  }
+
+  const saveMonthToDrive = async () => {
+    setDriveBusy(true)
+    let done = 0
+    try {
+      for (const inv of visible) {
+        setDriveMsg(`Driveに保存中... ${done}/${visible.length}`)
+        const res = await fetch('/api/invoices/drive-upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            month: `${y}年${m}月`,
+            fileName: `${DOC_TYPE_LABELS[inv.doc_type]}_${inv.invoice_no}_${inv.billing_name}.pdf`,
+            pdfBase64: await invoiceToPdfBase64(inv),
+          }),
+        })
+        if (!res.ok) {
+          const { error: code } = await res.json().catch(() => ({ error: '' }))
+          setDriveMsg(code === 'reauth_required' || code === 'not_connected'
+            ? '設定画面でGoogle連携をやり直してください（Driveへの書込み権限が必要です）'
+            : `${done}件保存後にエラーが発生しました`)
+          return
+        }
+        done++
+      }
+      setDriveMsg(`Driveの「Salud 請求書・見積書/${y}年${m}月」に${done}件保存しました`)
+    } catch {
+      setDriveMsg(`${done}件保存後にエラーが発生しました`)
+    } finally {
+      setDriveBusy(false)
+    }
   }
 
   const visible = useMemo(
@@ -499,6 +533,24 @@ export default function InvoicesPage() {
         <p className="text-xs text-slate-400">
           {y}年{m}月の{DOC_TYPE_LABELS[activeType]} {visible.length}件・合計 {formatYen(monthTotal)}
         </p>
+      )}
+
+      {!loading && visible.length > 0 && (
+        <div>
+          <button
+            className="btn-secondary text-sm"
+            onClick={() => openInvoicesBatchWindow(
+              [...visible].sort((a, b) => a.invoice_no.localeCompare(b.invoice_no)),
+              `${DOC_TYPE_LABELS[activeType]}_${y}年${m}月分`
+            )}
+          >
+            {y}年{m}月分を一括PDF化（{visible.length}件）
+          </button>
+          <button className="btn-secondary ml-2 text-sm" disabled={driveBusy} onClick={saveMonthToDrive}>
+            Driveに一括保存
+          </button>
+          {driveMsg && <span className="ml-3 text-xs text-slate-500">{driveMsg}</span>}
+        </div>
       )}
 
       <div className="flex flex-col gap-2.5">
