@@ -78,6 +78,22 @@ export async function GET(req: Request) {
       featuredMediaId,
     })
 
+    // テーマを「使用済み」にする。これが失敗すると翌晩も同じテーマで書いてしまう(2026-10-31/11-01に発生)ため、最優先で行い、失敗したら再試行する
+    let topicWarn = ''
+    if (topicSubsidy && nextTopic) {
+      for (let i = 0; i < 3; i++) {
+        const { data: upd, error: topicError } = await admin
+          .from('column_topics')
+          .update({ status: 'done', wp_post_id: post.id, done_at: new Date().toISOString() })
+          .eq('id', nextTopic.id)
+          .select('id')
+        if (!topicError && upd && upd.length === 1) { topicWarn = ''; break }
+        topicWarn = topicError?.message ?? '更新対象の行がありませんでした'
+        console.error('column-draft: topic update failed', topicWarn)
+        await new Promise(r => setTimeout(r, 1000))
+      }
+    }
+
     const { error: insertError } = await admin.from('column_drafts').insert({
       subsidy: subsidy.key,
       title: article.title,
@@ -85,14 +101,6 @@ export async function GET(req: Request) {
       unsure: article.unsure,
     })
     if (insertError) console.error('column-draft: history insert failed', insertError)
-
-    if (topicSubsidy && nextTopic) {
-      const { error: topicError } = await admin
-        .from('column_topics')
-        .update({ status: 'done', wp_post_id: post.id, done_at: new Date().toISOString() })
-        .eq('id', nextTopic.id)
-      if (topicError) console.error('column-draft: topic update failed', topicError)
-    }
 
     // 通知（ダイジェストと同じ宛先）
     let sent = 0
@@ -122,6 +130,7 @@ export async function GET(req: Request) {
         '',
         featuredMediaId ? '🖼 サムネイル: 自動で設定済み' : '🖼 サムネイル: 自動作成に失敗しました（手動で追加してください）',
         `編集・確認: ${post.editUrl}`,
+        topicWarn ? `⚠ テーマ候補リストの更新に失敗しました(${topicWarn})。同じテーマが重複する恐れがあるので連絡してください。` : '',
       ]
       for (const m of members ?? []) {
         await linePush(m.line_user_id!, [{ type: 'text', text: lines.join('\n') }], accessToken)
