@@ -63,20 +63,34 @@ function bodyToHtmlBlocks(body: string): string {
   const lines = body.split('\n')
   const blocks: string[] = []
   let buffer: string[] = []
+  // 空行が続いたあとの扱い: 3行以上でブロックを分ける(署名欄が別紙とひと塊になって途中で切れないように)、8行以上は改ページ
+  let blankRun = 0
   const flush = () => {
     while (buffer.length && buffer[0]!.trim() === '') buffer.shift()
     while (buffer.length && buffer[buffer.length - 1]!.trim() === '') buffer.pop()
     if (buffer.length === 0) return
-    blocks.push(`<pre style="margin:0;white-space:pre-wrap;font-family:inherit;">${escapeHtml(buffer.join('\n'))}</pre>`)
+    // break-inside:avoid … 署名欄のようなひと塊は、ページの途中で切らず次のページへ送る
+    blocks.push(`<pre style="margin:0;white-space:pre-wrap;font-family:inherit;break-inside:avoid;page-break-inside:avoid;">${escapeHtml(buffer.join('\n'))}</pre>`)
     buffer = []
   }
   for (const line of lines) {
     if (/^_{3,}$/.test(line.trim())) {
       flush()
+      blankRun = 0
       blocks.push('<hr style="border:none;border-top:1px solid #94a3b8;margin:1.25em 0;" />')
-    } else {
-      buffer.push(line)
+      continue
     }
+    if (line.trim() === '') {
+      blankRun += 1
+      buffer.push(line)
+      continue
+    }
+    if (blankRun >= 3) {
+      flush()
+      if (blankRun >= 8) blocks.push('<div style="break-after:page;page-break-after:always;height:0;"></div>')
+    }
+    blankRun = 0
+    buffer.push(line)
   }
   flush()
   return blocks.join('')
@@ -121,7 +135,7 @@ function openDocumentWindow(title: string, body: string, autoPrint: boolean) {
     html, body { width: 100%; }
     body { font-family: "Yu Mincho", "MS Mincho", serif; line-height: 1.5; width: 720px; max-width: 100%; margin: 0 auto; padding: 2rem 0; }
     h1 { text-align: center; font-size: 16px; font-weight: 700; margin: 0 0 1.75rem; }
-    pre { white-space: pre-wrap; font-family: inherit; font-size: 12px; }
+    pre { white-space: pre-wrap; font-family: inherit; font-size: 12px; break-inside: avoid; page-break-inside: avoid; }
     @media print { body { padding: 0; } }
   `
   w.document.head.appendChild(style)
