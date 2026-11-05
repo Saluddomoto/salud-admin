@@ -76,6 +76,7 @@ export async function GET(req: Request) {
       excerpt: article.metaDescription,
       html: article.html,
       featuredMediaId,
+      subsidyKey: subsidy.key,
     })
 
     // テーマを「使用済み」にする。これが失敗すると翌晩も同じテーマで書いてしまう(2026-10-31/11-01に発生)ため、最優先で行い、失敗したら再試行する

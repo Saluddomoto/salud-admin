@@ -3,6 +3,12 @@
 
 const WP_BASE = 'https://salud-web.jp/wp-json/wp/v2'
 const COLUMN_CATEGORY_ID = 19 // 補助金コラム
+// 補助金コラムの子カテゴリ（ブログ一覧の「補助金別」ボタンとカードのラベルに使う）。2026-11-05 作成
+const SUBSIDY_CATEGORY_IDS: Record<string, number> = {
+  jizokuka: 135, // 持続化補助金
+  shoryokuka: 136, // 省力化投資補助金
+  shinmono: 137, // 新事業進出・ものづくり商業サービス補助金
+}
 // サイト側のWAFが「User-Agent なし/プログラム由来」のアクセスを弾くことがあるため、通常のブラウザ相当を名乗る
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 SaludAdmin'
 
@@ -52,6 +58,8 @@ export async function createDraftPost(params: {
   excerpt: string
   html: string
   featuredMediaId?: number
+  /** column_topics.subsidy / COLUMN_SUBSIDIES の key。対応する子カテゴリも付ける */
+  subsidyKey?: string
 }): Promise<{ id: number; editUrl: string }> {
   const res = await fetch(`${WP_BASE}/posts`, {
     method: 'POST',
@@ -62,7 +70,7 @@ export async function createDraftPost(params: {
       excerpt: params.excerpt,
       content: params.html,
       status: 'draft',
-      categories: [COLUMN_CATEGORY_ID],
+      categories: [COLUMN_CATEGORY_ID, ...(params.subsidyKey && SUBSIDY_CATEGORY_IDS[params.subsidyKey] ? [SUBSIDY_CATEGORY_IDS[params.subsidyKey]!] : [])],
       ...(params.featuredMediaId ? { featured_media: params.featuredMediaId } : {}),
     }),
   })
