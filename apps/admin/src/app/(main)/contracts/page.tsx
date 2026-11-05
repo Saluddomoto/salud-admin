@@ -10,7 +10,7 @@ import {
   fetchCustomers,
   type DbContract, type DbContractTemplate, type DbCustomer,
 } from '@/lib/db'
-import { renderContractBody, toReiwa, type ContractField } from '@/lib/contractTemplates'
+import { renderContractBody, toReiwa, formatAmount, type ContractField } from '@/lib/contractTemplates'
 
 // テンプレートの差し込み項目ラベルから、顧客登録情報の対応する値を推測する
 // （テンプレートごとにトークン名は違うが、ラベルの言葉で「住所」「代表者/契約者」「会社名/名称/氏名」を判定）
@@ -417,8 +417,9 @@ function AddModal({ templates, customers, onClose, onSaved }: {
             ) : (
               <input
                 type={f.type === 'date' ? 'date' : 'text'}
+                inputMode={f.type === 'amount' ? 'numeric' : undefined}
                 value={values[f.token] ?? (f.type === 'date' ? todayIso() : '')}
-                onChange={e => setField(f.token, e.target.value)}
+                onChange={e => setField(f.token, f.type === 'amount' ? formatAmount(e.target.value) : e.target.value)}
                 className="input"
               />
             )}
@@ -527,8 +528,9 @@ function EditValuesModal({ contract, template, customers, onClose, onSaved }: {
             ) : (
               <input
                 type={f.type === 'date' ? 'date' : 'text'}
-                value={values[f.token] ?? ''}
-                onChange={e => setField(f.token, e.target.value)}
+                inputMode={f.type === 'amount' ? 'numeric' : undefined}
+                value={f.type === 'amount' ? formatAmount(values[f.token] ?? '') : (values[f.token] ?? '')}
+                onChange={e => setField(f.token, f.type === 'amount' ? formatAmount(e.target.value) : e.target.value)}
                 className="input"
               />
             )}

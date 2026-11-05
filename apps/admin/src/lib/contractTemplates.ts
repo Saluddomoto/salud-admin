@@ -2,7 +2,13 @@
 // テンプレート本文・差し込み項目(fields)はDB(contract_templates)に保存され、画面から編集できる。
 // 本文中の【…】プレースホルダーを入力値で置換して契約書を生成する。
 
-export type ContractFieldType = 'text' | 'date' | 'select'
+export type ContractFieldType = 'text' | 'date' | 'select' | 'amount'
+
+// 金額: 数字だけのときは3桁区切りのカンマを入れる。数字以外（「未定」など）はそのまま。全角数字・入力済みのカンマ・「円」は吸収する
+export function formatAmount(raw: string): string {
+  const n = (raw ?? '').normalize('NFKC').replace(/[,\s円]/g, '')
+  return /^\d+$/.test(n) ? Number(n).toLocaleString('en-US') : raw ?? ''
+}
 
 // select: フォームでは label を選び、本文には選んだ選択肢の value（複数行可）を差し込む。先頭の選択肢が既定値。
 export type ContractFieldOption = {
@@ -37,6 +43,7 @@ export function renderContractBody(bodyTemplate: string, fields: ContractField[]
     const raw = values[field.token] ?? ''
     const resolved = field.type === 'date' ? toReiwa(raw)
       : field.type === 'select' ? resolveSelect(field, values[field.token])
+      : field.type === 'amount' ? formatAmount(raw)
       : raw
     return text.split(field.token).join(resolved)
   }, bodyTemplate)
