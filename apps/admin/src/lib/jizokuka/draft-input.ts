@@ -7,6 +7,8 @@ type Service = { name: string; ratio_pct: number | null; unit_price: number | nu
 type Effect = { target: string; offering: string; unit_price: number | null; customers: number | null; frequency: number | null }
 
 // 業務効率化の取組（様式2 補助事業計画の3）を書くかどうか: 機械装置等費・ソフトウェア等の経費がある事業
+// 新商品開発費（様式3 ⑥）がある事業のみ、様式2 補助事業計画の「4．テストマーケティング・市場調査の報告」を書く
+const NEW_PRODUCT_PATTERN = /新商品開発/
 const EFFICIENCY_PATTERN = /機械装置|ソフトウェア|システム|機器|設備/
 
 /** 案件・ヒアリング・経費明細から、AI下書き生成の入力を組み立てる（生成・再生成で共通） */
@@ -84,6 +86,7 @@ export function buildDraftInput(
     customerExamples: text('customer_examples'),
     trackRecord: text('track_record'),
     attachmentsNote: text('attachments_note'),
+    includeTestMarketing: expenses.some(e => NEW_PRODUCT_PATTERN.test(`${e.category ?? ''}${e.description ?? ''}`)),
     includeEfficiency: hearing.efficiency_enabled === false ? false : hearing.efficiency_enabled === true || expenses.some(e => EFFICIENCY_PATTERN.test(`${e.category ?? ''}${e.description ?? ''}`)),
   }
 }

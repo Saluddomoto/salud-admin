@@ -34,6 +34,8 @@ export interface ApplicationHearingInput {
   financials?: string
   // 業務効率化の取組（機械装置・ソフトウェア等の導入）を含む事業か。true のとき 3-1・3-2 を生成する
   includeEfficiency?: boolean
+  // 経費に新商品開発費を含む事業か。true のとき「4．テストマーケティング・市場調査の報告」を生成する
+  includeTestMarketing?: boolean
   // ヒアリングシート v2「補足情報」由来（任意）
   schedule?: string
   efficiencyItems?: string
@@ -60,8 +62,7 @@ export interface ApplicationDraft {
   issues: string
   marketTrends: string
   customerNeeds: string
-  strength: string
-  weakness: string
+  strengthWeakness: string
   policyGoal: string
   futurePlan: string
   projectName: string
@@ -74,8 +75,10 @@ export interface ApplicationDraft {
   efficiencySummary: string
   efficiencyDetail: string
   efficiencySchedule: string
+  testMarketing: string
   effect: string
   effectEstimate: string
+  effectBasis: string
 }
 
 // 実際の電子申請ポータル（jizokuka-portal.info）の入力画面キャプチャと、採択された申請書（様式2）の
@@ -86,8 +89,7 @@ const SECTION_LABELS: Record<keyof ApplicationDraft, string> = {
   issues: '1-3．経営課題',
   marketTrends: '2-1．市場の動向',
   customerNeeds: '2-2．顧客ニーズ',
-  strength: '3．自社の強み',
-  weakness: '3．自社の弱み',
+  strengthWeakness: '3．自社や自社の提供する商品・サービスの強み・弱み',
   policyGoal: '4-1．経営方針・目標',
   futurePlan: '4-2．今後のプラン',
   projectName: '【補助事業計画】1．補助事業で行う事業名（30文字以内）',
@@ -100,8 +102,10 @@ const SECTION_LABELS: Record<keyof ApplicationDraft, string> = {
   efficiencySummary: '【補助事業計画】3-2．業務効率化の取組：具体的な取組（概要）',
   efficiencyDetail: '【補助事業計画】3-2．業務効率化の取組：具体的な取組（詳細）',
   efficiencySchedule: '【補助事業計画】3-2．業務効率化の取組：スケジュール',
-  effect: '【補助事業計画】4-1．取組の効果',
-  effectEstimate: '【補助事業計画】4-2．効果の試算',
+  testMarketing: '【補助事業計画】4-1．新商品開発費のテストマーケティングまたは市場調査に関する報告',
+  effect: '【補助事業計画】5-1．補助事業に取り組むことで得られる効果',
+  effectEstimate: '【補助事業計画】5-2．効果の試算',
+  effectBasis: '【補助事業計画】5-3．効果の試算の根拠',
 }
 
 // 業務効率化の取組（様式2 補助事業計画の3）。該当しない事業では生成しない
@@ -112,6 +116,11 @@ const EFFICIENCY_KEYS: (keyof ApplicationDraft)[] = [
 // 旧版で保存済みの下書きのタイトル（再生成時にキーへ戻すため）
 const LEGACY_LABELS: Record<string, keyof ApplicationDraft> = {
   '【補助事業計画】2-3．具体的な取組': 'initiatives',
+  '3．自社の強み': 'strengthWeakness',
+  '3．自社の弱み': 'strengthWeakness',
+  '【補助事業計画】4-1．取組の効果': 'effect',
+  '【補助事業計画】4-2．効果の試算': 'effectEstimate',
+  '【補助事業計画】5-1．補助事業の効果': 'effect',
 }
 
 const EVALUATION_CRITERIA =
@@ -156,8 +165,7 @@ const SECTION_HINTS: Record<keyof ApplicationDraft, string> = {
   issues: '課題を①②③の3点で、各100〜150文字程度',
   marketTrends: '市場の動向を①②の2点で、各150〜200文字程度。各項目の直後に「（出典：機関名「統計名」◯年◯月公表　URL）」を付ける。出典は【調査済みの政府統計】のものだけ',
   customerNeeds: '顧客ニーズを①②③の3点で、各100〜150文字程度。顧客が求めていること・困っていることだけを書き、自社の強み・取組・サービスの特徴（強みの記載）は混ぜない（強みは「3．自社の強み」に書く）',
-  strength: '強みを①②③の3点で、各150〜250文字程度（根拠・実績を添える）',
-  weakness: '弱みを2点程度、各100〜150文字程度',
+  strengthWeakness: '「自社や自社の提供する商品・サービスの強み・弱み」を1つの入力欄に書く。「■強み」（①②③の3点、各150〜250文字程度、根拠・実績を添える）に続けて「■弱み」（2点程度、各100〜150文字程度）の順。強みは顧客ニーズ（2-2）に対応づける。全体で4000文字以内',
   policyGoal: '「■経営方針」（200〜300文字。最後に「〜への転換を経営方針とする。」の形で、転換後のあるべき姿を一言で言い切る）と、「■目標」（現状→1年後→3年後の売上目標と現在比％。売上構成の変化があれば併記）',
   futurePlan: '柱ごとに①②③で、各取組を「・」の箇条書きで具体的に',
   projectName: '30文字以内、体言止めの短いタイトル',
@@ -170,13 +178,15 @@ const SECTION_HINTS: Record<keyof ApplicationDraft, string> = {
   efficiencySummary: '入力欄は改行できず文字数も少ないため、改行や空行は入れず1段落で書く。「（詳細）」で説明する導入内容の項目を「①〜　②〜」のように箇条書き程度に並べ、全体で100〜150文字程度。説明文や文章にはしない',
   efficiencyDetail: '導入するものごとに「現状→導入による変化→効果」を、全体で400〜600文字程度',
   efficiencySchedule: '導入・習熟・運用開始の時期を「内容：◯月」の形で一覧に。時期がない場合は「【要確認：導入時期】」',
-  effect: '効果を①②③④の項目（売上・生産性・利益・資金繰り等）で、各100〜150文字程度',
-  effectEstimate: '売上増加効果（現状→1年後→3年後の売上と現在比％）、作業時間の短縮効果、利益率の改善効果を、数値で整理して書く',
+  testMarketing: '新商品開発費を経費に計上する場合の報告欄。申請時点で実施済みのテストマーケティングまたは市場調査について、「実施した内容」（いつ・誰に・どんな方法で）と「その結果」（数値・反応・得られた示唆）を書く。ヒアリングに実施済みの内容がなければ創作せず、「【要確認：実施済みのテストマーケティング・市場調査の内容と結果（未実施で報告なしなら、この欄は不要）】」とだけ書く。4000文字以内',
+  effect: '「補助事業に取り組むことで得られる効果」を①②③④の項目（売上・生産性・利益・資金繰り等）で、各100〜150文字程度。補助事業で取得する資産がある場合は、補助事業終了後も継続して使用することで、どのように事業展開に役立つかを書く。業務効率化の取組がある場合は、どのように生産性向上につながるかを必ず説明する。4000文字以内',
+  effectEstimate: '「現時点」「補助事業終了時点」「補助事業終了時点から1年後」の3時点ごとに、「売上高」と「売上総利益」の増加目標を数値で整理する（現在比％を添える）。例:「現時点：売上高◯円・売上総利益◯円 → 補助事業終了時点：◯円（現在比◯％） → 1年後：◯円（現在比◯％）」。ヒアリングにない数字は創作せず「【要確認：◯◯】」とする。4000文字以内',
+  effectBasis: '5-2の増加目標が「期待できる根拠」を、市場環境・顧客ニーズ・営業方針などの客観的な事実に基づいて書く。「なぜその売上・利益の増加が見込めるか」を、市場の動向（2-1）・顧客ニーズ（2-2）・自社の強み（3）・補助事業の取組と結びつけて説明する。ヒアリングにない数字・統計は創作せず「【要確認：◯◯】」とする。4000文字以内',
 }
 
-function draftKeys(includeEfficiency: boolean): (keyof ApplicationDraft)[] {
+function draftKeys(includeEfficiency: boolean, includeTestMarketing = false): (keyof ApplicationDraft)[] {
   return (Object.keys(SECTION_LABELS) as (keyof ApplicationDraft)[]).filter(
-    k => includeEfficiency || !EFFICIENCY_KEYS.includes(k),
+    k => (includeEfficiency || !EFFICIENCY_KEYS.includes(k)) && (includeTestMarketing || k !== 'testMarketing'),
   )
 }
 
@@ -234,7 +244,7 @@ ${input.researchedSources}` : '【調査済みの政府統計】なし',
 
 /** ヒアリング内容から全セクションの初稿を一括生成する */
 export async function generateApplicationDraft(input: ApplicationHearingInput): Promise<Partial<ApplicationDraft>> {
-  const keys = draftKeys(!!input.includeEfficiency)
+  const keys = draftKeys(!!input.includeEfficiency, !!input.includeTestMarketing)
   const tool = buildDraftTool(keys)
   const response = await getClient().messages.create({
     model: 'claude-sonnet-5',
