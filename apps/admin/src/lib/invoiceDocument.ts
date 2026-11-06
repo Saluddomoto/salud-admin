@@ -3,6 +3,7 @@
 // （発行者/請求先ヘッダー・明細テーブル・小計/消費税/合計・振込先などのフッター）を再現する。
 import type { InvoiceDocType, InvoiceIssuer, InvoiceItem } from '@/lib/db'
 import { SEAL_IMAGE_DATA_URI } from '@/lib/assets/sealImage'
+import { ZESTAS_SEAL_IMAGE_DATA_URI } from '@/lib/assets/zestasSealImage'
 
 export const DOC_TYPE_LABELS: Record<InvoiceDocType, string> = {
   invoice: '請求書',
@@ -60,7 +61,7 @@ export const ISSUERS: Record<InvoiceIssuer, IssuerInfo> = {
       'tel:03-5826-6660',
       '適格請求書発行事業者登録番号T9010001101440',
     ],
-    seal: null,
+    seal: ZESTAS_SEAL_IMAGE_DATA_URI,
   },
 }
 
