@@ -202,7 +202,10 @@ const PRINT_STYLE = `
   table.items { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 0.5rem; }
   table.items th, table.items td.cell { border: 1px solid #cbd5e1; padding: 7px 9px; }
   table.items thead th { background: #eef2ff; color: ${BRAND}; font-weight: 700; border-color: ${BRAND}; }
+  table.items thead th { text-align: left; }
+  table.items td.cell { vertical-align: top; text-align: left; }
   table.items td.num, table.items th.num { text-align: right; }
+  table.items th.num { width: 12%; }
   table.items tfoot td { padding: 4px 9px; border: none; }
   table.items tfoot td.label { text-align: right; font-weight: 700; }
   table.items tfoot td.total { font-size: 15px; color: ${BRAND}; border-top: 2px solid ${BRAND}; }
