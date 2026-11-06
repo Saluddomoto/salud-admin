@@ -473,6 +473,7 @@ export default function InvoicesPage() {
   const [{ y, m }, setYm] = useState(jstNow)
 
   const [addOpen, setAddOpen]   = useState(false)
+  const [copySource, setCopySource] = useState<DbInvoice | null>(null)
   const [detail, setDetail]     = useState<DbInvoice | null>(null)
   const [editing, setEditing]   = useState<DbInvoice | null>(null)
   const [unchecked, setUnchecked] = useState<Set<string>>(new Set())
@@ -696,12 +697,25 @@ export default function InvoicesPage() {
         />
       )}
 
+      {copySource && (
+        <AddModal
+          customers={customers}
+          noteTemplates={noteTemplates}
+          onNoteTemplatesChanged={loadNoteTemplates}
+          initialDocType={copySource.doc_type}
+          copyFrom={copySource}
+          onClose={() => setCopySource(null)}
+          onSaved={(inv) => { setCopySource(null); load(); setDetail(inv) }}
+        />
+      )}
+
       {detail && (
         <Modal title={`${DOC_TYPE_LABELS[detail.doc_type]}　${detail.invoice_no}`} open onClose={() => setDetail(null)} size="full">
           <DetailView
             invoice={detail}
             canDelete={canDelete}
             onEdit={() => setEditing(detail)}
+            onDuplicate={() => { setCopySource(detail); setDetail(null) }}
             onDeleted={() => { setDetail(null); load() }}
           />
         </Modal>
@@ -721,10 +735,11 @@ export default function InvoicesPage() {
   )
 }
 
-function DetailView({ invoice, canDelete, onEdit, onDeleted }: {
+function DetailView({ invoice, canDelete, onEdit, onDuplicate, onDeleted }: {
   invoice: DbInvoice
   canDelete: boolean
   onEdit: () => void
+  onDuplicate: () => void
   onDeleted: () => void
 }) {
   const { subtotal, tax, total } = computeTotals(invoice.items, invoice.tax_rate)
@@ -770,7 +785,8 @@ function DetailView({ invoice, canDelete, onEdit, onDeleted }: {
         ) : <span />}
         <div className="flex flex-wrap justify-end gap-2">
           <button className="btn-secondary text-sm" onClick={onEdit}>編集</button>
-          <button className="btn-secondary text-sm" onClick={() => copyInvoiceToClipboard(invoice)}>コピー</button>
+          <button className="btn-secondary text-sm" onClick={onDuplicate}>コピーして作成</button>
+          <button className="btn-secondary text-sm" onClick={() => copyInvoiceToClipboard(invoice)}>テキストをコピー</button>
           <button className="btn-secondary text-sm" onClick={() => openInvoiceWindow(invoice, false)}>プレビュー</button>
           <button className="btn-primary text-sm" onClick={() => openInvoiceWindow(invoice, true)}>印刷 / PDF化</button>
         </div>
@@ -779,15 +795,28 @@ function DetailView({ invoice, canDelete, onEdit, onDeleted }: {
   )
 }
 
-function AddModal({ customers, noteTemplates, onNoteTemplatesChanged, initialDocType, onClose, onSaved }: {
+function AddModal({ customers, noteTemplates, onNoteTemplatesChanged, initialDocType, copyFrom, onClose, onSaved }: {
   customers: DbCustomer[]
   noteTemplates: DbInvoiceNoteTemplate[]
   onNoteTemplatesChanged: () => void
   initialDocType: InvoiceDocType
+  copyFrom?: DbInvoice
   onClose: () => void
   onSaved: (inv: DbInvoice) => void
 }) {
-  const [form, setForm] = useState<FormState>(() => emptyForm(initialDocType))
+  // 複製時は内容を引き継ぎ、発行日は今日(最新)にする。支払期日は古い日付が残らないよう空にする。書類番号は保存時に自動採番。
+  const [form, setForm] = useState<FormState>(() => copyFrom ? {
+    doc_type: copyFrom.doc_type,
+    issuer: copyFrom.issuer ?? 'salud',
+    greeting: copyFrom.greeting ?? defaultGreeting(copyFrom.doc_type),
+    customer_id: copyFrom.customer_id,
+    billing_name: copyFrom.billing_name,
+    issue_date: todayIso(),
+    due_date: '',
+    tax_rate: copyFrom.tax_rate,
+    items: copyFrom.items.map(it => ({ ...it })),
+    notes: copyFrom.notes,
+  } : emptyForm(initialDocType))
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
 
