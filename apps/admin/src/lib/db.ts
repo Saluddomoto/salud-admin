@@ -1360,11 +1360,14 @@ export type InvoiceItem = {
 }
 
 export type InvoiceDocType = 'invoice' | 'estimate'
+export type InvoiceIssuer = 'salud' | 'zestas'
 
 export type DbInvoice = {
   id: string
   invoice_no: string
   doc_type: InvoiceDocType
+  issuer: InvoiceIssuer
+  greeting: string | null
   customer_id: string | null
   billing_name: string
   issue_date: string
@@ -1379,6 +1382,8 @@ export type DbInvoice = {
 
 export type InvoiceInput = {
   doc_type: InvoiceDocType
+  issuer: InvoiceIssuer
+  greeting: string | null
   customer_id: string | null
   billing_name: string
   issue_date: string
@@ -1388,7 +1393,7 @@ export type InvoiceInput = {
   notes: string
 }
 
-const INVOICE_SELECT = 'id, invoice_no, doc_type, customer_id, billing_name, issue_date, due_date, items, tax_rate, notes, created_by, created_at, author:profiles!invoices_created_by_fkey(full_name)'
+const INVOICE_SELECT = 'id, invoice_no, doc_type, issuer, greeting, customer_id, billing_name, issue_date, due_date, items, tax_rate, notes, created_by, created_at, author:profiles!invoices_created_by_fkey(full_name)'
 
 export async function fetchInvoices(): Promise<DbInvoice[]> {
   const { data, error } = await db()

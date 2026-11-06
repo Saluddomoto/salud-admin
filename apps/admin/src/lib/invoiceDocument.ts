@@ -1,8 +1,9 @@
 // 請求書のHTML生成・印刷・コピーのユーティリティ。
 // 元になったGoogleスプレッドシートのひな形と同じレイアウト
 // （発行者/請求先ヘッダー・明細テーブル・小計/消費税/合計・振込先などのフッター）を再現する。
-import type { InvoiceDocType, InvoiceItem } from '@/lib/db'
+import type { InvoiceDocType, InvoiceIssuer, InvoiceItem } from '@/lib/db'
 import { SEAL_IMAGE_DATA_URI } from '@/lib/assets/sealImage'
+import { ZESTAS_SEAL_IMAGE_DATA_URI } from '@/lib/assets/zestasSealImage'
 
 export const DOC_TYPE_LABELS: Record<InvoiceDocType, string> = {
   invoice: '請求書',
@@ -19,27 +20,69 @@ const DOC_TYPE_META: Record<InvoiceDocType, {
     title: '御請求書',
     docNoLabel: '請求書番号',
     dueDateLabel: '支払期日',
-    greeting: 'この度は誠に有難う御座います。<br/>御請求書を作成致しました。<br/>下記、詳細となりますので、ご査収の程よろしくお願いいたします。',
+    greeting: 'この度は誠に有難う御座います。\n御請求書を作成致しました。\n下記、詳細となりますので、ご査収の程よろしくお願いいたします。',
   },
   estimate: {
     title: '御見積書',
     docNoLabel: '見積書番号',
     dueDateLabel: '見積有効期限',
-    greeting: 'この度はお問い合わせいただき誠に有難う御座います。<br/>下記の通りお見積り申し上げます。<br/>ご検討の程よろしくお願いいたします。',
+    greeting: 'この度はお問い合わせいただき誠に有難う御座います。\n下記の通りお見積り申し上げます。\nご検討の程よろしくお願いいたします。',
   },
 }
 
-export const ISSUER = {
-  name: '株式会社Salud',
-  representative: '代表取締役　堂本　拓央',
-  addressLine1: '東京都渋谷区道玄坂1丁目10番8号',
-  addressLine2: '渋谷道玄坂東急ビル2F−C',
-  tel: '050-6869-6588',
-  invoiceRegistrationNo: 'T6011001152105',
+type IssuerInfo = {
+  name: string
+  lines: string[]   // 名称の下に並べる行（代表者・住所・電話・登録番号など）
+  seal: string | null
 }
 
-export const DEFAULT_NOTES =
-  `GMOあおぞらネット銀行(金融機関コード0310） 法人営業部 普通口座 2483422 カ）サル―\n` +
+export const ISSUER_LABELS: Record<InvoiceIssuer, string> = {
+  salud: '株式会社Salud',
+  zestas: '株式会社ゼスタス',
+}
+
+export const ISSUERS: Record<InvoiceIssuer, IssuerInfo> = {
+  salud: {
+    name: '株式会社Salud',
+    lines: [
+      '代表取締役　堂本　拓央',
+      '東京都渋谷区道玄坂1丁目10番8号',
+      '渋谷道玄坂東急ビル2F−C',
+      'tel:050-6869-6588',
+      '適格請求書発行事業者登録番号T6011001152105',
+    ],
+    seal: SEAL_IMAGE_DATA_URI,
+  },
+  zestas: {
+    name: '株式会社ゼスタス',
+    lines: [
+      '東京都千代田区六番町6－4',
+      'LH番町スクエア5階',
+      'tel:03-5826-6660',
+      '適格請求書発行事業者登録番号T9010001101440',
+    ],
+    seal: ZESTAS_SEAL_IMAGE_DATA_URI,
+  },
+}
+
+function issuerOf(invoice: { issuer?: InvoiceIssuer }): IssuerInfo {
+  return ISSUERS[invoice.issuer ?? 'salud']
+}
+
+export function defaultGreeting(t: InvoiceDocType): string {
+  return DOC_TYPE_META[t].greeting
+}
+
+const NOTES_BANK: Record<InvoiceIssuer, string> = {
+  salud: 'GMOあおぞらネット銀行(金融機関コード0310） 法人営業部 普通口座 2483422 カ）サル―',
+  zestas: '振込口座：三菱UFJ銀行 堀留支店 普通 4551595 株式会社ゼスタス',
+}
+
+export function defaultNotes(issuer: InvoiceIssuer): string {
+  return `${NOTES_BANK[issuer]}\n` + NOTES_REST
+}
+
+const NOTES_REST =
   `なお、振込み手数料は御社にてご負担お願いします。\n` +
   `契約方法：電子サイン\n` +
   `何かご不明な点などございましたら、お気軽にご連絡下さい。`
@@ -71,6 +114,8 @@ function nl2br(s: string): string {
 }
 
 type InvoiceLike = {
+  greeting?: string | null
+  issuer?: InvoiceIssuer
   invoice_no: string
   doc_type: InvoiceDocType
   billing_name: string
@@ -83,6 +128,7 @@ type InvoiceLike = {
 
 export function buildInvoiceHtml(invoice: InvoiceLike): string {
   const meta = DOC_TYPE_META[invoice.doc_type]
+  const issuer = issuerOf(invoice)
   const { subtotal, tax, total } = computeTotals(invoice.items, invoice.tax_rate)
   const rows = invoice.items
   const showWork = rows.some(it => it.work.trim())
@@ -103,21 +149,17 @@ export function buildInvoiceHtml(invoice: InvoiceLike): string {
       <div class="head">
         <div class="issuer">
           <div class="issuer-name-row">
-            <div class="issuer-name">${escapeHtml(ISSUER.name)}</div>
-            <img class="seal" src="${SEAL_IMAGE_DATA_URI}" alt="" />
+            <div class="issuer-name">${escapeHtml(issuer.name)}</div>
+            ${issuer.seal ? `<img class="seal" src="${issuer.seal}" alt="" />` : ''}
           </div>
-          <div>${escapeHtml(ISSUER.representative)}</div>
-          <div>${escapeHtml(ISSUER.addressLine1)}</div>
-          <div>${escapeHtml(ISSUER.addressLine2)}</div>
-          <div>tel:${escapeHtml(ISSUER.tel)}</div>
-          <div>適格請求書発行事業者登録番号${escapeHtml(ISSUER.invoiceRegistrationNo)}</div>
+          ${issuer.lines.map(l => `<div>${escapeHtml(l)}</div>`).join('')}
         </div>
         <div class="billing">
           <div class="billing-name">${escapeHtml(invoice.billing_name)}</div>
           <div class="invoice-no">${meta.docNoLabel}：${escapeHtml(invoice.invoice_no)}</div>
           <div class="greeting">
             日付：${formatJaDate(invoice.issue_date)}<br/>
-            ${meta.greeting}
+            ${nl2br(invoice.greeting?.trim() ? invoice.greeting : meta.greeting)}
           </div>
         </div>
       </div>
@@ -210,7 +252,7 @@ export async function copyInvoiceToClipboard(invoice: InvoiceLike) {
   const html = `<div>${buildInvoiceHtml(invoice)}</div>`
   const text = [
     meta.title,
-    ISSUER.name,
+    issuerOf(invoice).name,
     invoice.billing_name,
     `${meta.docNoLabel}：${invoice.invoice_no}`,
     `日付：${formatJaDate(invoice.issue_date)}`,

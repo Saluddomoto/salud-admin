@@ -7,15 +7,16 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   fetchInvoices, insertInvoice, updateInvoice, deleteInvoice, fetchCustomers,
   fetchInvoiceNoteTemplates, insertInvoiceNoteTemplate, deleteInvoiceNoteTemplate,
-  type DbInvoice, type DbCustomer, type InvoiceItem, type InvoiceInput, type InvoiceDocType,
+  type DbInvoice, type DbCustomer, type InvoiceItem, type InvoiceInput, type InvoiceDocType, type InvoiceIssuer,
   type DbInvoiceNoteTemplate,
 } from '@/lib/db'
 import {
-  DEFAULT_NOTES, DOC_TYPE_LABELS, computeTotals, formatYen, formatJaDate, openInvoiceWindow, invoiceToPdfBase64,
+  defaultNotes, defaultGreeting, DOC_TYPE_LABELS, ISSUER_LABELS, computeTotals, formatYen, formatJaDate, openInvoiceWindow, invoiceToPdfBase64,
   copyInvoiceToClipboard, emptyItem,
 } from '@/lib/invoiceDocument'
 
 const DOC_TYPES: InvoiceDocType[] = ['invoice', 'estimate']
+const ISSUERS: InvoiceIssuer[] = ['salud', 'zestas']
 const DUE_DATE_LABELS: Record<InvoiceDocType, string> = {
   invoice: '支払期日',
   estimate: '見積有効期限',
@@ -41,6 +42,8 @@ function isInMonth(isoDate: string, y: number, m: number): boolean {
 
 type FormState = {
   doc_type: InvoiceDocType
+  issuer: InvoiceIssuer
+  greeting: string
   customer_id: string | null
   billing_name: string
   issue_date: string
@@ -53,19 +56,23 @@ type FormState = {
 function emptyForm(docType: InvoiceDocType = 'invoice'): FormState {
   return {
     doc_type: docType,
+    issuer: 'salud',
+    greeting: defaultGreeting(docType),
     customer_id: null,
     billing_name: '',
     issue_date: todayIso(),
     due_date: '',
     tax_rate: 10,
     items: [emptyItem()],
-    notes: DEFAULT_NOTES,
+    notes: defaultNotes('salud'),
   }
 }
 
 function formToInput(form: FormState): InvoiceInput {
   return {
     doc_type: form.doc_type,
+    issuer: form.issuer,
+    greeting: form.greeting.trim() && form.greeting !== defaultGreeting(form.doc_type) ? form.greeting : null,
     customer_id: form.customer_id,
     billing_name: form.billing_name.trim(),
     issue_date: form.issue_date,
@@ -324,12 +331,39 @@ function InvoiceForm({ form, setForm, customers, noteTemplates, onNoteTemplatesC
             <button
               key={t}
               type="button"
-              onClick={() => setForm(prev => ({ ...prev, doc_type: t }))}
+              onClick={() => setForm(prev => ({
+                ...prev,
+                doc_type: t,
+                greeting: prev.greeting === defaultGreeting(prev.doc_type) ? defaultGreeting(t) : prev.greeting,
+              }))}
               className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
                 form.doc_type === t ? 'bg-brand-600 text-white' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               {DOC_TYPE_LABELS[t]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-slate-700">発行会社</label>
+        <div className="inline-flex rounded-lg border border-slate-200 p-1">
+          {ISSUERS.map(i => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setForm(prev => ({
+                ...prev,
+                issuer: i,
+                // 備考が標準文のままなら、発行会社の振込口座入りの標準文に差し替える（編集済みは触らない）
+                notes: prev.notes === defaultNotes(prev.issuer) ? defaultNotes(i) : prev.notes,
+              }))}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                form.issuer === i ? 'bg-brand-600 text-white' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {ISSUER_LABELS[i]}
             </button>
           ))}
         </div>
@@ -372,6 +406,25 @@ function InvoiceForm({ form, setForm, customers, noteTemplates, onNoteTemplatesC
           type="number" value={form.tax_rate}
           onChange={e => setForm(prev => ({ ...prev, tax_rate: Number(e.target.value) }))}
           className="input w-32"
+        />
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-center justify-between">
+          <label className="text-sm font-medium text-slate-700">冒頭の挨拶文（定型文）</label>
+          <button
+            type="button"
+            className="text-xs text-brand-600 hover:underline"
+            onClick={() => setForm(prev => ({ ...prev, greeting: defaultGreeting(prev.doc_type) }))}
+          >
+            標準の文面に戻す
+          </button>
+        </div>
+        <textarea
+          value={form.greeting}
+          onChange={e => setForm(prev => ({ ...prev, greeting: e.target.value }))}
+          rows={4}
+          className="input"
         />
       </div>
 
@@ -780,6 +833,8 @@ function EditModal({ invoice, customers, noteTemplates, onNoteTemplatesChanged, 
 }) {
   const [form, setForm] = useState<FormState>(() => ({
     doc_type: invoice.doc_type,
+    issuer: invoice.issuer ?? 'salud',
+    greeting: invoice.greeting ?? defaultGreeting(invoice.doc_type),
     customer_id: invoice.customer_id,
     billing_name: invoice.billing_name,
     issue_date: invoice.issue_date,
