@@ -3,7 +3,7 @@ import { linePush } from '@salud/line'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { COLUMN_SUBSIDIES } from '@/lib/column/subsidies'
 import { generateColumn } from '@salud/ai'
-import { createDraftPost, fetchColumnTitles, uploadMedia } from '@/lib/column/wordpress'
+import { countColumnDrafts, createDraftPost, fetchColumnTitles, uploadMedia } from '@/lib/column/wordpress'
 import { renderEyecatch } from '@/lib/column/eyecatch'
 
 export const runtime = 'nodejs'
@@ -11,6 +11,9 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 // salud-web.jp が海外IPからのアクセスを拒否している場合があるため、実行場所を東京にする
 export const preferredRegion = 'hnd1'
+
+// 下書きのストック上限(WordPressの補助金コラムの下書き件数)。この件数に達したら、公開・整理されるまで新規作成を止める
+const MAX_DRAFT_STOCK = 3
 
 // 毎晩 21:00 JST に、補助金コラムを1本AIで書き、salud-web.jp に「下書き」で保存する。
 // 公開はしない（人が確認してから公開）。保存できたらメンバーにLINEで通知する。
@@ -25,8 +28,20 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'ANTHROPIC_API_KEY / WP_USER / WP_APP_PASSWORD が未設定です' }, { status: 503 })
   }
 
+  // 下書きのストックが上限に達していたら、新しい記事は作らない(確認・公開が追いつかないまま溜まるのを防ぐ)
+  try {
+    const drafts = await countColumnDrafts()
+    if (drafts >= MAX_DRAFT_STOCK) {
+      return NextResponse.json({ ok: true, skipped: true, reason: `下書きが${drafts}件あり、上限(${MAX_DRAFT_STOCK}件)に達しているため作成しませんでした` })
+    }
+  } catch (e) {
+    // 件数が分からないときは作らない(安全側)
+    console.error('column-draft: draft count failed', e)
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'failed' }, { status: 500 })
+  }
+
   const admin = createAdminClient()
-  const today = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
+  const today =new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
 
   // テーマ候補リスト(column_topics)に未使用の先頭があれば、それを書く。無ければ従来どおり補助金を交互にしてAIに切り口を選ばせる
   const { data: nextTopic } = await admin
@@ -50,6 +65,24 @@ export async function GET(req: Request) {
     subsidy = [...COLUMN_SUBSIDIES].sort((a, b) => (counts.get(a.key) ?? 0) - (counts.get(b.key) ?? 0))[0]!
   }
   const topic = topicSubsidy ? nextTopic?.topic : undefined
+
+  // 重複防止: 記事を作る「前」にテーマを確保(done)する。確保できなければ記事を作らず中止する。
+  // (従来は記事作成後に更新しており、更新が失敗すると毎晩同じテーマで書いてしまった: 2026-10-31〜11-05に7本重複)
+  let claimed = false
+  if (topicSubsidy && nextTopic) {
+    const { data: got, error: claimError } = await admin
+      .from('column_topics')
+      .update({ status: 'done', done_at: new Date().toISOString() })
+      .eq('id', nextTopic.id)
+      .eq('status', 'pending')
+      .select('id')
+    if (claimError || !got || got.length !== 1) {
+      console.error('column-draft: topic claim failed', claimError)
+      return NextResponse.json({ error: `テーマの確保に失敗したため、重複を避けて中止しました: ${claimError?.message ?? '対象行なし'}` }, { status: 500 })
+    }
+    claimed = true
+  }
+  let postCreated = false
 
   try {
     const [wpTitles, { data: history }] = await Promise.all([
@@ -79,13 +112,15 @@ export async function GET(req: Request) {
       subsidyKey: subsidy.key,
     })
 
-    // テーマを「使用済み」にする。これが失敗すると翌晩も同じテーマで書いてしまう(2026-10-31/11-01に発生)ため、最優先で行い、失敗したら再試行する
+    postCreated = true
+
+    // テーマは確保済み(done)。ここでは作成した記事のIDを記録するだけ(失敗しても重複は起きない)
     let topicWarn = ''
     if (topicSubsidy && nextTopic) {
       for (let i = 0; i < 3; i++) {
         const { data: upd, error: topicError } = await admin
           .from('column_topics')
-          .update({ status: 'done', wp_post_id: post.id, done_at: new Date().toISOString() })
+          .update({ wp_post_id: post.id })
           .eq('id', nextTopic.id)
           .select('id')
         if (!topicError && upd && upd.length === 1) { topicWarn = ''; break }
@@ -143,6 +178,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, subsidy: subsidy.key, title: article.title, wpPostId: post.id, unsure: article.unsure.length, notified: sent, eyecatch: featuredMediaId ?? null, thumbError: thumbError || undefined })
   } catch (e) {
     console.error('column-draft: failed', e)
+    // 記事ができる前に失敗した場合は、確保したテーマを未使用に戻す(翌晩やり直せるように)
+    if (claimed && !postCreated && nextTopic) {
+      await admin.from('column_topics').update({ status: 'pending', done_at: null }).eq('id', nextTopic.id).is('wp_post_id', null)
+        .then(({ error }) => { if (error) console.error('column-draft: topic release failed', error) })
+    }
     return NextResponse.json({ error: e instanceof Error ? e.message : 'failed' }, { status: 500 })
   }
 }
