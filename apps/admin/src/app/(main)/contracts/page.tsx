@@ -357,10 +357,20 @@ function AddModal({ templates, customers, onClose, onSaved }: {
     })
   }
 
+  // 日付欄は画面上「今日」が初期表示されるが、操作しないと values に入らず、署名欄の日付が空欄で保存されていた。
+  // 未入力の日付欄は、表示と同じ今日の日付を値として確定させる。
+  const effectiveValues = useMemo(() => {
+    const next = { ...values }
+    for (const f of template?.fields ?? []) {
+      if (f.type === 'date' && !next[f.token]) next[f.token] = todayIso()
+    }
+    return next
+  }, [template, values])
+
   const preview = useMemo(() => {
     if (!template) return ''
-    return renderContractBody(template.body_template, template.fields, values)
-  }, [template, values])
+    return renderContractBody(template.body_template, template.fields, effectiveValues)
+  }, [template, effectiveValues])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -368,8 +378,8 @@ function AddModal({ templates, customers, onClose, onSaved }: {
     setSaving(true)
     setErr('')
     try {
-      const body = renderContractBody(template.body_template, template.fields, values)
-      const saved = await insertContract({ template_key: templateKey, values, body })
+      const body = renderContractBody(template.body_template, template.fields, effectiveValues)
+      const saved = await insertContract({ template_key: templateKey, values: effectiveValues, body })
       onSaved(saved)
     } catch {
       setErr('保存に失敗しました')
