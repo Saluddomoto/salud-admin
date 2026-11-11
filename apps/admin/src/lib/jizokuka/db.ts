@@ -273,8 +273,8 @@ export async function updateSectionBody(sectionId: string, body: string): Promis
   await logSave(data.case_id, '下書き編集', splitSectionTitle(data.title).label)
 }
 
-export async function generateInitialDraft(caseId: string): Promise<void> {
-  const res = await fetch(`/api/jizokuka/cases/${caseId}/generate`, { method: 'POST' })
+export async function generateInitialDraft(caseId: string, signal?: AbortSignal): Promise<void> {
+  const res = await fetch(`/api/jizokuka/cases/${caseId}/generate`, { method: 'POST', signal })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     throw new Error(body.error ?? 'AI下書きの生成に失敗しました')
@@ -427,6 +427,16 @@ export async function applyHearingSheet(
       .insert(parsed.expenses.map((e, i) => ({ case_id: caseId, ...e, sort_order: start + i })))
     if (expErr) throw new Error(`経費明細の反映に失敗しました: ${expErr.message}`)
   }
+}
+
+/** 既存の経費明細（シート再取込時の重複判定用）。「区分|内容|金額」のキー一覧を返す */
+export async function fetchExpenseKeys(caseId: string): Promise<string[]> {
+  const { data, error } = await jz()
+    .from('case_expense_items')
+    .select('category, description, amount')
+    .eq('case_id', caseId)
+  if (error) throw new Error(error.message)
+  return (data ?? []).map(e => `${e.category}|${e.description}|${e.amount}`)
 }
 
 /** ヒアリングシートの事業者名・代表者名に合わせて案件名を更新する（下書き・エクスポートはこの名称を使う） */
