@@ -70,7 +70,9 @@ function bodyToHtmlBlocks(body: string): string {
     while (buffer.length && buffer[buffer.length - 1]!.trim() === '') buffer.pop()
     if (buffer.length === 0) return
     // break-inside:avoid … 署名欄のようなひと塊は、ページの途中で切らず次のページへ送る
-    blocks.push(`<pre style="margin:0;white-space:pre-wrap;font-family:inherit;break-inside:avoid;page-break-inside:avoid;">${escapeHtml(buffer.join('\n'))}</pre>`)
+    // 長い本文ブロック(約25行超)にavoidを付けると、1ページに収まらず本文ごと次ページへ送られて配置が崩れるため、短い塊(署名欄など)だけに付ける
+    const avoid = buffer.length <= 25 ? 'break-inside:avoid;page-break-inside:avoid;' : 'orphans:3;widows:3;'
+    blocks.push(`<pre style="margin:0;white-space:pre-wrap;font-family:inherit;${avoid}">${escapeHtml(buffer.join('\n'))}</pre>`)
     buffer = []
   }
   for (const line of lines) {
@@ -135,7 +137,7 @@ function openDocumentWindow(title: string, body: string, autoPrint: boolean) {
     html, body { width: 100%; }
     body { font-family: "Yu Mincho", "MS Mincho", serif; line-height: 1.5; width: 720px; max-width: 100%; margin: 0 auto; padding: 2rem 0; }
     h1 { text-align: center; font-size: 16px; font-weight: 700; margin: 0 0 1.75rem; }
-    pre { white-space: pre-wrap; font-family: inherit; font-size: 12px; break-inside: avoid; page-break-inside: avoid; }
+    pre { white-space: pre-wrap; font-family: inherit; font-size: 12px; }
     @media print { body { padding: 0; } }
   `
   w.document.head.appendChild(style)
