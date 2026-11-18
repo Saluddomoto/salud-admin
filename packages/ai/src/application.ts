@@ -70,6 +70,10 @@ export interface ApplicationDraft {
   background: string
   initiativesSummary: string
   initiatives: string
+  initiativesSummary2: string
+  initiatives2: string
+  initiativesSummary3: string
+  initiatives3: string
   schedule: string
   efficiencyBackground: string
   efficiencySummary: string
@@ -95,8 +99,12 @@ const SECTION_LABELS: Record<keyof ApplicationDraft, string> = {
   projectName: '【補助事業計画】1．補助事業で行う事業名（30文字以内）',
   projectOverview: '【補助事業計画】2-1．事業の概要',
   background: '【補助事業計画】2-2．背景・目的',
-  initiativesSummary: '【補助事業計画】2-3．具体的な取組（概要）',
-  initiatives: '【補助事業計画】2-3．具体的な取組（詳細）',
+  initiativesSummary: '【補助事業計画】2-3．具体的な取組（概要）①',
+  initiatives: '【補助事業計画】2-3．具体的な取組（詳細）①',
+  initiativesSummary2: '【補助事業計画】2-3．具体的な取組（概要）②',
+  initiatives2: '【補助事業計画】2-3．具体的な取組（詳細）②',
+  initiativesSummary3: '【補助事業計画】2-3．具体的な取組（概要）③',
+  initiatives3: '【補助事業計画】2-3．具体的な取組（詳細）③',
   schedule: '【補助事業計画】2-3．スケジュール',
   efficiencyBackground: '【補助事業計画】3-1．業務効率化の取組：背景・目的',
   efficiencySummary: '【補助事業計画】3-2．業務効率化の取組：具体的な取組（概要）',
@@ -113,9 +121,16 @@ const EFFICIENCY_KEYS: (keyof ApplicationDraft)[] = [
   'efficiencyBackground', 'efficiencySummary', 'efficiencyDetail', 'efficiencySchedule',
 ]
 
+// 取組②③は、取組が複数あるときだけ作る（空なら保存しない）。申請画面では取組ごとに「2-3 概要・詳細」の組ができる
+export const OPTIONAL_INITIATIVE_KEYS: (keyof ApplicationDraft)[] = [
+  'initiativesSummary2', 'initiatives2', 'initiativesSummary3', 'initiatives3',
+]
+
 // 旧版で保存済みの下書きのタイトル（再生成時にキーへ戻すため）
 const LEGACY_LABELS: Record<string, keyof ApplicationDraft> = {
   '【補助事業計画】2-3．具体的な取組': 'initiatives',
+  '【補助事業計画】2-3．具体的な取組（概要）': 'initiativesSummary',
+  '【補助事業計画】2-3．具体的な取組（詳細）': 'initiatives',
   '3．自社の強み': 'strengthWeakness',
   '3．自社の弱み': 'strengthWeakness',
   '【補助事業計画】4-1．取組の効果': 'effect',
@@ -171,8 +186,12 @@ const SECTION_HINTS: Record<keyof ApplicationDraft, string> = {
   projectName: '30文字以内、体言止めの短いタイトル',
   projectOverview: '本事業の全体像を300〜400文字程度',
   background: '経営課題・市場動向を踏まえ、なぜ今この事業を行うのかを300〜400文字程度',
-  initiativesSummary: '入力欄は改行できず文字数も少ないため、改行や空行は入れず1段落で書く。「（詳細）」で説明する取組の項目を「①〜　②〜　③〜」のように箇条書き程度に並べ、全体で100〜150文字程度。説明文や文章にはしない',
-  initiatives: '取組ごとに「現状の課題（具体的な不具合を「・」で）→本事業での解決策→期待される結果」の順で、全体で600〜900文字程度',
+  initiativesSummary: '取組①の名称を1行で（40文字程度・改行や空行なし）。補助事業全体を目的別に1〜3つの取組に整理し、そのうち中心となる取組を①とする（例：「自社による情報発信の強化とローカル販売」「自社機材の拡充によるサービス提供体制の強化」のように、取組の狙いが分かる名称）。説明文にはしない',
+  initiatives: '取組①の詳細。この取組を構成する具体策を「①〜」「②〜」…の項目に分け、各項目を「①見出し（改行）説明文」で書く（例：「①ホームページの新規開設」＋説明）。説明文は、何をどのように行うか（具体的な方法・載せる内容・体制）と、それで何が実現するか（狙い）を、ヒアリングの固有の事実を入れて書く。全体で600〜900文字程度。他の取組（②③）の内容は混ぜない',
+  initiativesSummary2: '取組が複数ある場合のみ、取組②の名称を1行で（40文字程度・改行や空行なし）。取組が1つだけなら空文字にする。取組①と重複させない',
+  initiatives2: '取組が複数ある場合のみ、取組②の詳細（書き方は取組①の詳細と同じ。全体で600〜900文字程度）。取組が1つだけなら空文字にする',
+  initiativesSummary3: '取組が3つある場合のみ、取組③の名称を1行で（40文字程度・改行や空行なし）。2つ以下なら空文字にする',
+  initiatives3: '取組が3つある場合のみ、取組③の詳細（書き方は取組①の詳細と同じ。全体で600〜900文字程度）。2つ以下なら空文字にする',
   schedule: '取組ごとの実施時期を「取組名：◯月〜◯月」の形で一覧に。時期がヒアリングにない場合は「【要確認：実施時期】」',
   efficiencyBackground: '作業の非効率が生む具体的な問題（時間・人件費・負担）と、導入しないと困る点を300〜400文字程度',
   efficiencySummary: '入力欄は改行できず文字数も少ないため、改行や空行は入れず1段落で書く。「（詳細）」で説明する導入内容の項目を「①〜　②〜」のように箇条書き程度に並べ、全体で100〜150文字程度。説明文や文章にはしない',
@@ -197,7 +216,7 @@ function buildDraftTool(keys: (keyof ApplicationDraft)[]): Anthropic.Tool {
     input_schema: {
       type: 'object',
       properties: Object.fromEntries(keys.map(k => [k, sectionSchema(SECTION_LABELS[k], SECTION_HINTS[k])])),
-      required: keys,
+      required: keys.filter(k => !OPTIONAL_INITIATIVE_KEYS.includes(k)),
     },
   }
 }

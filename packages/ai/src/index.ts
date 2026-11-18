@@ -30,6 +30,7 @@ export {
   APPLICATION_SECTION_ORDER,
   applicationSectionKeyFromTitle,
   applicationDraftKeys,
+  OPTIONAL_INITIATIVE_KEYS,
   type ApplicationHearingInput,
   type ApplicationDraft,
 } from './application'

@@ -3,7 +3,7 @@ import { runTracked } from '@/lib/jizokuka/ai-usage'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import {
   generateApplicationDraft, APPLICATION_SECTION_LABELS, APPLICATION_SECTION_ORDER,
-  researchMarketSources, formatMarketSources, sanitizeCitations,
+  researchMarketSources, formatMarketSources, sanitizeCitations, OPTIONAL_INITIATIVE_KEYS,
 } from '@salud/ai'
 import { buildDraftInput } from '@/lib/jizokuka/draft-input'
 
@@ -49,7 +49,8 @@ async function handle(_req: Request, { params }: { params: { caseId: string } })
     if (draft.marketTrends) draft.marketTrends = sanitizeCitations(draft.marketTrends, sources.map(s => s.url))
 
     const rows = APPLICATION_SECTION_ORDER
-      .filter(key => draft[key] !== undefined)
+      // 取組②③は、AIが取組を1つと判断して空にしたら保存しない
+      .filter(key => draft[key] !== undefined && !(OPTIONAL_INITIATIVE_KEYS.includes(key) && !draft[key]?.trim()))
       .map((key, i) => ({
         case_id: params.caseId,
         title: APPLICATION_SECTION_LABELS[key],

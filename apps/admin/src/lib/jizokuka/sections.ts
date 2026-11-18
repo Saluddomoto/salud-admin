@@ -13,6 +13,9 @@ export function splitSectionTitle(title: string): { group: string; label: string
 const ADDED_LABELS = new Set([
   '1-2．現在の売上・利益の状況',
   '2-3．具体的な取組（概要）',
+  '2-3．具体的な取組（概要）①',
+  '2-3．具体的な取組（概要）②',
+  '2-3．具体的な取組（概要）③',
   '2-3．スケジュール',
   '3-1．業務効率化の取組：背景・目的',
   '3-2．業務効率化の取組：具体的な取組（概要）',
