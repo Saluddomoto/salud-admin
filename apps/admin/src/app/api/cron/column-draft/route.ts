@@ -3,7 +3,7 @@ import { linePush } from '@salud/line'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { COLUMN_SUBSIDIES } from '@/lib/column/subsidies'
 import { generateColumn } from '@salud/ai'
-import { countColumnDrafts, createDraftPost, fetchColumnTitles, uploadMedia } from '@/lib/column/wordpress'
+import { listColumnDrafts, createDraftPost, fetchColumnTitles, uploadMedia } from '@/lib/column/wordpress'
 import { renderEyecatch } from '@/lib/column/eyecatch'
 
 export const runtime = 'nodejs'
@@ -30,9 +30,29 @@ export async function GET(req: Request) {
 
   // 下書きのストックが上限に達していたら、新しい記事は作らない(確認・公開が追いつかないまま溜まるのを防ぐ)
   try {
-    const drafts = await countColumnDrafts()
+    const draftList = await listColumnDrafts()
+    const drafts = draftList.length
     if (drafts >= MAX_DRAFT_STOCK) {
-      return NextResponse.json({ ok: true, skipped: true, reason: `下書きが${drafts}件あり、上限(${MAX_DRAFT_STOCK}件)に達しているため作成しませんでした` })
+      // 作らない代わりに、確認待ちの下書きをLINEで知らせる(管理者=堂本のみ)。毎晩届く
+      let notified = 0
+      if (accessToken) {
+        const { data: members } = await createAdminClient()
+          .from('profiles')
+          .select('line_user_id')
+          .not('line_user_id', 'is', null).eq('is_active', true).eq('role', 'admin')
+        const text = [
+          `📝 コラムの下書きが${drafts}件、確認待ちです`,
+          `（上限${MAX_DRAFT_STOCK}件のため、公開・整理されるまで新しい記事は作りません）`,
+          '',
+          ...draftList.map((d, i) => `${i + 1}. ${d.title}\n${d.editUrl}`),
+        ].join('\n')
+        for (const m of members ?? []) {
+          await linePush(m.line_user_id!, [{ type: 'text', text }], accessToken)
+            .then(() => { notified += 1 })
+            .catch(e => console.error('column-draft: stock reminder push failed', e))
+        }
+      }
+      return NextResponse.json({ ok: true, skipped: true, notified, reason: `下書きが${drafts}件あり、上限(${MAX_DRAFT_STOCK}件)に達しているため作成しませんでした` })
     }
   } catch (e) {
     // 件数が分からないときは作らない(安全側)

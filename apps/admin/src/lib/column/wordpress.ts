@@ -28,13 +28,24 @@ export async function fetchColumnTitles(): Promise<string[]> {
   return rows.map(r => r.title.rendered.replace(/&amp;/g, '&').replace(/&#\d+;/g, ''))
 }
 
-/** 補助金コラムの「下書き」の件数(ゴミ箱は含まない。【架空サンプル】は数えない)。ストック上限の判定に使う */
-export async function countColumnDrafts(): Promise<number> {
+/** 補助金コラムの「下書き」一覧(ゴミ箱は含まない。【架空サンプル】は除く)。ストック上限の判定とLINE通知に使う */
+export async function listColumnDrafts(): Promise<{ id: number; title: string; editUrl: string }[]> {
   const url = `${WP_BASE}/posts?status=draft&categories=${COLUMN_CATEGORY_ID}&per_page=100&_fields=id,title`
   const res = await fetch(url, { headers: { Authorization: authHeader(), 'User-Agent': UA, Accept: 'application/json' } })
   if (!res.ok) throw new Error(`WordPress 下書き一覧の取得に失敗しました (${res.status}) ${(await res.text()).replace(/\s+/g, ' ').slice(0, 160)}`)
-  const rows = (await res.json()) as { title: { rendered: string } }[]
-  return rows.filter(r => !r.title.rendered.includes('架空サンプル')).length
+  const rows = (await res.json()) as { id: number; title: { rendered: string } }[]
+  return rows
+    .filter(r => !r.title.rendered.includes('架空サンプル'))
+    .map(r => ({
+      id: r.id,
+      title: r.title.rendered.replace(/&amp;/g, '&').replace(/&#\d+;/g, ''),
+      editUrl: `https://salud-web.jp/wp-admin/post.php?post=${r.id}&action=edit`,
+    }))
+}
+
+/** 補助金コラムの「下書き」の件数 */
+export async function countColumnDrafts(): Promise<number> {
+  return (await listColumnDrafts()).length
 }
 
 /** 画像をメディアに保存して、メディアIDを返す */
