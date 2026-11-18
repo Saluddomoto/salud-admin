@@ -774,12 +774,13 @@ export async function insertEvent(input: {
   end_time: string
   category: string
   notes: string | null
+  assigned_user_id?: string | null
 }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
   const { error } = await client.from('events').insert({
     ...input,
-    assigned_user_id: user?.id ?? null,
+    assigned_user_id: input.assigned_user_id || user?.id || null,
     created_by: user?.id ?? null,
   })
   if (error) throw error

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
-import { fetchEvents, insertEvent, type DbEvent } from '@/lib/db'
+import { fetchEvents, fetchProfiles, insertEvent, type DbEvent, type DbProfile } from '@/lib/db'
 
 const WEEK_DAYS = ['月', '火', '水', '木', '金', '土', '日']
 
@@ -57,6 +57,7 @@ const fmtTime = (t: string) => t.slice(0, 5)
 
 export default function SchedulePage() {
   const [events,   setEvents]   = useState<DbEvent[]>([])
+  const [members,  setMembers]  = useState<DbProfile[]>([])
   const [loading,  setLoading]  = useState(true)
   const [category, setCategory] = useState('')
   const [assignee, setAssignee] = useState('')
@@ -110,6 +111,11 @@ export default function SchedulePage() {
 
   useEffect(load, [load])
 
+  // 担当者の選択肢（有効なメンバー全員。予定がまだ無い人も選べる）
+  useEffect(() => {
+    fetchProfiles().then(ps => setMembers(ps.filter(p => p.is_active))).catch(() => {})
+  }, [])
+
   // Google カレンダー同期（10分以内の再同期はサーバー側でスキップされる）
   useEffect(() => {
     fetch('/api/google/sync')
@@ -131,7 +137,7 @@ export default function SchedulePage() {
     setMonthCursor(startOfMonth(new Date()))
   }
 
-  const assignees = [...new Set(events.map(e => e.profiles?.full_name).filter(Boolean))] as string[]
+  const assignees = [...new Set([...members.map(m => m.full_name), ...events.map(e => e.profiles?.full_name)].filter(Boolean))] as string[]
 
   const filtered = events.filter(e => {
     if (category && e.category !== category) return false
@@ -155,6 +161,7 @@ export default function SchedulePage() {
         end_time:   String(f.get('end_time') || f.get('start_time')),
         category:   String(f.get('category')),
         notes:      String(f.get('notes')) || null,
+        assigned_user_id: String(f.get('assigned_user_id') || '') || null,
       })
       setModalOpen(false)
       load()
@@ -355,6 +362,14 @@ export default function SchedulePage() {
               <select name="category" className="input" defaultValue="meeting">
                 {Object.entries(CATEGORY_META).map(([k, m]) => <option key={k} value={k}>{m.label}</option>)}
               </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">担当者</label>
+              <select name="assigned_user_id" className="input" defaultValue="">
+                <option value="">自分</option>
+                {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+              </select>
+              <p className="mt-1 text-xs text-slate-400">担当者には、予定の当日朝8:00のLINEでお知らせが届きます。</p>
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">開始 *</label>
