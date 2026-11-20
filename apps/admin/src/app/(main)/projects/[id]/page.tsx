@@ -113,6 +113,7 @@ export default function ProjectDetailPage() {
         referral_fee:      f.get('referral_fee') ? Number(f.get('referral_fee')) : null,
         assigned_user_id:   (f.get('assigned_user_id') as string) || null,
         assigned_user_id_2: (f.get('assigned_user_id_2') as string) || null,
+        contract_entity:   (f.get('contract_entity') as 'salud' | 'zestas') || 'salud',
       })
       setEditOpen(false)
       load()
@@ -255,6 +256,14 @@ export default function ProjectDetailPage() {
                 ) : (
                   <span className="text-slate-400">未設定<span className="ml-1 text-xs">（編集から紐付け可）</span></span>
                 )}
+              </dd>
+            </div>
+            <div className="flex gap-3">
+              <dt className="w-20 flex-shrink-0 text-slate-400">契約主体</dt>
+              <dd className="text-slate-700">
+                {project.contract_entity === 'zestas' ? (
+                  <Link href="/projects?view=zestas_billing" className="font-medium text-orange-600 hover:underline">株式会社ゼスタス（請求リストを見る）</Link>
+                ) : '株式会社Salud'}
               </dd>
             </div>
             {(project.project_type === 'web' ? [
@@ -438,6 +447,13 @@ export default function ProjectDetailPage() {
               <select name="customer_id" className="input" defaultValue={project.customer_id ?? ''}>
                 <option value="">未設定</option>
                 {customers.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">契約主体</label>
+              <select name="contract_entity" className="input" defaultValue={project.contract_entity ?? 'salud'}>
+                <option value="salud">株式会社Salud</option>
+                <option value="zestas">株式会社ゼスタス（ゼスタス請求リストに載ります）</option>
               </select>
             </div>
             <div>

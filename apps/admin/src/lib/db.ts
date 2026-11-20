@@ -54,6 +54,9 @@ export type DbProject = {
   project_type: 'subsidy' | 'web'
   status: 'planning' | 'in_progress' | 'submitted' | 'accepted' | 'rejected' | 'lost' | 'completed'
   result_report_status: 'estimate_prep' | 'grant_application' | 'in_execution' | 'result_report' | null
+  contract_entity: 'salud' | 'zestas'
+  zestas_base_billed_date: string | null
+  zestas_success_billed_date: string | null
   pipeline_hidden: boolean
   applied_amount: number | null
   subsidy_amount: number | null
@@ -419,6 +422,7 @@ export async function insertProject(input: {
   notes?: string | null
   assigned_user_id?: string | null
   assigned_user_id_2?: string | null
+  contract_entity?: 'salud' | 'zestas'
 }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
@@ -485,6 +489,7 @@ export async function updateProject(id: string, input: {
   homepage_url?: string | null
   assigned_user_id?: string | null
   assigned_user_id_2?: string | null
+  contract_entity?: 'salud' | 'zestas'
 }) {
   const { error } = await db().from('projects').update(input).eq('id', id)
   if (error) throw error
@@ -493,6 +498,16 @@ export async function updateProject(id: string, input: {
 // 代理店ご紹介料の支払日を記録（null で支払済みを取消）
 export async function updateReferralPaidDate(id: string, kind: 'base' | 'success', date: string | null) {
   const col = kind === 'base' ? 'referral_base_paid_date' : 'referral_success_paid_date'
+  const { error } = await db().from('projects').update({ [col]: date }).eq('id', id)
+  if (error) throw error
+}
+
+// 契約主体の表示名（株式会社Salud／株式会社ゼスタス）
+export const CONTRACT_ENTITY_LABEL = { salud: '株式会社Salud', zestas: '株式会社ゼスタス' } as const
+
+// ゼスタス契約案件の請求日を記録（null で請求済みを取消）
+export async function updateZestasBilledDate(id: string, kind: 'base' | 'success', date: string | null) {
+  const col = kind === 'base' ? 'zestas_base_billed_date' : 'zestas_success_billed_date'
   const { error } = await db().from('projects').update({ [col]: date }).eq('id', id)
   if (error) throw error
 }
