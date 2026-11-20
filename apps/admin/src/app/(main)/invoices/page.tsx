@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   fetchInvoices, insertInvoice, updateInvoice, deleteInvoice, fetchCustomers,
   fetchInvoiceNoteTemplates, insertInvoiceNoteTemplate, deleteInvoiceNoteTemplate,
+  fetchProjects, updateZestasBilledDate,
   type DbInvoice, type DbCustomer, type InvoiceItem, type InvoiceInput, type InvoiceDocType, type InvoiceIssuer,
   type DbInvoiceNoteTemplate,
 } from '@/lib/db'
@@ -14,6 +15,7 @@ import {
   defaultNotes, defaultGreeting, DOC_TYPE_LABELS, ISSUER_LABELS, computeTotals, formatYen, formatJaDate, openInvoiceWindow, invoiceToPdfBase64,
   copyInvoiceToClipboard, emptyItem,
 } from '@/lib/invoiceDocument'
+import { buildZestasBillingItems, monthLabel, type ZestasBillingItem } from '@/lib/zestasBilling'
 
 const DOC_TYPES: InvoiceDocType[] = ['invoice', 'estimate']
 const ISSUERS: InvoiceIssuer[] = ['salud', 'zestas']
@@ -131,6 +133,97 @@ function CustomerFillPicker({ customers, onPick }: {
         <option value="" disabled>顧客を選択...</option>
         {customers.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
       </select>
+    </div>
+  )
+}
+
+// 請求書作成時に、ゼスタス請求リストの未請求項目を選んで請求書の項目に取り込む。
+// 選んだ項目は、保存時に「請求済」にできる（チェックを外せばしない）。
+function ZestasItemPicker({ picked, setPicked, markBilled, setMarkBilled, items, setItems }: {
+  picked: ZestasBillingItem[]
+  setPicked: (v: ZestasBillingItem[]) => void
+  markBilled: boolean
+  setMarkBilled: (v: boolean) => void
+  items: InvoiceItem[]
+  setItems: (items: InvoiceItem[]) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [all, setAll] = useState<ZestasBillingItem[] | null>(null)
+  const [month, setMonth] = useState('all')
+  const [sel, setSel] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (!open || all) return
+    fetchProjects().then(p => setAll(buildZestasBillingItems(p).filter(it => !it.billedDate))).catch(() => setAll([]))
+  }, [open, all])
+
+  const pickedKeys = new Set(picked.map(p => p.key))
+  const available = (all ?? []).filter(it => !pickedKeys.has(it.key))
+  const months = Array.from(new Set(available.map(it => it.month)))
+  const shown = available.filter(it => month === 'all' || it.month === month)
+  const toggle = (key: string) => setSel(prev => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n })
+  const allShownSelected = shown.length > 0 && shown.every(it => sel.has(it.key))
+  const selectedItems = available.filter(it => sel.has(it.key))
+  const selectedTotal = selectedItems.reduce((sum, it) => sum + it.amount, 0)
+
+  const addSelected = () => {
+    if (selectedItems.length === 0) return
+    const newRows: InvoiceItem[] = selectedItems.map(it => ({ name: it.invoiceName, work: it.invoiceWork, quantity: 1, unit_price: it.amount }))
+    const onlyEmpty = items.length === 1 && !items[0]!.name.trim() && !items[0]!.unit_price
+    setItems(onlyEmpty ? newRows : [...items, ...newRows])
+    setPicked([...picked, ...selectedItems])
+    setSel(new Set())
+  }
+
+  return (
+    <div className="rounded-xl border border-orange-200 bg-orange-50/50 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <button type="button" className="text-sm font-semibold text-orange-700 hover:underline" onClick={() => setOpen(o => !o)}>
+          {open ? '▼' : '▶'} ゼスタス請求リストから項目を選ぶ
+        </button>
+        {picked.length > 0 && (
+          <label className="flex items-center gap-1.5 text-xs text-slate-600">
+            <input type="checkbox" checked={markBilled} onChange={e => setMarkBilled(e.target.checked)} className="rounded border-slate-300" />
+            取り込んだ {picked.length} 件を、保存時に「請求済」にする
+          </label>
+        )}
+      </div>
+      {open && (
+        <div className="mt-3 space-y-2">
+          {all === null ? <p className="text-xs text-slate-400">読み込み中...</p> : available.length === 0 ? (
+            <p className="text-xs text-slate-400">未請求の項目はありません</p>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <select className="input h-8 w-auto py-0 text-xs" value={month} onChange={e => setMonth(e.target.value)}>
+                  <option value="all">すべての月</option>
+                  {months.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)}
+                </select>
+                <label className="flex items-center gap-1.5 text-slate-600">
+                  <input type="checkbox" checked={allShownSelected} onChange={e => setSel(prev => {
+                    const n = new Set(prev); shown.forEach(it => e.target.checked ? n.add(it.key) : n.delete(it.key)); return n
+                  })} className="rounded border-slate-300" />
+                  表示中をすべて選択
+                </label>
+              </div>
+              <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-100 bg-white">
+                {shown.map(it => (
+                  <label key={it.key} className="flex cursor-pointer items-center gap-3 border-b border-slate-50 px-3 py-2 text-sm last:border-0 hover:bg-slate-50">
+                    <input type="checkbox" checked={sel.has(it.key)} onChange={() => toggle(it.key)} className="rounded border-slate-300" />
+                    <span className="w-24 flex-shrink-0 text-xs text-slate-400">{monthLabel(it.month)}</span>
+                    <span className="min-w-0 flex-1 truncate">{it.customerName}<span className="ml-2 text-xs text-slate-400">{it.subsidyName}・{it.kind === 'base' ? '基本料金' : '成功報酬'}</span></span>
+                    <span className="flex-shrink-0 font-medium text-slate-800">{formatYen(it.amount)}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-500">選択中 {selectedItems.length} 件・合計 {formatYen(selectedTotal)}（税抜）</span>
+                <button type="button" className="btn-primary text-sm" disabled={selectedItems.length === 0} onClick={addSelected}>選んだ項目を請求書に追加</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -819,6 +912,8 @@ function AddModal({ customers, noteTemplates, onNoteTemplatesChanged, initialDoc
   } : emptyForm(initialDocType))
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
+  const [picked, setPicked] = useState<ZestasBillingItem[]>([])
+  const [markBilled, setMarkBilled] = useState(true)
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -827,6 +922,10 @@ function AddModal({ customers, noteTemplates, onNoteTemplatesChanged, initialDoc
     setErr('')
     try {
       const saved = await insertInvoice(formToInput(form))
+      if (markBilled) {
+        // 取り込んだゼスタス請求項目を、この請求書の発行日で請求済みにする（失敗しても請求書自体は作成済み）
+        await Promise.all(picked.map(it => updateZestasBilledDate(it.projectId, it.kind, form.issue_date))).catch(() => {})
+      }
       onSaved(saved)
     } catch {
       setErr('保存に失敗しました')
@@ -838,6 +937,10 @@ function AddModal({ customers, noteTemplates, onNoteTemplatesChanged, initialDoc
   return (
     <Modal title={`${DOC_TYPE_LABELS[form.doc_type]}を作成`} open onClose={onClose} size="full">
       <form onSubmit={handleSubmit} className="space-y-4">
+        <ZestasItemPicker
+          picked={picked} setPicked={setPicked} markBilled={markBilled} setMarkBilled={setMarkBilled}
+          items={form.items} setItems={items => setForm(prev => ({ ...prev, items }))}
+        />
         <InvoiceForm
           form={form} setForm={updater => setForm(updater)} customers={customers}
           noteTemplates={noteTemplates} onNoteTemplatesChanged={onNoteTemplatesChanged}

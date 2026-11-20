@@ -10,6 +10,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Modal } from '@/components/Modal'
 import { TaxAmountInput } from '@/components/TaxAmountInput'
+import { buildZestasBillingItems, monthLabel, type ZestasBillingItem } from '@/lib/zestasBilling'
 import {
   fetchProjects, fetchCustomers, fetchPartnerAgencies, fetchProfiles, fetchMyProfile, fetchMyProjectOrders, saveMyProjectOrders, insertProject, insertCustomer, updateProjectStatus, updateResultReportStatus, updateZestasBilledDate,
   formatAmount, formatDate, defaultReferralBase, type DbProject, type DbCustomer, type DbProfile, type DbPartnerAgency,
@@ -108,7 +109,8 @@ export default function ProjectsPage() {
   const [view, setView] = useState<'progress' | 'result_report' | 'zestas_billing'>('progress')
   const [contractEntity, setContractEntity] = useState<'salud' | 'zestas'>('salud')
   const [entityFilter, setEntityFilter] = useState<'all' | 'salud' | 'zestas'>('all')
-  const [unbilledOnly, setUnbilledOnly] = useState(false)
+  const [billStatus, setBillStatus] = useState<'unbilled' | 'billed' | 'all'>('unbilled')
+  const [billMonth, setBillMonth] = useState<string>('all')
   const [baseFeeChoice, setBaseFeeChoice] = useState<string>('')
   const [meId, setMeId] = useState<string | null>(null)
   // 自分用のカード並び順（project_id → 順番）。未設定のカードは元の並びで、並べ替え済みのカードの後ろに並ぶ
@@ -287,21 +289,20 @@ export default function ProjectsPage() {
       : LEGEND_ITEMS
 
   // 実績報告サポートの対象は「採択済みの補助金案件」のみ
-  // ゼスタス請求リスト: 契約主体がゼスタスの案件（失注・不採択は除く）
-  const zestasProjects = projects.filter(p => p.contract_entity === 'zestas' && p.status !== 'lost' && p.status !== 'rejected')
-  const successAmount = (p: DbProject) => Math.round((p.subsidy_amount ?? p.applied_amount ?? 0) * ((p.success_fee_rate ?? 0) / 100))
-  const successBillable = (p: DbProject) => p.status === 'accepted' || p.status === 'completed'
-  const baseAmount = (p: DbProject) => (p.project_type === 'web' ? p.web_fee_excl_tax : p.base_fee) ?? 0
-  const needsSuccessBilling = (p: DbProject) => p.project_type !== 'web' && successBillable(p) && successAmount(p) > 0 && !p.zestas_success_billed_date
-  const zestasRows = zestasProjects.filter(p => !unbilledOnly || (baseAmount(p) > 0 && !p.zestas_base_billed_date) || needsSuccessBilling(p))
-  const unbilledBaseTotal = zestasProjects.filter(p => !p.zestas_base_billed_date).reduce((sum, p) => sum + baseAmount(p), 0)
-  const unbilledSuccessTotal = zestasProjects.filter(needsSuccessBilling).reduce((sum, p) => sum + successAmount(p), 0)
-  const toggleZestasBilled = async (p: DbProject, kind: 'base' | 'success') => {
-    const key = kind === 'base' ? 'zestas_base_billed_date' : 'zestas_success_billed_date'
-    const next = p[key] ? null : new Date().toISOString().slice(0, 10)
-    setProjects(prev => prev.map(x => x.id === p.id ? { ...x, [key]: next } : x))
+  // ゼスタス請求リスト: 契約主体がゼスタスの案件を、基本料金・成功報酬の「請求項目」1行ずつに分解して扱う
+  const zestasProjectCount = projects.filter(p => p.contract_entity === 'zestas' && p.status !== 'lost' && p.status !== 'rejected').length
+  const allBillingItems = buildZestasBillingItems(projects)
+  const statusItems = allBillingItems.filter(it => billStatus === 'all' || (billStatus === 'billed' ? !!it.billedDate : !it.billedDate))
+  const monthTotals = Array.from(statusItems.reduce((m, it) => m.set(it.month, (m.get(it.month) ?? 0) + it.amount), new Map<string, number>()))
+  const billingRows = statusItems.filter(it => billMonth === 'all' || it.month === billMonth)
+  const billingRowsTotal = billingRows.reduce((sum, it) => sum + it.amount, 0)
+  const unbilledTotal = allBillingItems.filter(it => !it.billedDate).reduce((sum, it) => sum + it.amount, 0)
+  const toggleZestasBilled = async (it: ZestasBillingItem) => {
+    const key = it.kind === 'base' ? 'zestas_base_billed_date' : 'zestas_success_billed_date'
+    const next = it.billedDate ? null : new Date().toISOString().slice(0, 10)
+    setProjects(prev => prev.map(x => x.id === it.projectId ? { ...x, [key]: next } : x))
     try {
-      await updateZestasBilledDate(p.id, kind, next)
+      await updateZestasBilledDate(it.projectId, it.kind, next)
     } catch {
       setError('請求状況の更新に失敗しました')
       load()
@@ -317,7 +318,7 @@ export default function ProjectsPage() {
         description={view === 'progress'
           ? `進行中 ${visibleProjects.filter(p => p.status !== 'completed' && p.status !== 'rejected' && p.status !== 'lost').length} 件`
           : view === 'zestas_billing'
-            ? `ゼスタス契約案件 ${zestasProjects.length} 件`
+            ? `ゼスタス契約案件 ${zestasProjectCount} 件`
             : `実績報告サポート対象 ${resultReportProjects.length} 件`}
       >
         <div className="inline-flex rounded-lg border border-slate-200 p-1">
@@ -492,73 +493,83 @@ export default function ProjectsPage() {
       {view === 'zestas_billing' && (
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="card p-4"><p className="text-xs text-slate-400">未請求 基本料金</p><p className="mt-1 text-xl font-bold text-slate-900">{formatAmount(unbilledBaseTotal)}</p></div>
-          <div className="card p-4"><p className="text-xs text-slate-400">未請求 成功報酬（採択済み）</p><p className="mt-1 text-xl font-bold text-slate-900">{formatAmount(unbilledSuccessTotal)}</p></div>
-          <div className="card p-4"><p className="text-xs text-slate-400">未請求 合計</p><p className="mt-1 text-xl font-bold text-orange-600">{formatAmount(unbilledBaseTotal + unbilledSuccessTotal)}</p></div>
+          <div className="card p-4"><p className="text-xs text-slate-400">未請求 合計（全期間）</p><p className="mt-1 text-xl font-bold text-orange-600">{formatAmount(unbilledTotal)}</p></div>
+          <div className="card p-4"><p className="text-xs text-slate-400">表示中の項目</p><p className="mt-1 text-xl font-bold text-slate-900">{billingRows.length} 件</p></div>
+          <div className="card p-4"><p className="text-xs text-slate-400">表示中の合計（税抜）</p><p className="mt-1 text-xl font-bold text-slate-900">{formatAmount(billingRowsTotal)}</p></div>
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-slate-500">契約主体が株式会社ゼスタスの案件です。契約主体は「+ 新規案件」または案件詳細の編集で選べます。</p>
-          <label className="flex flex-shrink-0 items-center gap-1.5 text-xs text-slate-500">
-            <input type="checkbox" checked={unbilledOnly} onChange={e => setUnbilledOnly(e.target.checked)} className="rounded border-slate-300" />
-            未請求があるものだけ
-          </label>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-lg border border-slate-200 p-1">
+            {([['unbilled', '未請求'], ['billed', '請求済'], ['all', 'すべて']] as const).map(([key, label]) => (
+              <button key={key} type="button" onClick={() => { setBillStatus(key); setBillMonth('all') }}
+                className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${billStatus === key ? 'bg-brand-600 text-white' : 'text-slate-500 hover:text-slate-700'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-400">請求対象月: 基本料金＝入金予定日の月／成功報酬＝採択発表日の月／請求済＝請求した月</p>
         </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => setBillMonth('all')}
+            className={`rounded-xl border px-3 py-2 text-left text-xs ${billMonth === 'all' ? 'border-brand-600 bg-brand-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+            <span className="block text-slate-500">すべての月</span>
+            <span className="block text-sm font-semibold text-slate-900">{formatAmount(monthTotals.reduce((sum, [, v]) => sum + v, 0))}</span>
+          </button>
+          {monthTotals.map(([month, total]) => (
+            <button key={month} type="button" onClick={() => setBillMonth(month)}
+              className={`rounded-xl border px-3 py-2 text-left text-xs ${billMonth === month ? 'border-brand-600 bg-brand-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+              <span className="block text-slate-500">{monthLabel(month)}</span>
+              <span className="block text-sm font-semibold text-slate-900">{formatAmount(total)}</span>
+            </button>
+          ))}
+        </div>
+
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
-                <th className="px-4 py-3 font-medium">顧客・案件</th>
-                <th className="px-3 py-3 font-medium">状況</th>
-                <th className="px-3 py-3 font-medium">基本料金</th>
-                <th className="px-3 py-3 font-medium">成功報酬</th>
+                <th className="px-4 py-3 font-medium">請求対象月</th>
+                <th className="px-3 py-3 font-medium">顧客・案件</th>
+                <th className="px-3 py-3 font-medium">区分</th>
+                <th className="px-3 py-3 text-right font-medium">金額（税抜）</th>
+                <th className="px-3 py-3 font-medium">請求状況</th>
               </tr>
             </thead>
             <tbody>
-              {zestasRows.map(p => {
-                const statusLabel = COLUMNS.find(c => c.key === p.status)?.label ?? (p.status === 'completed' ? '完了' : p.status)
-                const canBillSuccess = p.project_type !== 'web' && successBillable(p) && successAmount(p) > 0
-                return (
-                  <tr key={p.id} className="border-b border-slate-50 last:border-0">
-                    <td className="px-4 py-3">
-                      <Link href={`/projects/${p.id}`} className="font-semibold text-slate-900 hover:text-brand-600 hover:underline">{p.customers?.company_name ?? '—'}</Link>
-                      <p className="text-xs text-slate-400">{p.project_type === 'web' ? 'WEB制作' : (p.subsidy_name ?? 'その他')}</p>
-                    </td>
-                    <td className="px-3 py-3 text-slate-600">{statusLabel}</td>
-                    <td className="px-3 py-3">
-                      <p className="font-medium text-slate-800">{baseAmount(p) ? formatAmount(baseAmount(p)) : '—'}</p>
-                      {baseAmount(p) > 0 && (
-                        <button type="button" onClick={() => toggleZestasBilled(p, 'base')}
-                          className={`mt-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${p.zestas_base_billed_date ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                          {p.zestas_base_billed_date ? `請求済 ${formatDate(p.zestas_base_billed_date)}（取消）` : '未請求（クリックで請求済に）'}
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-3 py-3">
-                      {p.project_type === 'web' ? <span className="text-slate-300">—</span> : (
-                        <>
-                          <p className="font-medium text-slate-800">
-                            {p.success_fee_rate != null ? `${formatAmount(successAmount(p))}（${p.success_fee_rate}%）` : '—'}
-                          </p>
-                          {canBillSuccess ? (
-                            <button type="button" onClick={() => toggleZestasBilled(p, 'success')}
-                              className={`mt-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${p.zestas_success_billed_date ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                              {p.zestas_success_billed_date ? `請求済 ${formatDate(p.zestas_success_billed_date)}（取消）` : '未請求（クリックで請求済に）'}
-                            </button>
-                          ) : (
-                            <p className="mt-1 text-[11px] text-slate-400">採択後に請求</p>
-                          )}
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-              {!loading && zestasRows.length === 0 && (
-                <tr><td colSpan={4} className="py-10 text-center text-xs text-slate-300">該当する案件がありません</td></tr>
+              {billingRows.map(it => (
+                <tr key={it.key} className="border-b border-slate-50 last:border-0">
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-600">{monthLabel(it.month)}</td>
+                  <td className="px-3 py-3">
+                    <Link href={`/projects/${it.projectId}`} className="font-semibold text-slate-900 hover:text-brand-600 hover:underline">{it.customerName}</Link>
+                    <p className="text-xs text-slate-400">{it.subsidyName}</p>
+                  </td>
+                  <td className="px-3 py-3 text-slate-600">{it.kind === 'base' ? '基本料金' : '成功報酬'}</td>
+                  <td className="px-3 py-3 text-right font-medium text-slate-800">{formatAmount(it.amount)}</td>
+                  <td className="px-3 py-3">
+                    <button type="button" onClick={() => toggleZestasBilled(it)}
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${it.billedDate ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                      {it.billedDate ? `請求済 ${formatDate(it.billedDate)}（取消）` : '未請求（クリックで請求済に）'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {!loading && billingRows.length === 0 && (
+                <tr><td colSpan={5} className="py-10 text-center text-xs text-slate-300">該当する請求項目がありません</td></tr>
               )}
             </tbody>
+            {billingRows.length > 0 && (
+              <tfoot>
+                <tr className="border-t border-slate-200 bg-slate-50/60">
+                  <td colSpan={3} className="px-4 py-3 text-right text-xs text-slate-500">{billMonth === 'all' ? '合計' : `${monthLabel(billMonth)} 合計`}</td>
+                  <td className="px-3 py-3 text-right font-bold text-slate-900">{formatAmount(billingRowsTotal)}</td>
+                  <td />
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
+        <p className="text-xs text-slate-400">請求書は「請求書発行」で作成します。作成画面の「ゼスタス請求リストから項目を選ぶ」で、ここの項目を選んで取り込めます。</p>
       </div>
       )}
 
