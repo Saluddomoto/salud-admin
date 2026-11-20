@@ -21,6 +21,7 @@ const COLUMNS = [
   { key: 'in_progress', label: '申請準備中', dot: 'bg-amber-500' },
   { key: 'submitted',   label: '申請済み',   dot: 'bg-indigo-500' },
   { key: 'accepted',    label: '採択',       dot: 'bg-emerald-500' },
+  { key: 'rejected',    label: '不採択',     dot: 'bg-rose-400' },
 ] as const
 
 const RESULT_REPORT_COLUMNS = [
@@ -415,7 +416,7 @@ export default function ProjectsPage() {
 
       {view === 'progress' && (
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd(p => p.status, visibleProjects)}>
-      <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {COLUMNS.map(col => {
           const items = sortByOrder(visibleProjects.filter(p => p.status === col.key))
           return (
@@ -470,7 +471,6 @@ export default function ProjectsPage() {
                         onChange={e => moveStatus(p.id, e.target.value)}
                       >
                         {COLUMNS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-                        <option value="rejected">不採択</option>
                         <option value="lost">失注</option>
                         <option value="completed">完了</option>
                       </select>
