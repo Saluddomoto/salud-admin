@@ -139,9 +139,11 @@ function CustomerFillPicker({ customers, onPick }: {
 
 // 請求書作成時に、ゼスタス請求リストの未請求項目を選んで請求書の項目に取り込む。
 // 選んだ項目は、保存時に「請求済」にできる（チェックを外せばしない）。
-function ZestasItemPicker({ picked, setPicked, markBilled, setMarkBilled, items, setItems, addressedToZestas }: {
+function ZestasItemPicker({ picked, setPicked, markBilled, setMarkBilled, items, setItems, addressedToZestas, onAdded }: {
   // 請求先がゼスタス宛てのとき true。自動で開いて、取り込める旨を案内する
   addressedToZestas?: boolean
+  // 項目を取り込んだ直後に呼ばれる（請求先を株式会社ゼスタスにするため）
+  onAdded?: () => void
   picked: ZestasBillingItem[]
   setPicked: (v: ZestasBillingItem[]) => void
   markBilled: boolean
@@ -180,6 +182,7 @@ function ZestasItemPicker({ picked, setPicked, markBilled, setMarkBilled, items,
     setItems(onlyEmpty ? newRows : [...items, ...newRows])
     setPicked([...picked, ...selectedItems])
     setSel(new Set())
+    onAdded?.()
   }
 
   return (
@@ -949,6 +952,11 @@ function AddModal({ customers, noteTemplates, onNoteTemplatesChanged, initialDoc
           picked={picked} setPicked={setPicked} markBilled={markBilled} setMarkBilled={setMarkBilled}
           items={form.items} setItems={items => setForm(prev => ({ ...prev, items }))}
           addressedToZestas={form.billing_name.includes('ゼスタス')}
+          onAdded={() => setForm(prev => {
+            // ゼスタス請求リストの項目は常にゼスタス宛て。顧客管理に「ゼスタス」があればその顧客に紐付ける
+            const zestas = customers.find(c => c.company_name.includes('ゼスタス'))
+            return { ...prev, customer_id: zestas?.id ?? null, billing_name: `${zestas?.company_name ?? '株式会社ゼスタス'}　御中` }
+          })}
         />
         <InvoiceForm
           form={form} setForm={updater => setForm(updater)} customers={customers}
