@@ -11,6 +11,7 @@ export type ZestasBillingItem = {
   subsidyName: string
   amount: number
   billedDate: string | null
+  paidDate: string | null  // ゼスタスから入金された日（未入金は null）
   invoiceName: string    // 請求書の「品目」欄に入れる文字列
   invoiceWork: string    // 請求書の「作業内容」欄に入れる文字列
 }
@@ -43,7 +44,7 @@ export function buildZestasBillingItems(projects: DbProject[]): ZestasBillingIte
       items.push({
         key: `${p.id}:base`, projectId: p.id, kind: 'base',
         month: toMonth(p.zestas_base_billed_date ?? p.payment_due_date),
-        customerName, subsidyName, amount: base, billedDate: p.zestas_base_billed_date,
+        customerName, subsidyName, amount: base, billedDate: p.zestas_base_billed_date, paidDate: p.zestas_base_paid_date,
         invoiceName: `${customerName} ${subsidyName}`,
         invoiceWork: p.project_type === 'web' ? '制作費' : '基本料金',
       })
@@ -54,7 +55,7 @@ export function buildZestasBillingItems(projects: DbProject[]): ZestasBillingIte
       items.push({
         key: `${p.id}:success`, projectId: p.id, kind: 'success',
         month: toMonth(p.zestas_success_billed_date ?? p.result_at),
-        customerName, subsidyName, amount: success, billedDate: p.zestas_success_billed_date,
+        customerName, subsidyName, amount: success, billedDate: p.zestas_success_billed_date, paidDate: p.zestas_success_paid_date,
         invoiceName: `${customerName} ${subsidyName}`,
         invoiceWork: `成功報酬（${p.success_fee_rate}%）`,
       })

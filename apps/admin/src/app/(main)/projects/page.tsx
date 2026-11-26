@@ -12,7 +12,7 @@ import { Modal } from '@/components/Modal'
 import { TaxAmountInput } from '@/components/TaxAmountInput'
 import { buildZestasBillingItems, monthLabel, type ZestasBillingItem } from '@/lib/zestasBilling'
 import {
-  fetchProjects, fetchCustomers, fetchPartnerAgencies, fetchProfiles, fetchMyProfile, fetchMyProjectOrders, saveMyProjectOrders, insertProject, insertCustomer, updateProjectStatus, updateResultReportStatus, updateZestasBilledDate, SUPPORT_ITEMS,
+  fetchProjects, fetchCustomers, fetchPartnerAgencies, fetchProfiles, fetchMyProfile, fetchMyProjectOrders, saveMyProjectOrders, insertProject, insertCustomer, updateProjectStatus, updateResultReportStatus, updateZestasBilledDate, updateZestasPaidDate, SUPPORT_ITEMS,
   formatAmount, formatDate, defaultReferralBase, type DbProject, type DbCustomer, type DbProfile, type DbPartnerAgency,
 } from '@/lib/db'
 
@@ -316,6 +316,21 @@ export default function ProjectsPage() {
     }
   }
 
+  // ゼスタスからの入金チェック（押した日が入金日。もう一度押すと取り消し）
+  const toggleZestasPaid = async (it: ZestasBillingItem) => {
+    const key = it.kind === 'base' ? 'zestas_base_paid_date' : 'zestas_success_paid_date'
+    const next = it.paidDate ? null : new Date().toISOString().slice(0, 10)
+    setProjects(prev => prev.map(x => x.id === it.projectId ? { ...x, [key]: next } : x))
+    try {
+      await updateZestasPaidDate(it.projectId, it.kind, next)
+    } catch {
+      setError('入金状況の更新に失敗しました')
+      load()
+    }
+  }
+  // 請求済みだが、ゼスタスからまだ入金されていない合計
+  const unpaidBilledTotal = allBillingItems.filter(it => it.billedDate && !it.paidDate).reduce((sum, it) => sum + it.amount, 0)
+
   // 実績報告サポートを受注した（支援項目にチェックのある）採択済みの補助金案件のみ
   const resultReportProjects = projects.filter(p =>
     p.status === 'accepted' && p.project_type === 'subsidy' && (p.support_items ?? []).includes('実績報告サポート'))
@@ -501,8 +516,9 @@ export default function ProjectsPage() {
 
       {view === 'zestas_billing' && (
       <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <div className="card p-4"><p className="text-xs text-slate-400">未請求 合計（全期間）</p><p className="mt-1 text-xl font-bold text-orange-600">{formatAmount(unbilledTotal)}</p></div>
+          <div className="card p-4"><p className="text-xs text-slate-400">請求済・未入金 合計</p><p className="mt-1 text-xl font-bold text-red-600">{formatAmount(unpaidBilledTotal)}</p></div>
           <div className="card p-4"><p className="text-xs text-slate-400">表示中の項目</p><p className="mt-1 text-xl font-bold text-slate-900">{billingRows.length} 件</p></div>
           <div className="card p-4"><p className="text-xs text-slate-400">表示中の合計（税抜）</p><p className="mt-1 text-xl font-bold text-slate-900">{formatAmount(billingRowsTotal)}</p></div>
         </div>
@@ -543,6 +559,7 @@ export default function ProjectsPage() {
                 <th className="px-3 py-3 font-medium">区分</th>
                 <th className="px-3 py-3 text-right font-medium">金額（税抜）</th>
                 <th className="px-3 py-3 font-medium">請求状況</th>
+                <th className="px-3 py-3 font-medium">入金状況（ゼスタス）</th>
               </tr>
             </thead>
             <tbody>
@@ -561,10 +578,16 @@ export default function ProjectsPage() {
                       {it.billedDate ? `請求済 ${formatDate(it.billedDate)}（取消）` : '未請求（クリックで請求済に）'}
                     </button>
                   </td>
+                  <td className="px-3 py-3">
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-slate-600">
+                      <input type="checkbox" checked={!!it.paidDate} onChange={() => toggleZestasPaid(it)} className="h-4 w-4 rounded border-slate-300" />
+                      {it.paidDate ? <span className="font-medium text-emerald-700">入金済 {formatDate(it.paidDate)}</span> : '入金済にする'}
+                    </label>
+                  </td>
                 </tr>
               ))}
               {!loading && billingRows.length === 0 && (
-                <tr><td colSpan={5} className="py-10 text-center text-xs text-slate-300">該当する請求項目がありません</td></tr>
+                <tr><td colSpan={6} className="py-10 text-center text-xs text-slate-300">該当する請求項目がありません</td></tr>
               )}
             </tbody>
             {billingRows.length > 0 && (
@@ -572,7 +595,7 @@ export default function ProjectsPage() {
                 <tr className="border-t border-slate-200 bg-slate-50/60">
                   <td colSpan={3} className="px-4 py-3 text-right text-xs text-slate-500">{billMonth === 'all' ? '合計' : `${monthLabel(billMonth)} 合計`}</td>
                   <td className="px-3 py-3 text-right font-bold text-slate-900">{formatAmount(billingRowsTotal)}</td>
-                  <td />
+                  <td colSpan={2} />
                 </tr>
               </tfoot>
             )}
