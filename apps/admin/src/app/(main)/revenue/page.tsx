@@ -471,7 +471,7 @@ export default function RevenuePage() {
     for (const r of [...rows, ...derivePipelineForecastRows(projects, manual), ...deriveFutureContractForecastRows(contracts, year)]) {
       const d = r.entry_date ? new Date(r.entry_date) : null
       if (!d || d.getFullYear() !== year) continue
-      if ((r.projectId && reportSupportProjectIds.has(r.projectId)) || (r.memo ?? '').includes('実績報告')) continue
+      if ((r.projectId && reportSupportProjectIds.has(r.projectId)) || (r.memo ?? '').includes('実績報告') || r.id.startsWith('project-support-')) continue
       const bucket = table.get(r.category) ?? table.get('その他')!
       const key = normalize(r.payer_name ?? '') || r.id
       if (r.status === 'confirmed') bucket.confirmed.set(key, r.payer_name ?? '')

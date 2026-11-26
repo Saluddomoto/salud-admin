@@ -56,6 +56,8 @@ export type DbProject = {
   support_items: string[] | null
   support_fee: number | null
   support_fee_note: string | null
+  support_fee_due_date: string | null
+  support_fee_received_date: string | null
   result_report_status: 'estimate_prep' | 'grant_application' | 'in_execution' | 'result_report' | null
   contract_entity: 'salud' | 'zestas'
   zestas_base_billed_date: string | null
@@ -432,6 +434,8 @@ export async function insertProject(input: {
   support_items?: string[]
   support_fee?: number | null
   support_fee_note?: string | null
+  support_fee_due_date?: string | null
+  support_fee_received_date?: string | null
 }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
@@ -502,6 +506,8 @@ export async function updateProject(id: string, input: {
   support_items?: string[]
   support_fee?: number | null
   support_fee_note?: string | null
+  support_fee_due_date?: string | null
+  support_fee_received_date?: string | null
 }) {
   const { error } = await db().from('projects').update(input).eq('id', id)
   if (error) throw error

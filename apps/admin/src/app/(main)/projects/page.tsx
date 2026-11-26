@@ -66,7 +66,7 @@ const LEGEND_ITEMS = [
 ]
 
 const BASE_FEE_OPTIONS = [100_000, 120_000, 150_000]
-const SUCCESS_FEE_OPTIONS = [8, 9, 10, 11, 12, 13, 14, 15]
+const SUCCESS_FEE_OPTIONS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 
 // 長押し（約0.35秒）でつかんで、同じ列の中で並べ替えできるカード。
 // 長押し前に指やマウスが動いたとき（スクロールなど）はつかまない。
@@ -198,6 +198,7 @@ export default function ProjectsPage() {
         support_items:     f.getAll('support_items') as string[],
         support_fee:       f.get('support_fee') ? Number(f.get('support_fee')) : null,
         support_fee_note:  (f.get('support_fee_note') as string | null)?.trim() || null,
+        support_fee_due_date: (f.get('support_fee_due_date') as string) || null,
       })
       setModalOpen(false)
       setContractEntity(view === 'zestas_billing' ? 'zestas' : 'salud')
@@ -783,6 +784,10 @@ export default function ProjectsPage() {
                     <div>
                       <label className="mb-1.5 block text-sm font-medium text-slate-700">実績報告サポート報酬（円・自由入力）</label>
                       <input name="support_fee" type="number" min="0" className="input" placeholder="150000" />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700">報酬 入金予定日</label>
+                      <input name="support_fee_due_date" type="date" className="input" />
                     </div>
                     <div className="sm:col-span-2">
                       <label className="mb-1.5 block text-sm font-medium text-slate-700">報酬の内容・備考（自由入力）</label>

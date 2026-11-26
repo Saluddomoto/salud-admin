@@ -34,7 +34,7 @@ const SUBSIDY_NAMES = [
 ]
 
 const BASE_FEE_OPTIONS = [100_000, 120_000, 150_000]
-const SUCCESS_FEE_OPTIONS = [8, 9, 10, 11, 12, 13, 14, 15]
+const SUCCESS_FEE_OPTIONS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 
 const PRIORITY_META: Record<DbTask['priority'], { label: string; cls: string }> = {
   high:   { label: '高', cls: 'bg-rose-100 text-rose-700' },
@@ -119,6 +119,8 @@ export default function ProjectDetailPage() {
         support_items:     f.getAll('support_items') as string[],
         support_fee:       f.get('support_fee') ? Number(f.get('support_fee')) : null,
         support_fee_note:  (f.get('support_fee_note') as string | null)?.trim() || null,
+        support_fee_due_date:      (f.get('support_fee_due_date') as string) || null,
+        support_fee_received_date: (f.get('support_fee_received_date') as string) || null,
       })
       setEditOpen(false)
       load()
@@ -285,6 +287,8 @@ export default function ProjectDetailPage() {
               { label: '支援項目',   value: project.support_items?.length ? project.support_items.join('・') : '—' },
               ...(project.support_items?.includes('実績報告サポート') ? [
                 { label: '実績報告サポート報酬', value: project.support_fee != null ? `${formatAmount(project.support_fee)}${project.support_fee_note ? `（${project.support_fee_note}）` : ''}` : '—' },
+                { label: '報酬 入金予定日', value: project.support_fee_due_date ?? '—' },
+                { label: '報酬 入金日',     value: project.support_fee_received_date ?? '—' },
               ] : []),
               { label: '申請額',     value: formatAmount(project.applied_amount) },
               { label: '採択額',     value: formatAmount(project.subsidy_amount) },
@@ -523,7 +527,10 @@ export default function ProjectDetailPage() {
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">成功報酬</label>
                   <select name="success_fee_rate" className="input" defaultValue={project.success_fee_rate ?? ''}>
                     <option value="">未設定</option>
-                    {SUCCESS_FEE_OPTIONS.map(v => <option key={v} value={v}>{v}%</option>)}
+                    {/* 既存案件に10〜20%以外（旧選択肢の8・9%など）が入っている場合も、保存で消えないよう選択肢に残す */}
+                    {[...new Set([...SUCCESS_FEE_OPTIONS, ...(project.success_fee_rate != null ? [project.success_fee_rate] : [])])]
+                      .sort((a, b) => a - b)
+                      .map(v => <option key={v} value={v}>{v}%</option>)}
                   </select>
                 </div>
                 <div>
@@ -587,6 +594,15 @@ export default function ProjectDetailPage() {
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">報酬の内容・備考（自由入力）</label>
                   <input name="support_fee_note" className="input" defaultValue={project.support_fee_note ?? ''} placeholder="例: 実績報告書作成代行 一式" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">報酬 入金予定日</label>
+                  <input name="support_fee_due_date" type="date" className="input" defaultValue={project.support_fee_due_date ?? ''} />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">報酬 入金日（実績）</label>
+                  <input name="support_fee_received_date" type="date" className="input" defaultValue={project.support_fee_received_date ?? ''} />
+                  <p className="mt-1 text-xs text-slate-400">入力すると、売上管理で「確定」になります（未入力は見込み）</p>
                 </div>
               </div>
             )}

@@ -37,6 +37,26 @@ export function deriveProjectRows(projects: DbProject[]): Row[] {
   const rows: Row[] = []
   for (const p of projects) {
     const payer = p.customers?.company_name ?? '—'
+    // 実績報告サポートの報酬（自由入力）。WEB制作と同じく、入金日があれば確定・なければ入金予定日で見込み。
+    // 基本料金・成功報酬の行とは別の行として出す。
+    if (p.support_items?.includes('実績報告サポート') && (p.support_fee ?? 0) > 0) {
+      const supportDate = p.support_fee_received_date ?? p.support_fee_due_date
+      if (supportDate) {
+        rows.push({
+          id: `project-support-${p.id}`,
+          entry_date: supportDate,
+          payer_name: payer,
+          category: 'その他補助金',
+          amount_excl_tax: p.support_fee!,
+          status: p.support_fee_received_date ? 'confirmed' : 'forecast',
+          payment_due_date: p.support_fee_due_date,
+          payment_received_date: p.support_fee_received_date,
+          memo: `実績報告サポート${p.support_fee_note ? `（${p.support_fee_note}）` : ''}`,
+          source: 'project',
+          projectId: p.id,
+        })
+      }
+    }
     if (p.project_type === 'web') {
       if (p.web_fee_excl_tax == null) continue
       const date = p.payment_received_date ?? p.payment_due_date
