@@ -139,7 +139,9 @@ function CustomerFillPicker({ customers, onPick }: {
 
 // 請求書作成時に、ゼスタス請求リストの未請求項目を選んで請求書の項目に取り込む。
 // 選んだ項目は、保存時に「請求済」にできる（チェックを外せばしない）。
-function ZestasItemPicker({ picked, setPicked, markBilled, setMarkBilled, items, setItems }: {
+function ZestasItemPicker({ picked, setPicked, markBilled, setMarkBilled, items, setItems, addressedToZestas }: {
+  // 請求先がゼスタス宛てのとき true。自動で開いて、取り込める旨を案内する
+  addressedToZestas?: boolean
   picked: ZestasBillingItem[]
   setPicked: (v: ZestasBillingItem[]) => void
   markBilled: boolean
@@ -151,6 +153,11 @@ function ZestasItemPicker({ picked, setPicked, markBilled, setMarkBilled, items,
   const [all, setAll] = useState<ZestasBillingItem[] | null>(null)
   const [month, setMonth] = useState('all')
   const [sel, setSel] = useState<Set<string>>(new Set())
+
+  // 請求先がゼスタス宛てになったら自動で開く（閉じ直した場合は、宛先が変わるまで開き直さない）
+  useEffect(() => {
+    if (addressedToZestas) setOpen(true)
+  }, [addressedToZestas])
 
   useEffect(() => {
     if (!open || all) return
@@ -180,6 +187,7 @@ function ZestasItemPicker({ picked, setPicked, markBilled, setMarkBilled, items,
       <div className="flex flex-wrap items-center justify-between gap-2">
         <button type="button" className="text-sm font-semibold text-orange-700 hover:underline" onClick={() => setOpen(o => !o)}>
           {open ? '▼' : '▶'} ゼスタス請求リストから項目を選ぶ
+          {addressedToZestas && <span className="ml-2 text-xs font-normal text-orange-600">ゼスタス宛てです。契約案件の項目を取り込めます</span>}
         </button>
         {picked.length > 0 && (
           <label className="flex items-center gap-1.5 text-xs text-slate-600">
@@ -940,6 +948,7 @@ function AddModal({ customers, noteTemplates, onNoteTemplatesChanged, initialDoc
         <ZestasItemPicker
           picked={picked} setPicked={setPicked} markBilled={markBilled} setMarkBilled={setMarkBilled}
           items={form.items} setItems={items => setForm(prev => ({ ...prev, items }))}
+          addressedToZestas={form.billing_name.includes('ゼスタス')}
         />
         <InvoiceForm
           form={form} setForm={updater => setForm(updater)} customers={customers}
