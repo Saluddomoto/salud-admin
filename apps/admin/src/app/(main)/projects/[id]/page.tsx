@@ -62,6 +62,8 @@ export default function ProjectDetailPage() {
   const [referralChoice, setReferralChoice] = useState('')
   const [projectType, setProjectType] = useState<'subsidy' | 'web'>('subsidy')
   const [baseFeeChoice, setBaseFeeChoice] = useState('')
+  // 編集フォームで「実績報告サポート」にチェックが入っているか（入っていると報酬の自由入力欄を出す）
+  const [supportChecked, setSupportChecked] = useState(false)
   const [agencies, setAgencies] = useState<DbPartnerAgency[]>([])
 
   const load = useCallback(() => {
@@ -115,6 +117,8 @@ export default function ProjectDetailPage() {
         assigned_user_id_2: (f.get('assigned_user_id_2') as string) || null,
         contract_entity:   (f.get('contract_entity') as 'salud' | 'zestas') || 'salud',
         support_items:     f.getAll('support_items') as string[],
+        support_fee:       f.get('support_fee') ? Number(f.get('support_fee')) : null,
+        support_fee_note:  (f.get('support_fee_note') as string | null)?.trim() || null,
       })
       setEditOpen(false)
       load()
@@ -223,6 +227,7 @@ export default function ProjectDetailPage() {
                     ? String(project.base_fee)
                     : project.base_fee != null ? '__other__' : ''
                 )
+                setSupportChecked(project.support_items?.includes('実績報告サポート') ?? false)
                 setEditOpen(true)
               }}
             >編集</button>
@@ -278,6 +283,9 @@ export default function ProjectDetailPage() {
             ] : [
               { label: '補助金',     value: project.subsidy_name ?? '—' },
               { label: '支援項目',   value: project.support_items?.length ? project.support_items.join('・') : '—' },
+              ...(project.support_items?.includes('実績報告サポート') ? [
+                { label: '実績報告サポート報酬', value: project.support_fee != null ? `${formatAmount(project.support_fee)}${project.support_fee_note ? `（${project.support_fee_note}）` : ''}` : '—' },
+              ] : []),
               { label: '申請額',     value: formatAmount(project.applied_amount) },
               { label: '採択額',     value: formatAmount(project.subsidy_amount) },
               { label: '基本料金',   value: formatAmount(project.base_fee) },
@@ -565,11 +573,23 @@ export default function ProjectDetailPage() {
             <div className="flex flex-wrap gap-3">
               {SUPPORT_ITEMS.map(item => (
                 <label key={item} className="flex items-center gap-1.5 text-sm text-slate-700">
-                  <input type="checkbox" name="support_items" value={item} defaultChecked={project.support_items?.includes(item) ?? false} className="h-4 w-4 rounded border-slate-300" />
+                  <input type="checkbox" name="support_items" value={item} checked={supportChecked} onChange={e => setSupportChecked(e.target.checked)} className="h-4 w-4 rounded border-slate-300" />
                   {item}
                 </label>
               ))}
             </div>
+            {supportChecked && (
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">実績報告サポート報酬（円・自由入力）</label>
+                  <input name="support_fee" type="number" min="0" className="input" defaultValue={project.support_fee ?? ''} placeholder="150000" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">報酬の内容・備考（自由入力）</label>
+                  <input name="support_fee_note" className="input" defaultValue={project.support_fee_note ?? ''} placeholder="例: 実績報告書作成代行 一式" />
+                </div>
+              </div>
+            )}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">メモ</label>

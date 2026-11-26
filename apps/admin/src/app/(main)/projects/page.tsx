@@ -113,6 +113,8 @@ export default function ProjectsPage() {
   const [billStatus, setBillStatus] = useState<'unbilled' | 'billed' | 'all'>('unbilled')
   const [billMonth, setBillMonth] = useState<string>('all')
   const [baseFeeChoice, setBaseFeeChoice] = useState<string>('')
+  // 新規登録フォームで「実績報告サポート」にチェックが入っているか（基本料金・成功報酬の代わりに報酬を自由入力する）
+  const [supportChecked, setSupportChecked] = useState(false)
   const [meId, setMeId] = useState<string | null>(null)
   // 自分用のカード並び順（project_id → 順番）。未設定のカードは元の並びで、並べ替え済みのカードの後ろに並ぶ
   const [orders, setOrders] = useState<Record<string, number>>({})
@@ -194,6 +196,8 @@ export default function ProjectsPage() {
         assigned_user_id_2: (f.get('assigned_user_id_2') as string) || null,
         contract_entity:   contractEntity,
         support_items:     f.getAll('support_items') as string[],
+        support_fee:       f.get('support_fee') ? Number(f.get('support_fee')) : null,
+        support_fee_note:  (f.get('support_fee_note') as string | null)?.trim() || null,
       })
       setModalOpen(false)
       setContractEntity(view === 'zestas_billing' ? 'zestas' : 'salud')
@@ -389,6 +393,7 @@ export default function ProjectsPage() {
           onClick={() => {
             if (view === 'result_report' || view === 'zestas_billing') setProjectType('subsidy')
             setContractEntity(view === 'zestas_billing' ? 'zestas' : 'salud')
+            setSupportChecked(view === 'result_report')
             setModalOpen(true)
           }}
         >
@@ -773,6 +778,19 @@ export default function ProjectsPage() {
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">申請額（万円）</label>
                   <input name="amount" type="number" className="input" placeholder="1000" />
                 </div>
+                {supportChecked ? (
+                  <>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700">実績報告サポート報酬（円・自由入力）</label>
+                      <input name="support_fee" type="number" min="0" className="input" placeholder="150000" />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700">報酬の内容・備考（自由入力）</label>
+                      <input name="support_fee_note" className="input" placeholder="例: 実績報告書作成代行 一式、入金は報告完了後" />
+                    </div>
+                  </>
+                ) : (
+                <>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">基本料金</label>
                   <select
@@ -802,6 +820,8 @@ export default function ProjectsPage() {
                     {SUCCESS_FEE_OPTIONS.map(v => <option key={v} value={v}>{v}%</option>)}
                   </select>
                 </div>
+                </>
+                )}
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">申請期限</label>
                   <input name="deadline" type="date" className="input" />
@@ -825,7 +845,7 @@ export default function ProjectsPage() {
               <div className="flex flex-wrap gap-3">
                 {SUPPORT_ITEMS.map(item => (
                   <label key={item} className="flex items-center gap-1.5 text-sm text-slate-700">
-                    <input type="checkbox" name="support_items" value={item} defaultChecked={view === 'result_report'} className="h-4 w-4 rounded border-slate-300" />
+                    <input type="checkbox" name="support_items" value={item} checked={supportChecked} onChange={e => setSupportChecked(e.target.checked)} className="h-4 w-4 rounded border-slate-300" />
                     {item}
                   </label>
                 ))}
