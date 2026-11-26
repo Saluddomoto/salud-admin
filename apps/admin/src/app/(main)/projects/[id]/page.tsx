@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   deleteProject, fetchProject, fetchTasksByProject, fetchCustomers, fetchPartnerAgencies, fetchProfiles, insertTask,
   updateProject, updateProjectStatus, updateTaskStatus,
-  formatAmount, referralText, agencyLabel, defaultReferralBase, type DbProject, type DbTask, type DbCustomer, type DbProfile, type DbPartnerAgency,
+  SUPPORT_ITEMS, formatAmount, referralText, agencyLabel, defaultReferralBase, type DbProject, type DbTask, type DbCustomer, type DbProfile, type DbPartnerAgency,
 } from '@/lib/db'
 
 const STATUSES: { key: DbProject['status']; label: string; cls: string }[] = [
@@ -114,6 +114,7 @@ export default function ProjectDetailPage() {
         assigned_user_id:   (f.get('assigned_user_id') as string) || null,
         assigned_user_id_2: (f.get('assigned_user_id_2') as string) || null,
         contract_entity:   (f.get('contract_entity') as 'salud' | 'zestas') || 'salud',
+        support_items:     f.getAll('support_items') as string[],
       })
       setEditOpen(false)
       load()
@@ -276,6 +277,7 @@ export default function ProjectDetailPage() {
               { label: '紹介料',     value: referralText(project) },
             ] : [
               { label: '補助金',     value: project.subsidy_name ?? '—' },
+              { label: '支援項目',   value: project.support_items?.length ? project.support_items.join('・') : '—' },
               { label: '申請額',     value: formatAmount(project.applied_amount) },
               { label: '採択額',     value: formatAmount(project.subsidy_amount) },
               { label: '基本料金',   value: formatAmount(project.base_fee) },
@@ -557,6 +559,17 @@ export default function ProjectDetailPage() {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">HP URL</label>
             <input name="homepage_url" type="url" className="input" defaultValue={project.homepage_url ?? ''} placeholder="https://example.co.jp" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">支援項目</label>
+            <div className="flex flex-wrap gap-3">
+              {SUPPORT_ITEMS.map(item => (
+                <label key={item} className="flex items-center gap-1.5 text-sm text-slate-700">
+                  <input type="checkbox" name="support_items" value={item} defaultChecked={project.support_items?.includes(item) ?? false} className="h-4 w-4 rounded border-slate-300" />
+                  {item}
+                </label>
+              ))}
+            </div>
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">メモ</label>

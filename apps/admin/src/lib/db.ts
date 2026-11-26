@@ -53,6 +53,7 @@ export type DbProject = {
   subsidy_name: string | null
   project_type: 'subsidy' | 'web'
   status: 'planning' | 'in_progress' | 'submitted' | 'accepted' | 'rejected' | 'lost' | 'completed'
+  support_items: string[] | null
   result_report_status: 'estimate_prep' | 'grant_application' | 'in_execution' | 'result_report' | null
   contract_entity: 'salud' | 'zestas'
   zestas_base_billed_date: string | null
@@ -401,6 +402,9 @@ export async function fetchProjects(): Promise<DbProject[]> {
   return data as DbProject[]
 }
 
+// 案件に付ける支援項目
+export const SUPPORT_ITEMS = ['実績報告サポート'] as const
+
 export async function insertProject(input: {
   title: string
   subsidy_name: string | null
@@ -423,6 +427,7 @@ export async function insertProject(input: {
   assigned_user_id?: string | null
   assigned_user_id_2?: string | null
   contract_entity?: 'salud' | 'zestas'
+  support_items?: string[]
 }) {
   const client = db()
   const { data: { user } } = await client.auth.getUser()
@@ -490,6 +495,7 @@ export async function updateProject(id: string, input: {
   assigned_user_id?: string | null
   assigned_user_id_2?: string | null
   contract_entity?: 'salud' | 'zestas'
+  support_items?: string[]
 }) {
   const { error } = await db().from('projects').update(input).eq('id', id)
   if (error) throw error

@@ -12,7 +12,7 @@ import { Modal } from '@/components/Modal'
 import { TaxAmountInput } from '@/components/TaxAmountInput'
 import { buildZestasBillingItems, monthLabel, type ZestasBillingItem } from '@/lib/zestasBilling'
 import {
-  fetchProjects, fetchCustomers, fetchPartnerAgencies, fetchProfiles, fetchMyProfile, fetchMyProjectOrders, saveMyProjectOrders, insertProject, insertCustomer, updateProjectStatus, updateResultReportStatus, updateZestasBilledDate,
+  fetchProjects, fetchCustomers, fetchPartnerAgencies, fetchProfiles, fetchMyProfile, fetchMyProjectOrders, saveMyProjectOrders, insertProject, insertCustomer, updateProjectStatus, updateResultReportStatus, updateZestasBilledDate, SUPPORT_ITEMS,
   formatAmount, formatDate, defaultReferralBase, type DbProject, type DbCustomer, type DbProfile, type DbPartnerAgency,
 } from '@/lib/db'
 
@@ -193,6 +193,7 @@ export default function ProjectsPage() {
         assigned_user_id:   (f.get('assigned_user_id') as string) || null,
         assigned_user_id_2: (f.get('assigned_user_id_2') as string) || null,
         contract_entity:   contractEntity,
+        support_items:     f.getAll('support_items') as string[],
       })
       setModalOpen(false)
       setContractEntity(view === 'zestas_billing' ? 'zestas' : 'salud')
@@ -310,7 +311,9 @@ export default function ProjectsPage() {
     }
   }
 
-  const resultReportProjects = projects.filter(p => p.status === 'accepted' && p.project_type === 'subsidy')
+  // 実績報告サポートを受注した（支援項目にチェックのある）採択済みの補助金案件のみ
+  const resultReportProjects = projects.filter(p =>
+    p.status === 'accepted' && p.project_type === 'subsidy' && (p.support_items ?? []).includes('実績報告サポート'))
 
   return (
     <div className="flex h-full flex-col gap-6 p-4 sm:p-6">
@@ -399,7 +402,7 @@ export default function ProjectsPage() {
 
       {view === 'result_report' && (
         <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-3 py-2 text-xs text-amber-700">
-          採択済みの補助金案件を対象に、見積書準備 → 交付申請 → 補助事業実行中 → 実績報告申請 の進捗を管理します。
+          実績報告サポートを受注した採択済みの補助金案件（案件の「支援項目」にチェックしたもの）を対象に、見積書準備 → 交付申請 → 補助事業実行中 → 実績報告申請 の進捗を管理します。
         </div>
       )}
 
@@ -816,6 +819,17 @@ export default function ProjectsPage() {
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-sm font-medium text-slate-700">HP URL</label>
               <input name="homepage_url" type="url" className="input" placeholder="https://example.co.jp" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">支援項目</label>
+              <div className="flex flex-wrap gap-3">
+                {SUPPORT_ITEMS.map(item => (
+                  <label key={item} className="flex items-center gap-1.5 text-sm text-slate-700">
+                    <input type="checkbox" name="support_items" value={item} defaultChecked={view === 'result_report'} className="h-4 w-4 rounded border-slate-300" />
+                    {item}
+                  </label>
+                ))}
+              </div>
             </div>
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-sm font-medium text-slate-700">その他メモ</label>
