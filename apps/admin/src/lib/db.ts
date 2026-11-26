@@ -63,6 +63,8 @@ export type DbProject = {
   zestas_base_billed_date: string | null
   zestas_success_billed_date: string | null
   zestas_base_paid_date: string | null
+  zestas_base_amount: number | null     // ゼスタス請求額の調整（null=自動計算の金額）
+  zestas_success_amount: number | null
   zestas_success_paid_date: string | null
   pipeline_hidden: boolean
   applied_amount: number | null
@@ -529,6 +531,13 @@ export const CONTRACT_ENTITY_LABEL = { salud: '株式会社Salud', zestas: '株�
 export async function updateZestasBilledDate(id: string, kind: 'base' | 'success', date: string | null) {
   const col = kind === 'base' ? 'zestas_base_billed_date' : 'zestas_success_billed_date'
   const { error } = await db().from('projects').update({ [col]: date }).eq('id', id)
+  if (error) throw error
+}
+
+// ゼスタス請求リストの金額の調整（自由入力・税抜・円）。null で自動計算の金額に戻す
+export async function updateZestasAmount(id: string, kind: 'base' | 'success', amount: number | null) {
+  const col = kind === 'base' ? 'zestas_base_amount' : 'zestas_success_amount'
+  const { error } = await db().from('projects').update({ [col]: amount }).eq('id', id)
   if (error) throw error
 }
 

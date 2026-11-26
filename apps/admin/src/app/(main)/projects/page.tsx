@@ -12,7 +12,7 @@ import { Modal } from '@/components/Modal'
 import { TaxAmountInput } from '@/components/TaxAmountInput'
 import { buildZestasBillingItems, monthLabel, type ZestasBillingItem } from '@/lib/zestasBilling'
 import {
-  fetchProjects, fetchCustomers, fetchPartnerAgencies, fetchProfiles, fetchMyProfile, fetchMyProjectOrders, saveMyProjectOrders, insertProject, insertCustomer, updateProjectStatus, updateResultReportStatus, updateZestasBilledDate, updateZestasPaidDate, SUPPORT_ITEMS,
+  fetchProjects, fetchCustomers, fetchPartnerAgencies, fetchProfiles, fetchMyProfile, fetchMyProjectOrders, saveMyProjectOrders, insertProject, insertCustomer, updateProjectStatus, updateResultReportStatus, updateZestasBilledDate, updateZestasPaidDate, updateZestasAmount, SUPPORT_ITEMS,
   formatAmount, formatDate, defaultReferralBase, type DbProject, type DbCustomer, type DbProfile, type DbPartnerAgency,
 } from '@/lib/db'
 
@@ -316,6 +316,24 @@ export default function ProjectsPage() {
     }
   }
 
+  // ゼスタス請求額の調整（自由入力・税抜・円）。空にして保存すると自動計算の金額に戻る
+  const [amountEditKey, setAmountEditKey] = useState<string | null>(null)
+  const [amountEditValue, setAmountEditValue] = useState('')
+  const saveZestasAmount = async (it: ZestasBillingItem) => {
+    const trimmed = amountEditValue.trim()
+    const next = trimmed === '' ? null : Number(trimmed)
+    if (next != null && (!Number.isFinite(next) || next < 0)) { setError('金額は0以上の数字で入力してください'); return }
+    const col = it.kind === 'base' ? 'zestas_base_amount' : 'zestas_success_amount'
+    setProjects(prev => prev.map(x => x.id === it.projectId ? { ...x, [col]: next } : x))
+    setAmountEditKey(null)
+    try {
+      await updateZestasAmount(it.projectId, it.kind, next)
+    } catch {
+      setError('金額の更新に失敗しました')
+      load()
+    }
+  }
+
   // ゼスタスからの入金チェック（押した日が入金日。もう一度押すと取り消し）
   const toggleZestasPaid = async (it: ZestasBillingItem) => {
     const key = it.kind === 'base' ? 'zestas_base_paid_date' : 'zestas_success_paid_date'
@@ -571,7 +589,39 @@ export default function ProjectsPage() {
                     <p className="text-xs text-slate-400">{it.subsidyName}</p>
                   </td>
                   <td className="px-3 py-3 text-slate-600">{it.kind === 'base' ? '基本料金' : '成功報酬'}</td>
-                  <td className="px-3 py-3 text-right font-medium text-slate-800">{formatAmount(it.amount)}</td>
+                  <td className="px-3 py-3 text-right font-medium text-slate-800">
+                    {amountEditKey === it.key ? (
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number" min="0" autoFocus
+                            className="input h-8 w-28 py-0 text-right text-sm"
+                            value={amountEditValue}
+                            onChange={e => setAmountEditValue(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') saveZestasAmount(it); if (e.key === 'Escape') setAmountEditKey(null) }}
+                            placeholder={String(it.autoAmount)}
+                          />
+                          <span className="text-xs text-slate-500">円</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[11px]">
+                          <button type="button" className="rounded bg-brand-600 px-2 py-0.5 text-white" onClick={() => saveZestasAmount(it)}>保存</button>
+                          <button type="button" className="text-slate-500 hover:underline" onClick={() => setAmountEditKey(null)}>キャンセル</button>
+                        </div>
+                        <p className="text-[10px] font-normal text-slate-400">空欄で保存すると自動の金額（{formatAmount(it.autoAmount)}）に戻ります<br />目安: 持続化補助金 5万円／その他 2〜5万円</p>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        title="クリックで金額を調整"
+                        className="rounded px-1 text-right hover:bg-slate-100"
+                        onClick={() => { setAmountEditKey(it.key); setAmountEditValue(it.adjusted ? String(it.amount) : '') }}
+                      >
+                        {formatAmount(it.amount)}
+                        <span className="ml-1 text-[10px] text-slate-400">✎</span>
+                        {it.adjusted && <span className="block text-[10px] font-normal text-amber-600">調整済（元 {formatAmount(it.autoAmount)}）</span>}
+                      </button>
+                    )}
+                  </td>
                   <td className="px-3 py-3">
                     <button type="button" onClick={() => toggleZestasBilled(it)}
                       className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${it.billedDate ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
