@@ -530,22 +530,28 @@ export const CONTRACT_ENTITY_LABEL = { salud: '株式会社Salud', zestas: '株�
 // ゼスタス契約案件の請求日を記録（null で請求済みを取消）
 export async function updateZestasBilledDate(id: string, kind: 'base' | 'success', date: string | null) {
   const col = kind === 'base' ? 'zestas_base_billed_date' : 'zestas_success_billed_date'
-  const { error } = await db().from('projects').update({ [col]: date }).eq('id', id)
+  const { data, error } = await db().from('projects').update({ [col]: date }).eq('id', id).select('id')
   if (error) throw error
+  // 権限がない案件（一般権限で担当外など）は、エラーにならず0件更新で終わるため、ここで検知する
+  if (!data || data.length === 0) throw new Error('更新できませんでした（この案件を更新する権限がない可能性があります）')
 }
 
 // ゼスタス請求リストの金額の調整（自由入力・税抜・円）。null で自動計算の金額に戻す
 export async function updateZestasAmount(id: string, kind: 'base' | 'success', amount: number | null) {
   const col = kind === 'base' ? 'zestas_base_amount' : 'zestas_success_amount'
-  const { error } = await db().from('projects').update({ [col]: amount }).eq('id', id)
+  const { data, error } = await db().from('projects').update({ [col]: amount }).eq('id', id).select('id')
   if (error) throw error
+  // 権限がない案件（一般権限で担当外など）は、エラーにならず0件更新で終わるため、ここで検知する
+  if (!data || data.length === 0) throw new Error('更新できませんでした（この案件を更新する権限がない可能性があります）')
 }
 
 // ゼスタスからの入金日（請求リストの「入金済」チェック）。null で取り消し
 export async function updateZestasPaidDate(id: string, kind: 'base' | 'success', date: string | null) {
   const col = kind === 'base' ? 'zestas_base_paid_date' : 'zestas_success_paid_date'
-  const { error } = await db().from('projects').update({ [col]: date }).eq('id', id)
+  const { data, error } = await db().from('projects').update({ [col]: date }).eq('id', id).select('id')
   if (error) throw error
+  // 権限がない案件（一般権限で担当外など）は、エラーにならず0件更新で終わるため、ここで検知する
+  if (!data || data.length === 0) throw new Error('更新できませんでした（この案件を更新する権限がない可能性があります）')
 }
 
 export async function deleteProject(id: string) {

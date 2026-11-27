@@ -311,7 +311,7 @@ export default function ProjectsPage() {
     try {
       await updateZestasBilledDate(it.projectId, it.kind, next)
     } catch {
-      setError('請求状況の更新に失敗しました')
+      setError('請求状況を保存できませんでした（この案件を更新する権限がない可能性があります）')
       load()
     }
   }
@@ -329,7 +329,7 @@ export default function ProjectsPage() {
     try {
       await updateZestasAmount(it.projectId, it.kind, next)
     } catch {
-      setError('金額の更新に失敗しました')
+      setError('金額を保存できませんでした（この案件を更新する権限がない可能性があります）')
       load()
     }
   }
@@ -342,7 +342,7 @@ export default function ProjectsPage() {
     try {
       await updateZestasPaidDate(it.projectId, it.kind, next)
     } catch {
-      setError('入金状況の更新に失敗しました')
+      setError('入金状況を保存できませんでした（この案件を更新する権限がない可能性があります）')
       load()
     }
   }
